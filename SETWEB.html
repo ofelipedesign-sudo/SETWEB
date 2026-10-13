@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>SET - Sistema de Transações & Faturas</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Phosphor Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Supabase JS CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- PDF.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+  <script>
+    if (window.pdfjsLib) {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+    
+    :root {
+      --sat: env(safe-area-inset-top, 0px);
+      --sab: env(safe-area-inset-bottom, 0px);
+    }
+
+    html, body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      overscroll-behavior-y: none;
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
+
+    .app-header-safe { padding-top: max(12px, calc(var(--sat) + 8px)); }
+    .app-bottom-nav-safe { padding-bottom: max(10px, calc(var(--sab) + 12px)); }
+    .app-main-safe { padding-bottom: max(95px, calc(var(--sab) + 105px)); }
+    .app-modal-sheet {
+      padding-bottom: max(20px, calc(var(--sab) + 24px)) !important;
+      max-height: calc(90dvh - var(--sat));
+    }
+
+    .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 9999px; }
+    .dark .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #475569; }
+
+    @media (max-width: 640px) {
+      input, select, textarea { font-size: 16px !important; }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 antialiased min-h-screen transition-colors duration-200 select-none">
+
+  <!-- CONFIGURAÇÃO SUPABASE -->
+  <script>
+    const SUPABASE_PROJECT_URL = 'COLE_AQUI_SUA_URL_SUPABASE';
+    const SUPABASE_ANON_KEY = 'COLE_AQUI_SUA_CHAVE_ANON';
+
+    window.supabaseClient = (window.supabase && !SUPABASE_ANON_KEY.includes('COLE_AQUI')) 
+      ? window.supabase.createClient(SUPABASE_PROJECT_URL, SUPABASE_ANON_KEY) 
+      : null;
+  </script>
+
+  <!-- 1. TELA DE AUTENTICAÇÃO -->
+  <div id="authScreen" class="min-h-[100dvh] w-full flex flex-col justify-center items-center px-4 py-8 bg-slate-50 dark:bg-slate-950">
+    <div class="w-full max-w-sm flex flex-col gap-5">
+      <div class="text-center">
+        <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center text-white mx-auto shadow-lg shadow-brand-500/20 mb-3.5">
+          <i class="ph-bold ph-receipt text-3xl"></i>
+        </div>
+        <h2 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white">SET Web</h2>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Sistema de Faturas & Rateio Financeiro</p>
+      </div>
+
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-7 shadow-xl flex flex-col gap-4">
+        <div class="flex border border-slate-200 dark:border-slate-700/80 rounded-xl p-1 bg-slate-100 dark:bg-slate-800/80 text-xs font-semibold">
+          <button type="button" id="tabAuthLogin" onclick="setAuthMode('login')" class="flex-1 py-2.5 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm transition">Entrar</button>
+          <button type="button" id="tabAuthRegister" onclick="setAuthMode('register')" class="flex-1 py-2.5 rounded-lg text-slate-500 dark:text-slate-400 transition">Criar Conta</button>
+        </div>
+
+        <form id="formAuth" onsubmit="handleAuthSubmit(event)" class="flex flex-col gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">E-mail</label>
+            <input type="email" id="authEmail" required placeholder="seu@email.com" class="w-full px-3.5 py-3 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition">
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Senha</label>
+            <input type="password" id="authPassword" required minlength="6" placeholder="Mínimo 6 caracteres" class="w-full px-3.5 py-3 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition">
+          </div>
+
+          <button type="submit" id="btnAuthSubmit" class="w-full mt-1 py-3.5 text-sm font-bold rounded-xl bg-brand-600 hover:bg-brand-700 active:scale-[0.99] text-white shadow-md shadow-brand-600/25 transition">
+            Acessar Sistema
+          </button>
+        </form>
+      </div>
+
+      <div class="flex items-center justify-center gap-2 text-xs text-slate-400">
+        <button type="button" onclick="toggleTheme()" class="hover:text-slate-600 dark:hover:text-slate-200 transition flex items-center gap-1 font-semibold">
+          <i class="ph-bold ph-circle-half"></i>
+          <span>Alternar tema</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. APLICAÇÃO PRINCIPAL -->
+  <div id="appContainer" class="hidden min-h-screen flex flex-col">
+
+    <!-- Topo / Header -->
+    <header class="app-header-safe bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30 transition-colors duration-200">
+      <div class="max-w-7xl mx-auto px-4 pb-3 flex items-center justify-between gap-2">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
+            <i class="ph-bold ph-receipt text-xl"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <h1 class="text-lg font-bold tracking-tight text-slate-900 dark:text-white leading-none">SET Web</h1>
+              <span class="text-[9px] font-semibold uppercase px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hidden xs:inline">Faturas & IA</span>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-0.5 hidden sm:block">Gestão de Cartões e Empréstimos</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <!-- Botão Importar Fatura PDF com IA -->
+          <button onclick="triggerInvoiceUpload()" class="px-3 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white flex items-center gap-1.5 shadow-sm transition">
+            <i class="ph-bold ph-sparkle text-amber-300 text-sm"></i>
+            <span>Importar Fatura IA</span>
+          </button>
+          <input type="file" id="pdfFileInput" accept=".pdf,.csv,.ofx" onchange="handleFileSelected(event)" class="hidden">
+
+          <button onclick="openConfigModal()" class="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-lg transition" title="Configurações & Chave Gemini">
+            <i class="ph-bold ph-gear text-lg"></i>
+          </button>
+
+          <button onclick="signOut()" class="p-2 text-rose-500 hover:text-rose-700 rounded-lg transition" title="Sair">
+            <i class="ph-bold ph-sign-out text-lg"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Conteúdo Principal -->
+    <main class="app-main-safe max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 py-4 w-full flex-1 flex flex-col gap-4">
+
+      <!-- Navegação por Abas Desktop -->
+      <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 gap-2">
+        <div class="flex items-center gap-2">
+          <button onclick="switchTab('dashboard')" id="tabNavDash" class="px-4 py-2 rounded-lg text-sm font-semibold transition bg-brand-50 dark:bg-emerald-950/40 text-brand-700 dark:text-emerald-300 border border-brand-200 dark:border-emerald-800 flex items-center gap-2">
+            <i class="ph-bold ph-chart-pie-slice"></i>
+            <span>Painel</span>
+          </button>
+          <button onclick="switchTab('invoices')" id="tabNavInvoices" class="px-4 py-2 rounded-lg text-sm font-medium transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2">
+            <i class="ph-bold ph-credit-card"></i>
+            <span>Faturas</span>
+            <span id="badgeInvoicesCount" class="text-[11px] px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold">0</span>
+          </button>
+          <button onclick="switchTab('transactions')" id="tabNavTrans" class="px-4 py-2 rounded-lg text-sm font-medium transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2">
+            <i class="ph-bold ph-arrows-left-right"></i>
+            <span>Lançamentos & Rateio</span>
+          </button>
+          <button onclick="switchTab('members')" id="tabNavMembers" class="px-4 py-2 rounded-lg text-sm font-medium transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2">
+            <i class="ph-bold ph-users"></i>
+            <span>Membros</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ABA 1: PAINEL GERAL -->
+      <div id="viewDashboard" class="flex flex-col gap-4">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Faturas em Aberto</span>
+            <h3 id="cardOpenInvoices" class="text-2xl font-black text-rose-600 dark:text-rose-400 tracking-tight mt-2">R$ 0,00</h3>
+            <p id="cardOpenCount" class="text-[11px] text-slate-400 mt-0.5">0 faturas pendentes</p>
+          </div>
+
+          <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Lançamentos</span>
+            <h3 id="cardTotalTransactions" class="text-2xl font-black text-slate-900 dark:text-white tracking-tight mt-2">R$ 0,00</h3>
+            <p id="cardTransCount" class="text-[11px] text-slate-400 mt-0.5">0 itens catalogados</p>
+          </div>
+
+          <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Rateio / Membros</span>
+            <h3 id="cardTotalMembers" class="text-2xl font-black text-indigo-600 dark:text-indigo-400 tracking-tight mt-2">0</h3>
+            <p class="text-[11px] text-slate-400 mt-0.5">Pessoas cadastradas</p>
+          </div>
+
+          <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Bancos / Cartões</span>
+            <h3 id="cardTotalBanks" class="text-2xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight mt-2">0</h3>
+            <p class="text-[11px] text-slate-400 mt-0.5">Instituições ativas</p>
+          </div>
+        </div>
+
+        <!-- Área de Upload Rápido / Drag & Drop -->
+        <div class="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-brand-500 rounded-3xl p-8 text-center cursor-pointer transition bg-white/50 dark:bg-slate-900/50" onclick="triggerInvoiceUpload()">
+          <div class="w-12 h-12 rounded-2xl bg-brand-50 dark:bg-emerald-950/60 text-brand-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-3 text-2xl">
+            <i class="ph-bold ph-file-arrow-up"></i>
+          </div>
+          <h4 class="text-sm font-bold text-slate-800 dark:text-slate-100">Arraste ou selecione a Fatura (PDF) aqui</h4>
+          <p class="text-xs text-slate-400 mt-1 max-w-md mx-auto">O motor com IA interpretará o emissor, data de vencimento, valor total e todos os lançamentos individuais automaticamente.</p>
+        </div>
+      </div>
+
+      <!-- ABA 2: FATURAS -->
+      <div id="viewInvoices" class="flex flex-col gap-4 hidden">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
+          <div class="flex items-center justify-between mb-3 border-b border-slate-100 dark:border-slate-800 pb-2">
+            <h4 class="text-sm font-bold text-slate-800 dark:text-slate-100">Histórico de Faturas Importadas</h4>
+          </div>
+          <div id="invoicesList" class="divide-y divide-slate-100 dark:divide-slate-800"></div>
+          <div id="emptyInvoices" class="p-8 text-center text-slate-400 text-xs">Nenhuma fatura registrada.</div>
+        </div>
+      </div>
+
+      <!-- ABA 3: TRANSAÇÕES & RATEIO -->
+      <div id="viewTransactions" class="flex flex-col gap-4 hidden">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
+          <div class="flex items-center justify-between mb-3 border-b border-slate-100 dark:border-slate-800 pb-2">
+            <h4 class="text-sm font-bold text-slate-800 dark:text-slate-100">Itens das Faturas & Rateio por Membro</h4>
+          </div>
+          <div id="transactionsList" class="divide-y divide-slate-100 dark:divide-slate-800"></div>
+          <div id="emptyTransactions" class="p-8 text-center text-slate-400 text-xs">Nenhum lançamento encontrado.</div>
+        </div>
+      </div>
+
+      <!-- ABA 4: MEMBROS / USUÁRIOS -->
+      <div id="viewMembers" class="flex flex-col gap-4 hidden">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
+          <div class="flex items-center justify-between mb-3 border-b border-slate-100 dark:border-slate-800 pb-2">
+            <div>
+              <h4 class="text-sm font-bold text-slate-800 dark:text-slate-100">Membros para Rateio</h4>
+              <p class="text-xs text-slate-400">Pessoas entre as quais as compras de faturas podem ser divididas</p>
+            </div>
+            <button onclick="openNewMemberModal()" class="px-3 py-1.5 text-xs font-bold rounded-xl bg-brand-600 text-white hover:bg-brand-700">
+              + Novo Membro
+            </button>
+          </div>
+          <div id="membersList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"></div>
+          <div id="emptyMembers" class="p-8 text-center text-slate-400 text-xs">Nenhum membro cadastrado.</div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- MODAL: CONFIRMAÇÃO DE FATURA EXTRAÍDA PELA IA -->
+    <div id="modalInvoiceAI" class="fixed inset-0 z-50 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+      <div class="app-modal-sheet bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-xl w-full p-6 shadow-2xl border-t sm:border border-slate-100 dark:border-slate-800 flex flex-col gap-4 overflow-y-auto custom-scrollbar">
+        <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+          <div class="flex items-center gap-2">
+            <i class="ph-bold ph-sparkle text-amber-500 text-xl"></i>
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white">Fatura Processada com IA</h3>
+          </div>
+          <button onclick="closeInvoiceAIModal()" class="p-1 text-slate-400 hover:text-white"><i class="ph-bold ph-x text-lg"></i></button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700">
+          <div>
+            <span class="text-[10px] font-bold text-slate-400 uppercase">Banco Identificado</span>
+            <input type="text" id="aiBankName" class="w-full text-sm font-bold bg-transparent dark:text-white focus:outline-none">
+          </div>
+          <div>
+            <span class="text-[10px] font-bold text-slate-400 uppercase">Vencimento</span>
+            <input type="date" id="aiDueDate" class="w-full text-sm font-bold bg-transparent dark:text-white focus:outline-none">
+          </div>
+          <div class="col-span-2">
+            <span class="text-[10px] font-bold text-slate-400 uppercase">Valor Total</span>
+            <input type="number" step="0.01" id="aiTotalAmount" class="w-full text-xl font-black text-rose-600 dark:text-rose-400 bg-transparent focus:outline-none">
+          </div>
+        </div>
+
+        <div>
+          <h4 class="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">Itens Detectados (<span id="aiItemsCount">0</span> lançamentos)</h4>
+          <div id="aiItemsContainer" class="max-h-56 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 custom-scrollbar text-xs"></div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+          <button type="button" onclick="closeInvoiceAIModal()" class="px-4 py-2.5 text-xs font-semibold text-slate-500">Cancelar</button>
+          <button type="button" onclick="confirmSaveInvoice()" class="px-6 py-2.5 text-xs font-bold bg-brand-600 text-white rounded-xl shadow-md">Salvar Fatura & Lançamentos</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: CONFIGURAÇÃO / CHAVE GEMINI -->
+    <div id="modalConfig" class="fixed inset-0 z-50 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+      <div class="app-modal-sheet bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-sm w-full p-6 shadow-2xl border-t sm:border border-slate-100 dark:border-slate-800 flex flex-col gap-4 text-center">
+        <h3 class="text-sm font-bold text-slate-900 dark:text-white">Configuração da IA (Gemini)</h3>
+        <p class="text-xs text-slate-400">Insira sua chave do Google AI Studio para habilitar a interpretação semântica de faturas sem erros de formatação.</p>
+        <input type="password" id="inputGeminiKey" placeholder="Cole sua chave AIzaSy... aqui" class="w-full px-3 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-white focus:outline-none">
+        
+        <div class="flex flex-col gap-2">
+          <button onclick="saveGeminiKey()" class="w-full py-2.5 text-xs font-bold rounded-xl bg-brand-600 text-white">Salvar Chave</button>
+          <button onclick="closeConfigModal()" class="w-full py-2 text-xs font-semibold text-slate-400">Fechar</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 3. LÓGICA JAVASCRIPT -->
+  <script>
+    let currentUser = null;
+    let currentInvoices = [];
+    let currentTransactions = [];
+    let currentMembers = [];
+    let pendingParsedInvoice = null;
+
+    function initTheme() {
+      const savedTheme = localStorage.getItem('set_theme');
+      const isDark = savedTheme ? savedTheme === 'dark' : true;
+      document.documentElement.classList.toggle('dark', isDark);
+    }
+
+    function toggleTheme() {
+      const isDark = document.documentElement.classList.toggle('dark');
+      localStorage.setItem('set_theme', isDark ? 'dark' : 'light');
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      initTheme();
+      checkSession();
+    });
+
+    async function checkSession() {
+      if (!window.supabaseClient) {
+        showAuth();
+        return;
+      }
+      const { data: { session } } = await window.supabaseClient.auth.getSession();
+      if (session && session.user) {
+        currentUser = session.user;
+        showApp();
+        loadAllData();
+      } else {
+        showAuth();
+      }
+    }
+
+    function showAuth() {
+      document.getElementById('authScreen').classList.remove('hidden');
+      document.getElementById('appContainer').classList.add('hidden');
+    }
+
+    function showApp() {
+      document.getElementById('authScreen').classList.add('hidden');
+      document.getElementById('appContainer').classList.remove('hidden');
+    }
+
+    async function handleAuthSubmit(e) {
+      e.preventDefault();
+      if (!window.supabaseClient) return alert('Supabase não configurado.');
+
+      const email = document.getElementById('authEmail').value.trim();
+      const password = document.getElementById('authPassword').value;
+
+      try {
+        const { data, error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        currentUser = data.user;
+        showApp();
+        loadAllData();
+      } catch (err) {
+        alert('Erro de login: ' + err.message);
+      }
+    }
+
+    async function signOut() {
+      if (window.supabaseClient) await window.supabaseClient.auth.signOut();
+      currentUser = null;
+      showAuth();
+    }
+
+    function switchTab(tab) {
+      ['dashboard', 'invoices', 'transactions', 'members'].forEach(t => {
+        const view = document.getElementById('view' + t.charAt(0).toUpperCase() + t.slice(1));
+        if (view) view.classList.add('hidden');
+      });
+
+      const selected = document.getElementById('view' + tab.charAt(0).toUpperCase() + tab.slice(1));
+      if (selected) selected.classList.remove('hidden');
+    }
+
+    function triggerInvoiceUpload() {
+      document.getElementById('pdfFileInput').click();
+    }
+
+    async function handleFileSelected(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const apiKey = localStorage.getItem('set_gemini_key');
+      if (!apiKey) {
+        openConfigModal();
+        alert('Por favor, configure sua chave Gemini API antes de processar faturas.');
+        return;
+      }
+
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        let textContent = '';
+
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          textContent += ' ' + content.items.map(item => item.str).join(' ');
+        }
+
+        await processPdfWithGemini(textContent, apiKey);
+      } catch (err) {
+        alert('Erro ao ler PDF: ' + err.message);
+      }
+      e.target.value = '';
+    }
+
+    async function processPdfWithGemini(rawText, key) {
+      const prompt = `Analise este extrato/fatura de cartão de crédito e extraia as informações em JSON:
+1. "bank_name": Nome do banco emissor.
+2. "due_date": Vencimento (YYYY-MM-DD).
+3. "total_amount": Total original a pagar (número decimal).
+4. "items": Lista de itens/compras contendo: "description", "amount" (decimal positivo), "date" (YYYY-MM-DD), "category".
+
+Retorne estritamente um JSON:
+{"bank_name": "...", "due_date": "...", "total_amount": 0.00, "items": [{"description": "...", "amount": 0.00, "date": "...", "category": "..."}]}
+
+Texto:
+${rawText.slice(0, 15000)}`;
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.1, response_mime_type: 'application/json' }
+        })
+      });
+
+      if (!response.ok) throw new Error('Falha na API Gemini');
+      const data = await response.json();
+      const parsed = JSON.parse(data.candidates[0].content.parts[0].text);
+
+      pendingParsedInvoice = parsed;
+      showInvoiceAIModal(parsed);
+    }
+
+    function showInvoiceAIModal(data) {
+      document.getElementById('aiBankName').value = data.bank_name || 'Cartão';
+      document.getElementById('aiDueDate').value = data.due_date || new Date().toISOString().split('T')[0];
+      document.getElementById('aiTotalAmount').value = Number(data.total_amount).toFixed(2);
+      document.getElementById('aiItemsCount').textContent = (data.items || []).length;
+
+      const container = document.getElementById('aiItemsContainer');
+      container.innerHTML = '';
+      (data.items || []).forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'py-2 flex items-center justify-between';
+        div.innerHTML = `
+          <div>
+            <p class="font-bold text-slate-800 dark:text-slate-100">${item.description}</p>
+            <p class="text-[10px] text-slate-400">${item.date} • ${item.category || 'Geral'}</p>
+          </div>
+          <span class="font-bold text-rose-600">R$ ${Number(item.amount).toFixed(2)}</span>
+        `;
+        container.appendChild(div);
+      });
+
+      document.getElementById('modalInvoiceAI').classList.remove('hidden');
+    }
+
+    function closeInvoiceAIModal() {
+      document.getElementById('modalInvoiceAI').classList.add('hidden');
+    }
+
+    async function confirmSaveInvoice() {
+      if (!pendingParsedInvoice || !window.supabaseClient) return;
+
+      try {
+        const invoiceData = {
+          user_id: currentUser.id,
+          bank_name: document.getElementById('aiBankName').value,
+          due_date: document.getElementById('aiDueDate').value,
+          total_amount: parseFloat(document.getElementById('aiTotalAmount').value),
+          status: 'open'
+        };
+
+        const { data: invResult, error: invErr } = await window.supabaseClient
+          .from('invoices')
+          .insert([invoiceData])
+          .select();
+
+        if (invErr) throw invErr;
+        const invoiceId = invResult[0].id;
+
+        const transRows = (pendingParsedInvoice.items || []).map(item => ({
+          user_id: currentUser.id,
+          invoice_id: invoiceId,
+          description: item.description,
+          amount: item.amount,
+          date: item.date || invoiceData.due_date,
+          category: item.category || 'Outros',
+          type: 'expense'
+        }));
+
+        if (transRows.length > 0) {
+          await window.supabaseClient.from('transactions').insert(transRows);
+        }
+
+        closeInvoiceAIModal();
+        alert('Fatura e itens gravados com sucesso!');
+        loadAllData();
+      } catch (e) {
+        alert('Erro ao salvar fatura: ' + e.message);
+      }
+    }
+
+    async function loadAllData() {
+      if (!window.supabaseClient || !currentUser) return;
+
+      const [invRes, transRes, membRes] = await Promise.all([
+        window.supabaseClient.from('invoices').select('*').eq('user_id', currentUser.id),
+        window.supabaseClient.from('transactions').select('*').eq('user_id', currentUser.id),
+        window.supabaseClient.from('members').select('*').eq('user_id', currentUser.id)
+      ]);
+
+      currentInvoices = invRes.data || [];
+      currentTransactions = transRes.data || [];
+      currentMembers = membRes.data || [];
+
+      renderDashboard();
+    }
+
+    function renderDashboard() {
+      const openTotal = currentInvoices.filter(i => i.status === 'open').reduce((a, b) => a + Number(b.total_amount), 0);
+      document.getElementById('cardOpenInvoices').textContent = 'R$ ' + openTotal.toFixed(2);
+      document.getElementById('cardOpenCount').textContent = `${currentInvoices.filter(i => i.status === 'open').length} faturas pendentes`;
+
+      const transTotal = currentTransactions.reduce((a, b) => a + Number(b.amount), 0);
+      document.getElementById('cardTotalTransactions').textContent = 'R$ ' + transTotal.toFixed(2);
+      document.getElementById('cardTransCount').textContent = `${currentTransactions.length} itens catalogados`;
+
+      document.getElementById('cardTotalMembers').textContent = currentMembers.length;
+    }
+
+    function openConfigModal() {
+      document.getElementById('inputGeminiKey').value = localStorage.getItem('set_gemini_key') || '';
+      document.getElementById('modalConfig').classList.remove('hidden');
+    }
+
+    function closeConfigModal() {
+      document.getElementById('modalConfig').classList.add('hidden');
+    }
+
+    function saveGeminiKey() {
+      const k = document.getElementById('inputGeminiKey').value.trim();
+      localStorage.setItem('set_gemini_key', k);
+      closeConfigModal();
+    }
+  </script>
+</body>
+</html>
