@@ -454,7 +454,7 @@
       e.target.value = '';
     }
 
-    // MOTOR DE IA SEMÂNTICA RESILIENTE (GEMINI API)
+    // MOTOR DE IA COM RESOLUÇÃO DINÂMICA DE MODELOS
     async function parseInvoiceWithAI(pdfText, apiKey) {
       const prompt = `Você é um motor contábil especialista em conciliação de faturas de cartões de crédito e extratos bancários.
 Analise o texto extraído da fatura e retorne as informações em JSON estruturado estrito.
@@ -489,19 +489,45 @@ Retorne EXCLUSIVAMENTE o JSON no formato:
 TEXTO DA FATURA:
 ${pdfText.slice(0, 15000)}`;
 
-      // Lista ordenada por compatibilidade e disponibilidade
-      const candidateModels = [
-        'gemini-1.5-flash',
-        'gemini-1.5-flash-latest',
-        'gemini-2.5-flash',
-        'gemini-pro'
-      ];
+      // 1. Descobrir dinamicamente quais modelos suportam generateContent para esta chave
+      let candidateEndpoints = [];
+      try {
+        const listResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+        if (listResp.ok) {
+          const listData = await listResp.json();
+          const validModels = (listData.models || [])
+            .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
+            .map(m => m.name.replace('models/', ''));
+
+          // Prioriza flash e modelos recentes disponíveis
+          const flashModels = validModels.filter(m => m.includes('flash'));
+          const otherModels = validModels.filter(m => !m.includes('flash'));
+          const ordered = [...flashModels, ...otherModels];
+
+          ordered.forEach(m => {
+            candidateEndpoints.push(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`);
+            candidateEndpoints.push(`https://generativelanguage.googleapis.com/v1/models/${m}:generateContent`);
+          });
+        }
+      } catch (errList) {
+        console.warn('Falha ao listar modelos dinamicamente, utilizando lista padrão:', errList);
+      }
+
+      // Rotas seguras com fallback garantido
+      if (candidateEndpoints.length === 0) {
+        candidateEndpoints = [
+          'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
+          'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent',
+          'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent',
+          'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
+        ];
+      }
 
       let lastError = null;
 
-      for (const model of candidateModels) {
+      for (const endpoint of candidateEndpoints) {
         try {
-          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+          const response = await fetch(`${endpoint}?key=${apiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -515,16 +541,16 @@ ${pdfText.slice(0, 15000)}`;
           if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
             const errMsg = errorData.error?.message || `HTTP ${response.status}`;
-            lastError = new Error(`[${model}] ${errMsg}`);
+            lastError = new Error(errMsg);
             continue;
           }
 
           const data = await response.json();
           let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
-          if (!rawText) throw new Error('Resposta vazia da IA.');
+          if (!rawText) throw new Error('Resposta sem texto retornado.');
 
-          // Higienização contra formatações markdown
+          // Limpa delimitadores de código markdown
           rawText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
 
           return JSON.parse(rawText);
@@ -533,7 +559,7 @@ ${pdfText.slice(0, 15000)}`;
         }
       }
 
-      throw lastError || new Error('Não foi possível conectar aos modelos do Gemini.');
+      throw lastError || new Error('Não foi possível se comunicar com os modelos do Gemini.');
     }
 
     async function processPdfWithGemini(textContent, apiKey) {
