@@ -93,7 +93,7 @@
     }
   </script>
 
-  <!-- 1. ECRÃ DE AUTENTICAÇÃO -->
+  <!-- 1. TELA DE AUTENTICAÇÃO -->
   <div id="authScreen" class="min-h-[100dvh] w-full flex flex-col justify-center items-center px-4 py-8 bg-slate-950">
     <div class="w-full max-w-sm flex flex-col gap-5">
       <div class="text-center">
@@ -117,7 +117,7 @@
           </div>
 
           <div>
-            <label class="block text-xs font-bold text-slate-300 mb-1.5">Palavra-passe</label>
+            <label class="block text-xs font-bold text-slate-300 mb-1.5">Senha</label>
             <input type="password" id="authPassword" required minlength="6" placeholder="Mínimo 6 caracteres" class="w-full px-3.5 py-3 text-sm rounded-xl border border-slate-700 bg-slate-800 text-white focus:outline-none focus:border-brand-500 transition">
           </div>
 
@@ -139,6 +139,7 @@
   <!-- 2. APLICAÇÃO PRINCIPAL -->
   <div id="appContainer" class="hidden min-h-screen flex flex-col">
 
+    <!-- Topo / Header com Menu SET -->
     <header class="app-header-safe bg-slate-900 border-b border-slate-800 sticky top-0 z-30 transition-colors duration-200">
       <div class="max-w-7xl mx-auto px-4 pb-3 flex items-center justify-between gap-2">
         <div class="flex items-center space-x-2.5">
@@ -155,6 +156,7 @@
         </div>
 
         <div class="flex items-center gap-2">
+          <!-- Botão Importar Fatura IA -->
           <button onclick="triggerInvoiceUpload()" class="px-3 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white flex items-center gap-1.5 shadow-sm transition">
             <i class="ph-bold ph-sparkle text-amber-300 text-sm"></i>
             <span>Importar Fatura IA</span>
@@ -180,7 +182,7 @@
                 </button>
                 <button onclick="switchTab('members'); closeSetMenuDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium rounded-lg hover:bg-slate-800 flex items-center gap-2">
                   <i class="ph-bold ph-users text-indigo-400"></i>
-                  <span>Catalogar Membros / Utilizadores</span>
+                  <span>Catalogar Membros / Usuários</span>
                 </button>
                 <button onclick="openGenerateMemberPdfModal(); closeSetMenuDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium rounded-lg hover:bg-slate-800 flex items-center gap-2">
                   <i class="ph-bold ph-file-pdf text-rose-400"></i>
@@ -411,6 +413,23 @@
       </button>
     </nav>
 
+    <!-- MODAL DE CARREGAMENTO / PROCESSAMENTO IA -->
+    <div id="modalLoading" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
+      <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-2xl flex flex-col items-center gap-4">
+        <div class="relative w-16 h-16 flex items-center justify-center">
+          <div class="w-16 h-16 border-4 border-emerald-500/20 border-t-emerald-400 rounded-full animate-spin"></div>
+          <i class="ph-bold ph-sparkle text-amber-300 text-2xl absolute animate-pulse"></i>
+        </div>
+        <div>
+          <h3 id="loadingTitle" class="text-sm font-bold text-white tracking-tight">Processando com IA...</h3>
+          <p id="loadingSubtext" class="text-xs text-slate-400 mt-1">A analisar extrato e lançamentos da fatura</p>
+        </div>
+        <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+          <div class="bg-gradient-to-r from-emerald-500 to-teal-400 h-full w-2/3 animate-pulse rounded-full"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- MODAL: CONFIRMAÇÃO DE FATURA EXTRAÍDA PELA IA -->
     <div id="modalInvoiceAI" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
       <div class="app-modal-sheet bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-xl w-full p-6 shadow-2xl border-t sm:border border-slate-800 flex flex-col gap-4 overflow-y-auto custom-scrollbar">
@@ -610,6 +629,16 @@
     let chartInvoices = null;
     let chartSplit = null;
 
+    function showLoading(title, subtext) {
+      document.getElementById('loadingTitle').textContent = title || 'Processando com IA...';
+      document.getElementById('loadingSubtext').textContent = subtext || 'A analisar os dados da fatura';
+      document.getElementById('modalLoading').classList.remove('hidden');
+    }
+
+    function hideLoading() {
+      document.getElementById('modalLoading').classList.add('hidden');
+    }
+
     function addLog(msg) {
       const logs = JSON.parse(localStorage.getItem('set_logs') || '[]');
       const timestamp = new Date().toLocaleTimeString();
@@ -777,6 +806,8 @@
         return;
       }
 
+      showLoading('Lendo arquivo PDF...', 'Extraindo o conteúdo textual das páginas');
+
       try {
         addLog(`A processar ficheiro PDF: ${file.name}`);
         const arrayBuffer = await file.arrayBuffer();
@@ -789,11 +820,14 @@
           textContent += ' ' + content.items.map(item => item.str).join(' ');
         }
 
+        showLoading('IA Analisando Fatura...', 'O Gemini está estruturando valores, vencimento e compras');
         await processPdfWithGemini(textContent, apiKey);
       } catch (err) {
+        hideLoading();
         alert('Erro ao ler PDF: ' + err.message);
+      } finally {
+        e.target.value = '';
       }
-      e.target.value = '';
     }
 
     // MOTOR DE IA COM RESOLUÇÃO DINÂMICA DE MODELOS
@@ -902,8 +936,10 @@ ${pdfText.slice(0, 15000)}`;
         const parsed = await parseInvoiceWithAI(textContent, apiKey);
         pendingParsedInvoice = parsed;
         addLog(`Fatura interpretada: ${parsed.bank_name} (R$ ${parsed.total_amount})`);
+        hideLoading();
         showInvoiceAIModal(parsed);
       } catch (err) {
+        hideLoading();
         alert('Erro ao interpretar com IA: ' + err.message);
       }
     }
@@ -940,6 +976,9 @@ ${pdfText.slice(0, 15000)}`;
     async function confirmSaveInvoice() {
       if (!pendingParsedInvoice || !window.supabaseClient) return;
 
+      closeInvoiceAIModal();
+      showLoading('Gravando no Banco de Dados...', 'Sincronizando fatura e transações no Supabase');
+
       try {
         const invoiceData = {
           user_id: currentUser.id,
@@ -973,10 +1012,11 @@ ${pdfText.slice(0, 15000)}`;
         }
 
         addLog(`Fatura guardada na base de dados com ${transRows.length} itens.`);
-        closeInvoiceAIModal();
+        hideLoading();
         alert('Fatura e itens guardados com sucesso!');
         loadAllData();
       } catch (e) {
+        hideLoading();
         alert('Erro ao guardar fatura: ' + e.message);
       }
     }
@@ -1371,59 +1411,4 @@ ${pdfText.slice(0, 15000)}`;
 
       const memberMap = {};
       currentMembers.forEach(m => {
-        const sum = currentTransactions.filter(t => t.member_id === m.id).reduce((a, b) => a + Number(b.amount), 0);
-        if (sum > 0) memberMap[m.name] = sum;
-      });
-
-      const ctx2 = document.getElementById('chartSplit').getContext('2d');
-      if (chartSplit) chartSplit.destroy();
-      chartSplit = new Chart(ctx2, {
-        type: 'doughnut',
-        data: {
-          labels: Object.keys(memberMap).length ? Object.keys(memberMap) : ['Sem rateio'],
-          datasets: [{
-            data: Object.values(memberMap).length ? Object.values(memberMap) : [1],
-            backgroundColor: ['#10b981', '#6366f1', '#f59e0b', '#ec4899', '#06b6d4'],
-            borderWidth: 0
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 }, color: textColor } } },
-          cutout: '70%'
-        }
-      });
-    }
-
-    function exportCSV() {
-      if (currentTransactions.length === 0) return alert('Sem lançamentos para exportar.');
-      let csv = 'ID;Descricao;Data;Valor;Categoria;Parcela;Membro\n';
-      currentTransactions.forEach(t => {
-        const member = currentMembers.find(m => m.id === t.member_id);
-        csv += `"${t.id}";"${t.description}";"${t.date}";"${t.amount}";"${t.category}";"${t.installment_info || ''}";"${member ? member.name : ''}"\n`;
-      });
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `set_relatorio_${new Date().toISOString().split('T')[0]}.csv`;
-      a.click();
-    }
-
-    function openConfigModal() {
-      document.getElementById('inputGeminiKey').value = localStorage.getItem('set_gemini_key') || '';
-      document.getElementById('modalConfig').classList.remove('hidden');
-    }
-
-    function closeConfigModal() { document.getElementById('modalConfig').classList.add('hidden'); }
-
-    function saveGeminiKey() {
-      const k = document.getElementById('inputGeminiKey').value.trim();
-      localStorage.setItem('set_gemini_key', k);
-      addLog('Chave Gemini configurada pelo utilizador.');
-      closeConfigModal();
-    }
-  </script>
-</body>
-</html>
+        const sum = currentTransactions.filter(t => t.member_id === m.id).reduce((a, b) => a + Number(b.amount
