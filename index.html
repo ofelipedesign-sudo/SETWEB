@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-PT" class="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>SET - Sistema de Transações & Faturas</title>
+  <title>SET Web - Sistema de Faturas & Rateio</title>
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -27,11 +27,11 @@
         extend: {
           colors: {
             brand: {
-              50: '#f0fdf4',
-              100: '#dcfce7',
-              500: '#22c55e',
-              600: '#16a34a',
-              700: '#15803d',
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
             }
           }
         }
@@ -64,14 +64,16 @@
 
     .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 9999px; }
-    .dark .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #475569; }
+    .dark .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #334155; }
 
-    @media (max-width: 640px) {
-      input, select, textarea { font-size: 16px !important; }
+    @media print {
+      body * { visibility: hidden; }
+      #printArea, #printArea * { visibility: visible; }
+      #printArea { position: absolute; left: 0; top: 0; width: 100%; }
     }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 antialiased min-h-screen transition-colors duration-200 select-none">
+<body class="bg-slate-950 text-slate-100 antialiased min-h-screen transition-colors duration-200 select-none">
 
   <!-- CONFIGURAÇÃO SUPABASE -->
   <script>
@@ -84,41 +86,41 @@
   </script>
 
   <!-- 1. TELA DE AUTENTICAÇÃO -->
-  <div id="authScreen" class="min-h-[100dvh] w-full flex flex-col justify-center items-center px-4 py-8 bg-slate-50 dark:bg-slate-950">
+  <div id="authScreen" class="min-h-[100dvh] w-full flex flex-col justify-center items-center px-4 py-8 bg-slate-950">
     <div class="w-full max-w-sm flex flex-col gap-5">
       <div class="text-center">
         <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center text-white mx-auto shadow-lg shadow-brand-500/20 mb-3.5">
           <i class="ph-bold ph-receipt text-3xl"></i>
         </div>
-        <h2 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white">SET Web</h2>
-        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Sistema de Faturas & Rateio Financeiro</p>
+        <h2 class="text-2xl font-black tracking-tight text-white">SET Web</h2>
+        <p class="text-xs text-slate-400 mt-1">Gestão Completa de Cartões & Rateio de Despesas</p>
       </div>
 
-      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-7 shadow-xl flex flex-col gap-4">
-        <div class="flex border border-slate-200 dark:border-slate-700/80 rounded-xl p-1 bg-slate-100 dark:bg-slate-800/80 text-xs font-semibold">
-          <button type="button" id="tabAuthLogin" onclick="setAuthMode('login')" class="flex-1 py-2.5 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm transition">Entrar</button>
-          <button type="button" id="tabAuthRegister" onclick="setAuthMode('register')" class="flex-1 py-2.5 rounded-lg text-slate-500 dark:text-slate-400 transition">Criar Conta</button>
+      <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-7 shadow-xl flex flex-col gap-4">
+        <div class="flex border border-slate-700/80 rounded-xl p-1 bg-slate-800/80 text-xs font-semibold">
+          <button type="button" id="tabAuthLogin" onclick="setAuthMode('login')" class="flex-1 py-2.5 rounded-lg bg-slate-700 text-white shadow-sm transition">Entrar</button>
+          <button type="button" id="tabAuthRegister" onclick="setAuthMode('register')" class="flex-1 py-2.5 rounded-lg text-slate-400 transition">Criar Conta</button>
         </div>
 
         <form id="formAuth" onsubmit="handleAuthSubmit(event)" class="flex flex-col gap-4">
           <div>
-            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">E-mail</label>
-            <input type="email" id="authEmail" required placeholder="seu@email.com" class="w-full px-3.5 py-3 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition">
+            <label class="block text-xs font-bold text-slate-300 mb-1.5">E-mail</label>
+            <input type="email" id="authEmail" required placeholder="seu@email.com" class="w-full px-3.5 py-3 text-sm rounded-xl border border-slate-700 bg-slate-800 text-white focus:outline-none focus:border-brand-500 transition">
           </div>
 
           <div>
-            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Senha</label>
-            <input type="password" id="authPassword" required minlength="6" placeholder="Mínimo 6 caracteres" class="w-full px-3.5 py-3 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition">
+            <label class="block text-xs font-bold text-slate-300 mb-1.5">Palavra-passe</label>
+            <input type="password" id="authPassword" required minlength="6" placeholder="Mínimo 6 caracteres" class="w-full px-3.5 py-3 text-sm rounded-xl border border-slate-700 bg-slate-800 text-white focus:outline-none focus:border-brand-500 transition">
           </div>
 
           <button type="submit" id="btnAuthSubmit" class="w-full mt-1 py-3.5 text-sm font-bold rounded-xl bg-brand-600 hover:bg-brand-700 active:scale-[0.99] text-white shadow-md shadow-brand-600/25 transition">
-            Acessar Sistema
+            Aceder ao SET
           </button>
         </form>
       </div>
 
       <div class="flex items-center justify-center gap-2 text-xs text-slate-400">
-        <button type="button" onclick="toggleTheme()" class="hover:text-slate-600 dark:hover:text-slate-200 transition flex items-center gap-1 font-semibold">
+        <button type="button" onclick="toggleTheme()" class="hover:text-slate-200 transition flex items-center gap-1 font-semibold">
           <i class="ph-bold ph-circle-half"></i>
           <span>Alternar tema</span>
         </button>
@@ -129,8 +131,8 @@
   <!-- 2. APLICAÇÃO PRINCIPAL -->
   <div id="appContainer" class="hidden min-h-screen flex flex-col">
 
-    <!-- Topo / Header -->
-    <header class="app-header-safe bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30 transition-colors duration-200">
+    <!-- Topo / Header com Menu SET -->
+    <header class="app-header-safe bg-slate-900 border-b border-slate-800 sticky top-0 z-30 transition-colors duration-200">
       <div class="max-w-7xl mx-auto px-4 pb-3 flex items-center justify-between gap-2">
         <div class="flex items-center space-x-2.5">
           <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
@@ -138,26 +140,78 @@
           </div>
           <div>
             <div class="flex items-center gap-1.5">
-              <h1 class="text-lg font-bold tracking-tight text-slate-900 dark:text-white leading-none">SET Web</h1>
-              <span class="text-[9px] font-semibold uppercase px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hidden xs:inline">Faturas & IA</span>
+              <h1 class="text-lg font-bold tracking-tight text-white leading-none">SET Web</h1>
+              <span class="text-[9px] font-semibold uppercase px-1.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800">Sistema Oficial</span>
             </div>
-            <p class="text-[11px] text-slate-400 mt-0.5 hidden sm:block">Gestão de Cartões e Empréstimos</p>
+            <p class="text-[11px] text-slate-400 mt-0.5 hidden sm:block">Gestão de Cartões, Faturas & Empréstimos</p>
           </div>
         </div>
 
         <div class="flex items-center gap-2">
-          <!-- Botão Importar Fatura PDF com IA -->
+          <!-- Ação Rápida Importar Fatura com IA -->
           <button onclick="triggerInvoiceUpload()" class="px-3 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white flex items-center gap-1.5 shadow-sm transition">
             <i class="ph-bold ph-sparkle text-amber-300 text-sm"></i>
             <span>Importar Fatura IA</span>
           </button>
           <input type="file" id="pdfFileInput" accept=".pdf,.csv,.ofx" onchange="handleFileSelected(event)" class="hidden">
 
-          <button onclick="openConfigModal()" class="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-lg transition" title="Configurações & Chave Gemini">
-            <i class="ph-bold ph-gear text-lg"></i>
-          </button>
+          <!-- Dropdown com Funções Originais da Folha de Cálculo -->
+          <div class="relative">
+            <button onclick="toggleSetMenuDropdown()" id="btnSetMenu" class="px-3 py-2 text-xs font-bold rounded-xl bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-200 flex items-center gap-1.5 transition">
+              <i class="ph-bold ph-list"></i>
+              <span class="hidden sm:inline">Menu Funções</span>
+              <i class="ph-bold ph-caret-down text-[10px]"></i>
+            </button>
 
-          <button onclick="signOut()" class="p-2 text-rose-500 hover:text-rose-700 rounded-lg transition" title="Sair">
+            <div id="setMenuDropdown" class="hidden absolute right-0 mt-2 w-72 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-2 z-50 divide-y divide-slate-800">
+              <div class="py-1">
+                <button onclick="triggerInvoiceUpload(); closeSetMenuDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium rounded-lg hover:bg-slate-800 flex items-center gap-2">
+                  <i class="ph-bold ph-file-arrow-up text-emerald-400"></i>
+                  <span>Importar Fatura</span>
+                </button>
+                <button onclick="switchTab('transactions'); closeSetMenuDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium rounded-lg hover:bg-slate-800 flex items-center gap-2">
+                  <i class="ph-bold ph-scissors text-amber-400"></i>
+                  <span>Dividir / Ratear Transações</span>
+                </button>
+                <button onclick="switchTab('members'); closeSetMenuDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium rounded-lg hover:bg-slate-800 flex items-center gap-2">
+                  <i class="ph-bold ph-users text-indigo-400"></i>
+                  <span>Catalogar Membros / Usuários</span>
+                </button>
+                <button onclick="openGenerateMemberPdfModal(); closeSetMenuDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium rounded-lg hover:bg-slate-800 flex items-center gap-2">
+                  <i class="ph-bold ph-file-pdf text-rose-400"></i>
+                  <span>Gerar Fatura Individual (PDF)</span>
+                </button>
+              </div>
+
+              <div class="py-1">
+                <button onclick="loadAllData(); closeSetMenuDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium rounded-lg hover:bg-slate-800 flex items-center gap-2">
+                  <i class="ph-bold ph-arrows-clockwise text-blue-400"></i>
+                  <span>Atualizar Painel (Sincronizar)</span>
+                </button>
+                <button onclick="exportCSV(); closeSetMenuDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium rounded-lg hover:bg-slate-800 flex items-center gap-2">
+                  <i class="ph-bold ph-table text-emerald-400"></i>
+                  <span>Relatórios / Exportar CSV</span>
+                </button>
+                <button onclick="openLogsModal(); closeSetMenuDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium rounded-lg hover:bg-slate-800 flex items-center gap-2">
+                  <i class="ph-bold ph-terminal text-slate-400"></i>
+                  <span>Ver / Limpar Logs</span>
+                </button>
+              </div>
+
+              <div class="py-1">
+                <button onclick="openResetInvoicesModal(); closeSetMenuDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium text-rose-400 rounded-lg hover:bg-rose-950/40 flex items-center gap-2">
+                  <i class="ph-bold ph-trash"></i>
+                  <span>Resetar Transações & Faturas</span>
+                </button>
+                <button onclick="openConfigModal(); closeSetMenuDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium rounded-lg hover:bg-slate-800 flex items-center gap-2">
+                  <i class="ph-bold ph-gear text-slate-300"></i>
+                  <span>Configurações & Chave Gemini</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <button onclick="signOut()" class="p-2 text-rose-400 hover:text-rose-300 rounded-lg transition" title="Terminar Sessão">
             <i class="ph-bold ph-sign-out text-lg"></i>
           </button>
         </div>
@@ -168,102 +222,140 @@
     <main class="app-main-safe max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 py-4 w-full flex-1 flex flex-col gap-4">
 
       <!-- Navegação por Abas Desktop -->
-      <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 gap-2">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3 gap-2">
         <div class="flex items-center gap-2">
-          <button onclick="switchTab('dashboard')" id="tabNavDash" class="px-4 py-2 rounded-lg text-sm font-semibold transition bg-brand-50 dark:bg-emerald-950/40 text-brand-700 dark:text-emerald-300 border border-brand-200 dark:border-emerald-800 flex items-center gap-2">
+          <button onclick="switchTab('dashboard')" id="tabNavDash" class="px-4 py-2 rounded-lg text-sm font-semibold transition bg-emerald-950/40 text-emerald-300 border border-emerald-800 flex items-center gap-2">
             <i class="ph-bold ph-chart-pie-slice"></i>
             <span>Painel</span>
           </button>
-          <button onclick="switchTab('invoices')" id="tabNavInvoices" class="px-4 py-2 rounded-lg text-sm font-medium transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2">
+          <button onclick="switchTab('invoices')" id="tabNavInvoices" class="px-4 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800 flex items-center gap-2">
             <i class="ph-bold ph-credit-card"></i>
             <span>Faturas</span>
-            <span id="badgeInvoicesCount" class="text-[11px] px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold">0</span>
+            <span id="badgeInvoicesCount" class="text-[11px] px-1.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 font-bold">0</span>
           </button>
-          <button onclick="switchTab('transactions')" id="tabNavTrans" class="px-4 py-2 rounded-lg text-sm font-medium transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2">
-            <i class="ph-bold ph-arrows-left-right"></i>
+          <button onclick="switchTab('transactions')" id="tabNavTrans" class="px-4 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800 flex items-center gap-2">
+            <i class="ph-bold ph-arrows-split"></i>
             <span>Lançamentos & Rateio</span>
           </button>
-          <button onclick="switchTab('members')" id="tabNavMembers" class="px-4 py-2 rounded-lg text-sm font-medium transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2">
+          <button onclick="switchTab('members')" id="tabNavMembers" class="px-4 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800 flex items-center gap-2">
             <i class="ph-bold ph-users"></i>
             <span>Membros</span>
+          </button>
+          <button onclick="switchTab('banks')" id="tabNavBanks" class="px-4 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800 flex items-center gap-2">
+            <i class="ph-bold ph-bank"></i>
+            <span>Bancos & Cartões</span>
           </button>
         </div>
       </div>
 
-      <!-- ABA 1: PAINEL GERAL -->
+      <!-- ABA 1: PAINEL -->
       <div id="viewDashboard" class="flex flex-col gap-4">
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div class="bg-slate-900 p-4.5 rounded-2xl border border-slate-800 shadow-sm flex flex-col justify-between">
             <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Faturas em Aberto</span>
-            <h3 id="cardOpenInvoices" class="text-2xl font-black text-rose-600 dark:text-rose-400 tracking-tight mt-2">R$ 0,00</h3>
-            <p id="cardOpenCount" class="text-[11px] text-slate-400 mt-0.5">0 faturas pendentes</p>
+            <div class="mt-2">
+              <h3 id="cardOpenInvoices" class="text-2xl font-black text-rose-400 tracking-tight">R$ 0,00</h3>
+              <p id="cardOpenCount" class="text-[11px] text-slate-400 mt-0.5">0 faturas pendentes</p>
+            </div>
           </div>
 
-          <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div class="bg-slate-900 p-4.5 rounded-2xl border border-slate-800 shadow-sm flex flex-col justify-between">
             <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Lançamentos</span>
-            <h3 id="cardTotalTransactions" class="text-2xl font-black text-slate-900 dark:text-white tracking-tight mt-2">R$ 0,00</h3>
-            <p id="cardTransCount" class="text-[11px] text-slate-400 mt-0.5">0 itens catalogados</p>
+            <div class="mt-2">
+              <h3 id="cardTotalTransactions" class="text-2xl font-black text-white tracking-tight">R$ 0,00</h3>
+              <p id="cardTransCount" class="text-[11px] text-slate-400 mt-0.5">0 compras registradas</p>
+            </div>
           </div>
 
-          <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Rateio / Membros</span>
-            <h3 id="cardTotalMembers" class="text-2xl font-black text-indigo-600 dark:text-indigo-400 tracking-tight mt-2">0</h3>
-            <p class="text-[11px] text-slate-400 mt-0.5">Pessoas cadastradas</p>
+          <div class="bg-slate-900 p-4.5 rounded-2xl border border-slate-800 shadow-sm flex flex-col justify-between">
+            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Rateio Membros</span>
+            <div class="mt-2">
+              <h3 id="cardTotalMembers" class="text-2xl font-black text-indigo-400 tracking-tight">0</h3>
+              <p class="text-[11px] text-slate-400 mt-0.5">Pessoas cadastradas</p>
+            </div>
           </div>
 
-          <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Bancos / Cartões</span>
-            <h3 id="cardTotalBanks" class="text-2xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight mt-2">0</h3>
-            <p class="text-[11px] text-slate-400 mt-0.5">Instituições ativas</p>
+          <div class="bg-slate-900 p-4.5 rounded-2xl border border-slate-800 shadow-sm flex flex-col justify-between">
+            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Bancos Ativos</span>
+            <div class="mt-2">
+              <h3 id="cardTotalBanks" class="text-2xl font-black text-emerald-400 tracking-tight">0</h3>
+              <p class="text-[11px] text-slate-400 mt-0.5">Instituições cadastradas</p>
+            </div>
           </div>
         </div>
 
-        <!-- Área de Upload Rápido / Drag & Drop -->
-        <div class="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-brand-500 rounded-3xl p-8 text-center cursor-pointer transition bg-white/50 dark:bg-slate-900/50" onclick="triggerInvoiceUpload()">
-          <div class="w-12 h-12 rounded-2xl bg-brand-50 dark:bg-emerald-950/60 text-brand-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-3 text-2xl">
+        <!-- Área de Upload Drag & Drop -->
+        <div onclick="triggerInvoiceUpload()" class="border-2 border-dashed border-slate-800 hover:border-emerald-500 rounded-3xl p-8 text-center cursor-pointer transition bg-slate-900/40 hover:bg-slate-900/80">
+          <div class="w-12 h-12 rounded-2xl bg-emerald-950/60 text-emerald-400 flex items-center justify-center mx-auto mb-3 text-2xl">
             <i class="ph-bold ph-file-arrow-up"></i>
           </div>
-          <h4 class="text-sm font-bold text-slate-800 dark:text-slate-100">Arraste ou selecione a Fatura (PDF) aqui</h4>
-          <p class="text-xs text-slate-400 mt-1 max-w-md mx-auto">O motor com IA interpretará o emissor, data de vencimento, valor total e todos os lançamentos individuais automaticamente.</p>
+          <h4 class="text-sm font-bold text-slate-100">Arraste ou selecione a Fatura (PDF) aqui</h4>
+          <p class="text-xs text-slate-400 mt-1 max-w-md mx-auto">O motor interpretativo IA extrai o emissor, data de vencimento, montante consolidado e todos os lançamentos individuais de forma automática.</p>
+        </div>
+
+        <!-- Gráficos -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div class="lg:col-span-2 bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 shadow-sm">
+            <h4 class="text-xs sm:text-sm font-bold text-slate-100 mb-3">Gastos por Banco / Cartão</h4>
+            <div class="h-56 relative">
+              <canvas id="chartInvoices"></canvas>
+            </div>
+          </div>
+
+          <div class="bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 shadow-sm">
+            <h4 class="text-xs sm:text-sm font-bold text-slate-100 mb-3">Distribuição do Rateio</h4>
+            <div class="h-56 relative flex items-center justify-center">
+              <canvas id="chartSplit"></canvas>
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- ABA 2: FATURAS -->
       <div id="viewInvoices" class="flex flex-col gap-4 hidden">
-        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
-          <div class="flex items-center justify-between mb-3 border-b border-slate-100 dark:border-slate-800 pb-2">
+        <div class="bg-slate-900 rounded-2xl border border-slate-800 p-4 shadow-sm">
+          <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
             <div>
-              <h4 class="text-sm font-bold text-slate-800 dark:text-slate-100">Histórico de Faturas Importadas</h4>
-              <p class="text-xs text-slate-400">Gerencie e limpe faturas processadas</p>
+              <h4 class="text-sm font-bold text-white">Faturas Importadas</h4>
+              <p class="text-xs text-slate-400">Controlo de encerramento e histórico</p>
             </div>
-            <button onclick="openResetInvoicesModal()" class="px-3 py-1.5 text-xs font-bold rounded-xl bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-100 dark:hover:bg-rose-900 transition flex items-center gap-1.5">
+            <button onclick="openResetInvoicesModal()" class="px-3 py-1.5 text-xs font-bold rounded-xl bg-rose-950/50 text-rose-400 border border-rose-900/60 hover:bg-rose-900 transition flex items-center gap-1.5">
               <i class="ph-bold ph-trash"></i>
-              <span>Zerar Todas as Faturas</span>
+              <span>Zerar Faturas</span>
             </button>
           </div>
-          <div id="invoicesList" class="divide-y divide-slate-100 dark:divide-slate-800"></div>
+          <div id="invoicesList" class="divide-y divide-slate-800"></div>
           <div id="emptyInvoices" class="p-8 text-center text-slate-400 text-xs">Nenhuma fatura registrada.</div>
         </div>
       </div>
 
-      <!-- ABA 3: TRANSAÇÕES & RATEIO -->
+      <!-- ABA 3: LANÇAMENTOS & RATEIO -->
       <div id="viewTransactions" class="flex flex-col gap-4 hidden">
-        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
-          <div class="flex items-center justify-between mb-3 border-b border-slate-100 dark:border-slate-800 pb-2">
-            <h4 class="text-sm font-bold text-slate-800 dark:text-slate-100">Itens das Faturas & Rateio por Membro</h4>
+        <div class="bg-slate-900 rounded-2xl border border-slate-800 p-4 shadow-sm">
+          <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
+            <div>
+              <h4 class="text-sm font-bold text-white">Lançamentos Conciliados & Rateio</h4>
+              <p class="text-xs text-slate-400">Atribua cada despesa ao membro correspondente ou divida entre utilizadores</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="openGenerateMemberPdfModal()" class="px-3 py-1.5 text-xs font-bold rounded-xl bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700 flex items-center gap-1">
+                <i class="ph-bold ph-file-pdf text-rose-400"></i>
+                <span>Gerar Fatura Individual</span>
+              </button>
+            </div>
           </div>
-          <div id="transactionsList" class="divide-y divide-slate-100 dark:divide-slate-800"></div>
+          <div id="transactionsList" class="divide-y divide-slate-800"></div>
           <div id="emptyTransactions" class="p-8 text-center text-slate-400 text-xs">Nenhum lançamento encontrado.</div>
         </div>
       </div>
 
-      <!-- ABA 4: MEMBROS / USUÁRIOS -->
+      <!-- ABA 4: MEMBROS -->
       <div id="viewMembers" class="flex flex-col gap-4 hidden">
-        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
-          <div class="flex items-center justify-between mb-3 border-b border-slate-100 dark:border-slate-800 pb-2">
+        <div class="bg-slate-900 rounded-2xl border border-slate-800 p-4 shadow-sm">
+          <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
             <div>
-              <h4 class="text-sm font-bold text-slate-800 dark:text-slate-100">Membros para Rateio</h4>
-              <p class="text-xs text-slate-400">Pessoas entre as quais as compras de faturas podem ser divididas</p>
+              <h4 class="text-sm font-bold text-white">Membros do SET</h4>
+              <p class="text-xs text-slate-400">Pessoas cadastradas para rateio de despesas</p>
             </div>
             <button onclick="openNewMemberModal()" class="px-3 py-1.5 text-xs font-bold rounded-xl bg-brand-600 text-white hover:bg-brand-700">
               + Novo Membro
@@ -274,69 +366,226 @@
         </div>
       </div>
 
+      <!-- ABA 5: BANCOS & CARTÕES -->
+      <div id="viewBanks" class="flex flex-col gap-4 hidden">
+        <div class="bg-slate-900 rounded-2xl border border-slate-800 p-4 shadow-sm">
+          <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
+            <div>
+              <h4 class="text-sm font-bold text-white">Bancos & Cartões Registados</h4>
+              <p class="text-xs text-slate-400">Instituições financeiras integradas</p>
+            </div>
+            <button onclick="openNewBankModal()" class="px-3 py-1.5 text-xs font-bold rounded-xl bg-brand-600 text-white hover:bg-brand-700">
+              + Novo Banco
+            </button>
+          </div>
+          <div id="banksList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"></div>
+          <div id="emptyBanks" class="p-8 text-center text-slate-400 text-xs">Nenhum banco registado.</div>
+        </div>
+      </div>
+
     </main>
 
+    <!-- BARRA INFERIOR MOBILE -->
+    <nav class="app-bottom-nav-safe sm:hidden fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-lg border-t border-slate-800 z-40 px-3 pt-2 flex items-center justify-around shadow-2xl">
+      <button onclick="switchTab('dashboard')" id="mTabDash" class="flex flex-col items-center gap-1 text-emerald-400">
+        <i class="ph-bold ph-chart-pie-slice text-xl"></i>
+        <span class="text-[10px] font-bold">Painel</span>
+      </button>
+      <button onclick="switchTab('invoices')" id="mTabInvoices" class="flex flex-col items-center gap-1 text-slate-500">
+        <i class="ph-bold ph-credit-card text-xl"></i>
+        <span class="text-[10px] font-medium">Faturas</span>
+      </button>
+      
+      <button onclick="triggerInvoiceUpload()" class="w-12 h-12 -mt-5 rounded-full bg-brand-600 text-white flex items-center justify-center shadow-lg shadow-brand-600/40 active:scale-95 transition border-4 border-slate-950">
+        <i class="ph-bold ph-sparkle text-xl text-amber-300"></i>
+      </button>
+
+      <button onclick="switchTab('transactions')" id="mTabTrans" class="flex flex-col items-center gap-1 text-slate-500">
+        <i class="ph-bold ph-arrows-split text-xl"></i>
+        <span class="text-[10px] font-medium">Rateio</span>
+      </button>
+      <button onclick="switchTab('members')" id="mTabMembers" class="flex flex-col items-center gap-1 text-slate-500">
+        <i class="ph-bold ph-users text-xl"></i>
+        <span class="text-[10px] font-medium">Membros</span>
+      </button>
+    </nav>
+
     <!-- MODAL: CONFIRMAÇÃO DE FATURA EXTRAÍDA PELA IA -->
-    <div id="modalInvoiceAI" class="fixed inset-0 z-50 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
-      <div class="app-modal-sheet bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-xl w-full p-6 shadow-2xl border-t sm:border border-slate-100 dark:border-slate-800 flex flex-col gap-4 overflow-y-auto custom-scrollbar">
-        <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+    <div id="modalInvoiceAI" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+      <div class="app-modal-sheet bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-xl w-full p-6 shadow-2xl border-t sm:border border-slate-800 flex flex-col gap-4 overflow-y-auto custom-scrollbar">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
           <div class="flex items-center gap-2">
             <i class="ph-bold ph-sparkle text-amber-500 text-xl"></i>
-            <h3 class="text-sm font-bold text-slate-900 dark:text-white">Fatura Processada com IA</h3>
+            <h3 class="text-sm font-bold text-white">Fatura Processada com IA</h3>
           </div>
           <button onclick="closeInvoiceAIModal()" class="p-1 text-slate-400 hover:text-white"><i class="ph-bold ph-x text-lg"></i></button>
         </div>
 
-        <div class="grid grid-cols-2 gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700">
+        <div class="grid grid-cols-2 gap-3 p-3 bg-slate-800/50 rounded-2xl border border-slate-700">
           <div>
             <span class="text-[10px] font-bold text-slate-400 uppercase">Banco Identificado</span>
-            <input type="text" id="aiBankName" class="w-full text-sm font-bold bg-transparent dark:text-white focus:outline-none">
+            <input type="text" id="aiBankName" class="w-full text-sm font-bold bg-transparent text-white focus:outline-none">
           </div>
           <div>
             <span class="text-[10px] font-bold text-slate-400 uppercase">Vencimento</span>
-            <input type="date" id="aiDueDate" class="w-full text-sm font-bold bg-transparent dark:text-white focus:outline-none">
+            <input type="date" id="aiDueDate" class="w-full text-sm font-bold bg-transparent text-white focus:outline-none">
           </div>
           <div class="col-span-2">
             <span class="text-[10px] font-bold text-slate-400 uppercase">Valor Total</span>
-            <input type="number" step="0.01" id="aiTotalAmount" class="w-full text-xl font-black text-rose-600 dark:text-rose-400 bg-transparent focus:outline-none">
+            <input type="number" step="0.01" id="aiTotalAmount" class="w-full text-xl font-black text-rose-400 bg-transparent focus:outline-none">
           </div>
         </div>
 
         <div>
-          <h4 class="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">Itens Detectados (<span id="aiItemsCount">0</span> lançamentos)</h4>
-          <div id="aiItemsContainer" class="max-h-56 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 custom-scrollbar text-xs"></div>
+          <h4 class="text-xs font-bold text-slate-300 mb-2">Itens Detectados (<span id="aiItemsCount">0</span> lançamentos)</h4>
+          <div id="aiItemsContainer" class="max-h-56 overflow-y-auto divide-y divide-slate-800 custom-scrollbar text-xs"></div>
         </div>
 
-        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
           <button type="button" onclick="closeInvoiceAIModal()" class="px-4 py-2.5 text-xs font-semibold text-slate-500">Cancelar</button>
           <button type="button" onclick="confirmSaveInvoice()" class="px-6 py-2.5 text-xs font-bold bg-brand-600 text-white rounded-xl shadow-md">Salvar Fatura & Lançamentos</button>
         </div>
       </div>
     </div>
 
+    <!-- MODAL: DIVIDIR TRANSAÇÃO ENTRE MEMBROS -->
+    <div id="modalSplitTransaction" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+      <div class="app-modal-sheet bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-md w-full p-6 shadow-2xl border-t sm:border border-slate-800 flex flex-col gap-4">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div class="flex items-center gap-2">
+            <i class="ph-bold ph-scissors text-amber-400 text-lg"></i>
+            <h3 class="text-sm font-bold text-white">Dividir Transação</h3>
+          </div>
+          <button onclick="closeSplitModal()" class="p-1 text-slate-400 hover:text-white"><i class="ph-bold ph-x text-lg"></i></button>
+        </div>
+
+        <div class="p-3 bg-slate-800/50 rounded-xl border border-slate-700">
+          <p id="splitTxDesc" class="text-xs font-bold text-white"></p>
+          <p id="splitTxTotal" class="text-sm font-black text-rose-400 mt-0.5"></p>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1">Atribuir a um Membro</label>
+          <select id="selectMemberAssign" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-white focus:outline-none"></select>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+          <button onclick="closeSplitModal()" class="px-4 py-2 text-xs font-semibold text-slate-400">Cancelar</button>
+          <button onclick="saveTransactionMemberAssignment()" class="px-5 py-2 text-xs font-bold bg-brand-600 text-white rounded-xl shadow-md">Gravar Atribuição</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: GERAR FATURA INDIVIDUAL (PDF) -->
+    <div id="modalMemberPdf" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+      <div class="app-modal-sheet bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-6 shadow-2xl border-t sm:border border-slate-800 flex flex-col gap-4 overflow-y-auto custom-scrollbar">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div class="flex items-center gap-2">
+            <i class="ph-bold ph-file-pdf text-rose-400 text-lg"></i>
+            <h3 class="text-sm font-bold text-white">Gerar Fatura Individual por Membro</h3>
+          </div>
+          <button onclick="closeMemberPdfModal()" class="p-1 text-slate-400 hover:text-white"><i class="ph-bold ph-x text-lg"></i></button>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1">Selecione o Membro</label>
+          <select id="selectPdfMember" onchange="generateMemberReportPreview()" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-white focus:outline-none"></select>
+        </div>
+
+        <!-- Área de Impressão do Relatório -->
+        <div id="printArea" class="p-4 bg-white text-slate-900 rounded-xl text-xs flex flex-col gap-2 min-h-48 border border-slate-200">
+          <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+            <div>
+              <h2 class="font-bold text-sm">SET - Extrato de Despesas</h2>
+              <p id="reportMemberName" class="text-slate-500 font-semibold"></p>
+            </div>
+            <div class="text-right">
+              <span class="text-[10px] text-slate-400">Emissão:</span>
+              <p id="reportDate" class="font-bold"></p>
+            </div>
+          </div>
+
+          <div id="reportItemsContainer" class="divide-y divide-slate-100 flex-1 my-2"></div>
+
+          <div class="border-t border-slate-200 pt-2 flex items-baseline justify-between font-bold">
+            <span>Total Devido:</span>
+            <span id="reportTotalAmount" class="text-base text-rose-600">R$ 0,00</span>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+          <button onclick="closeMemberPdfModal()" class="px-4 py-2 text-xs font-semibold text-slate-400">Fechar</button>
+          <button onclick="window.print()" class="px-5 py-2 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-md flex items-center gap-1.5">
+            <i class="ph-bold ph-printer"></i>
+            <span>Imprimir / Salvar PDF</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: CADASTRAR MEMBRO -->
+    <div id="modalNewMember" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+      <div class="app-modal-sheet bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-sm w-full p-6 shadow-2xl border-t sm:border border-slate-800 flex flex-col gap-4">
+        <h3 class="text-sm font-bold text-white">Novo Membro para Rateio</h3>
+        <input type="text" id="inputMemberName" placeholder="Nome completo" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-white focus:outline-none">
+        <input type="email" id="inputMemberEmail" placeholder="E-mail (opcional)" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-white focus:outline-none">
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button onclick="closeNewMemberModal()" class="px-3 py-1.5 text-xs text-slate-400">Cancelar</button>
+          <button onclick="saveNewMember()" class="px-4 py-1.5 text-xs font-bold bg-brand-600 text-white rounded-xl">Salvar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: CADASTRAR BANCO -->
+    <div id="modalNewBank" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+      <div class="app-modal-sheet bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-sm w-full p-6 shadow-2xl border-t sm:border border-slate-800 flex flex-col gap-4">
+        <h3 class="text-sm font-bold text-white">Novo Banco / Cartão</h3>
+        <input type="text" id="inputBankName" placeholder="Ex: Santander Elite, Nubank..." class="w-full px-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-white focus:outline-none">
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button onclick="closeNewBankModal()" class="px-3 py-1.5 text-xs text-slate-400">Cancelar</button>
+          <button onclick="saveNewBank()" class="px-4 py-1.5 text-xs font-bold bg-brand-600 text-white rounded-xl">Salvar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: TERMINAL DE LOGS -->
+    <div id="modalLogs" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+      <div class="app-modal-sheet bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-md w-full p-6 shadow-2xl border-t sm:border border-slate-800 flex flex-col gap-4">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+          <h3 class="text-sm font-bold text-white flex items-center gap-1.5">
+            <i class="ph-bold ph-terminal text-slate-400"></i>
+            <span>Logs de Sistema do SET</span>
+          </h3>
+          <button onclick="clearAppLogs()" class="text-xs text-rose-400 hover:text-rose-300">Limpar Logs</button>
+        </div>
+        <div id="appLogsConsole" class="bg-black/60 rounded-xl p-3 font-mono text-[10px] text-emerald-400 h-44 overflow-y-auto custom-scrollbar"></div>
+        <button onclick="closeLogsModal()" class="w-full py-2 text-xs font-semibold text-slate-400">Fechar</button>
+      </div>
+    </div>
+
     <!-- MODAL: CONFIRMAÇÃO DO RESET DE FATURAS -->
-    <div id="modalResetInvoices" class="fixed inset-0 z-50 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
-      <div class="app-modal-sheet bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-sm w-full p-6 shadow-2xl border-t sm:border border-slate-100 dark:border-slate-800 flex flex-col gap-4 text-center">
-        <div class="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto text-2xl">
+    <div id="modalResetInvoices" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+      <div class="app-modal-sheet bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-sm w-full p-6 shadow-2xl border-t sm:border border-slate-800 flex flex-col gap-4 text-center">
+        <div class="w-12 h-12 rounded-full bg-rose-950/60 text-rose-400 flex items-center justify-center mx-auto text-2xl">
           <i class="ph-bold ph-trash"></i>
         </div>
         <div>
-          <h3 class="text-sm font-bold text-slate-900 dark:text-white">Resetar Faturas</h3>
+          <h3 class="text-sm font-bold text-white">Resetar Faturas & Transações</h3>
           <p class="text-xs text-slate-400 mt-1">Deseja remover todas as faturas e seus lançamentos correspondentes? Essa ação não pode ser desfeita.</p>
         </div>
         <div class="flex flex-col gap-2 pt-1">
-          <button onclick="executeResetAllInvoices()" class="w-full py-2.5 text-xs font-bold rounded-xl bg-rose-600 hover:bg-rose-700 text-white shadow-md transition">Sim, Zerar Faturas</button>
+          <button onclick="executeResetAllInvoices()" class="w-full py-2.5 text-xs font-bold rounded-xl bg-rose-600 hover:bg-rose-700 text-white shadow-md transition">Sim, Zerar Tudo</button>
           <button onclick="closeResetInvoicesModal()" class="w-full py-2 text-xs font-semibold text-slate-400">Cancelar</button>
         </div>
       </div>
     </div>
 
     <!-- MODAL: CONFIGURAÇÃO / CHAVE GEMINI -->
-    <div id="modalConfig" class="fixed inset-0 z-50 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
-      <div class="app-modal-sheet bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-sm w-full p-6 shadow-2xl border-t sm:border border-slate-100 dark:border-slate-800 flex flex-col gap-4 text-center">
-        <h3 class="text-sm font-bold text-slate-900 dark:text-white">Configuração da IA (Gemini)</h3>
+    <div id="modalConfig" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+      <div class="app-modal-sheet bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-sm w-full p-6 shadow-2xl border-t sm:border border-slate-800 flex flex-col gap-4 text-center">
+        <h3 class="text-sm font-bold text-white">Configuração da IA (Gemini)</h3>
         <p class="text-xs text-slate-400">Insira sua chave do Google AI Studio para habilitar a interpretação semântica de faturas sem erros de formatação.</p>
-        <input type="password" id="inputGeminiKey" placeholder="Cole sua chave AIzaSy... aqui" class="w-full px-3 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-white focus:outline-none">
+        <input type="password" id="inputGeminiKey" placeholder="Cole sua chave AIzaSy... aqui" class="w-full px-3 py-2.5 text-xs rounded-xl border border-slate-700 bg-slate-800 text-white focus:outline-none">
         
         <div class="flex flex-col gap-2">
           <button onclick="saveGeminiKey()" class="w-full py-2.5 text-xs font-bold rounded-xl bg-brand-600 text-white">Salvar Chave</button>
@@ -353,7 +602,19 @@
     let currentInvoices = [];
     let currentTransactions = [];
     let currentMembers = [];
+    let currentBanks = [];
     let pendingParsedInvoice = null;
+    let selectedTransactionToSplit = null;
+
+    let chartInvoices = null;
+    let chartSplit = null;
+
+    function addLog(msg) {
+      const logs = JSON.parse(localStorage.getItem('set_logs') || '[]');
+      const timestamp = new Date().toLocaleTimeString();
+      logs.unshift(`[${timestamp}] ${msg}`);
+      localStorage.setItem('set_logs', JSON.stringify(logs.slice(0, 50)));
+    }
 
     function initTheme() {
       const savedTheme = localStorage.getItem('set_theme');
@@ -369,6 +630,14 @@
     window.addEventListener('DOMContentLoaded', async () => {
       initTheme();
       checkSession();
+
+      document.addEventListener('click', (e) => {
+        const dd = document.getElementById('setMenuDropdown');
+        const btn = document.getElementById('btnSetMenu');
+        if (dd && btn && !dd.contains(e.target) && !btn.contains(e.target)) {
+          dd.classList.add('hidden');
+        }
+      });
     });
 
     async function checkSession() {
@@ -401,12 +670,12 @@
       const tabReg = document.getElementById('tabAuthRegister');
       const btn = document.getElementById('btnAuthSubmit');
       if (mode === 'login') {
-        tabLog.className = "flex-1 py-2.5 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm transition";
-        tabReg.className = "flex-1 py-2.5 rounded-lg text-slate-500 dark:text-slate-400 transition";
-        btn.textContent = "Acessar Sistema";
+        tabLog.className = "flex-1 py-2.5 rounded-lg bg-slate-700 text-white shadow-sm transition";
+        tabReg.className = "flex-1 py-2.5 rounded-lg text-slate-400 transition";
+        btn.textContent = "Aceder ao SET";
       } else {
-        tabReg.className = "flex-1 py-2.5 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm transition";
-        tabLog.className = "flex-1 py-2.5 rounded-lg text-slate-500 dark:text-slate-400 transition";
+        tabReg.className = "flex-1 py-2.5 rounded-lg bg-slate-700 text-white shadow-sm transition";
+        tabLog.className = "flex-1 py-2.5 rounded-lg text-slate-400 transition";
         btn.textContent = "Criar Conta";
       }
     }
@@ -422,6 +691,7 @@
         const { data, error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
         if (error) throw error;
         currentUser = data.user;
+        addLog(`Utilizador autenticado: ${email}`);
         showApp();
         loadAllData();
       } catch (err) {
@@ -435,8 +705,16 @@
       showAuth();
     }
 
+    function toggleSetMenuDropdown() {
+      document.getElementById('setMenuDropdown').classList.toggle('hidden');
+    }
+
+    function closeSetMenuDropdown() {
+      document.getElementById('setMenuDropdown').classList.add('hidden');
+    }
+
     function switchTab(tab) {
-      ['dashboard', 'invoices', 'transactions', 'members'].forEach(t => {
+      ['dashboard', 'invoices', 'transactions', 'members', 'banks'].forEach(t => {
         const view = document.getElementById('view' + t.charAt(0).toUpperCase() + t.slice(1));
         if (view) view.classList.add('hidden');
       });
@@ -444,15 +722,15 @@
       const selected = document.getElementById('view' + tab.charAt(0).toUpperCase() + tab.slice(1));
       if (selected) selected.classList.remove('hidden');
 
-      ['Dash', 'Invoices', 'Trans', 'Members'].forEach(t => {
+      ['Dash', 'Invoices', 'Trans', 'Members', 'Banks'].forEach(t => {
         const btn = document.getElementById('tabNav' + t);
         if (btn) {
-          btn.className = "px-4 py-2 rounded-lg text-sm font-medium transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2";
+          btn.className = "px-4 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800 flex items-center gap-2";
         }
       });
       const activeBtn = document.getElementById('tabNav' + tab.charAt(0).toUpperCase() + tab.slice(1));
       if (activeBtn) {
-        activeBtn.className = "px-4 py-2 rounded-lg text-sm font-semibold transition bg-brand-50 dark:bg-emerald-950/40 text-brand-700 dark:text-emerald-300 border border-brand-200 dark:border-emerald-800 flex items-center gap-2";
+        activeBtn.className = "px-4 py-2 rounded-lg text-sm font-semibold transition bg-emerald-950/40 text-emerald-300 border border-emerald-800 flex items-center gap-2";
       }
     }
 
@@ -467,11 +745,12 @@
       const apiKey = localStorage.getItem('set_gemini_key');
       if (!apiKey) {
         openConfigModal();
-        alert('Por favor, configure sua chave Gemini API antes de processar faturas.');
+        alert('Por favor, configure a chave Gemini API antes de processar faturas.');
         return;
       }
 
       try {
+        addLog(`A processar ficheiro PDF: ${file.name}`);
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         let textContent = '';
@@ -543,7 +822,7 @@ ${pdfText.slice(0, 15000)}`;
           });
         }
       } catch (errList) {
-        console.warn('Falha ao listar modelos dinamicamente:', errList);
+        console.warn('Fallback da lista de modelos:', errList);
       }
 
       if (candidateEndpoints.length === 0) {
@@ -564,9 +843,7 @@ ${pdfText.slice(0, 15000)}`;
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: {
-                temperature: 0.1
-              }
+              generationConfig: { temperature: 0.1 }
             })
           });
 
@@ -580,7 +857,7 @@ ${pdfText.slice(0, 15000)}`;
           const data = await response.json();
           let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
-          if (!rawText) throw new Error('Resposta sem texto retornado.');
+          if (!rawText) throw new Error('Sem resposta textual da IA.');
 
           rawText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
           return JSON.parse(rawText);
@@ -589,13 +866,14 @@ ${pdfText.slice(0, 15000)}`;
         }
       }
 
-      throw lastError || new Error('Não foi possível se comunicar com os modelos do Gemini.');
+      throw lastError || new Error('Não foi possível estabelecer ligação com a Gemini API.');
     }
 
     async function processPdfWithGemini(textContent, apiKey) {
       try {
         const parsed = await parseInvoiceWithAI(textContent, apiKey);
         pendingParsedInvoice = parsed;
+        addLog(`Fatura interpretada: ${parsed.bank_name} (R$ ${parsed.total_amount})`);
         showInvoiceAIModal(parsed);
       } catch (err) {
         alert('Erro ao interpretar com IA: ' + err.message);
@@ -613,13 +891,13 @@ ${pdfText.slice(0, 15000)}`;
       (data.items || []).forEach(item => {
         const div = document.createElement('div');
         div.className = 'py-2 flex items-center justify-between';
-        const instBadge = item.installment ? `<span class="ml-1 text-[9px] px-1.5 py-0.2 bg-slate-100 dark:bg-slate-800 rounded text-slate-500 font-bold">${item.installment}</span>` : '';
+        const instBadge = item.installment ? `<span class="ml-1 text-[9px] px-1.5 py-0.2 bg-slate-800 rounded text-slate-400 font-bold">${item.installment}</span>` : '';
         div.innerHTML = `
           <div>
-            <p class="font-bold text-slate-800 dark:text-slate-100">${item.description} ${instBadge}</p>
+            <p class="font-bold text-slate-100">${item.description} ${instBadge}</p>
             <p class="text-[10px] text-slate-400">${item.date} • ${item.category || 'Geral'}</p>
           </div>
-          <span class="font-bold text-rose-600">R$ ${Number(item.amount).toFixed(2)}</span>
+          <span class="font-bold text-rose-400">R$ ${Number(item.amount).toFixed(2)}</span>
         `;
         container.appendChild(div);
       });
@@ -666,19 +944,120 @@ ${pdfText.slice(0, 15000)}`;
           await window.supabaseClient.from('transactions').insert(transRows);
         }
 
+        addLog(`Fatura guardada na base de dados com ${transRows.length} itens.`);
         closeInvoiceAIModal();
-        alert('Fatura e itens gravados com sucesso!');
+        alert('Fatura e itens guardados com sucesso!');
         loadAllData();
       } catch (e) {
-        alert('Erro ao salvar fatura: ' + e.message);
+        alert('Erro ao guardar fatura: ' + e.message);
       }
     }
 
-    // --- FUNÇÕES DE RESET & EXCLUSÃO DE FATURAS ---
-    function openResetInvoicesModal() {
-      if (currentInvoices.length === 0) {
-        return alert('Não há faturas para zerar.');
+    // --- DIVIDIR TRANSAÇÃO / ATRIBUIR MEMBRO ---
+    function openSplitTransactionModal(txId) {
+      const tx = currentTransactions.find(t => t.id === txId);
+      if (!tx) return;
+      selectedTransactionToSplit = tx;
+
+      document.getElementById('splitTxDesc').textContent = tx.description;
+      document.getElementById('splitTxTotal').textContent = `R$ ${Number(tx.amount).toFixed(2)}`;
+
+      const select = document.getElementById('selectMemberAssign');
+      select.innerHTML = '<option value="">Sem atribuição (Geral)</option>';
+      currentMembers.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.id;
+        opt.textContent = m.name;
+        if (tx.member_id === m.id) opt.selected = true;
+        select.appendChild(opt);
+      });
+
+      document.getElementById('modalSplitTransaction').classList.remove('hidden');
+    }
+
+    function closeSplitModal() {
+      document.getElementById('modalSplitTransaction').classList.add('hidden');
+      selectedTransactionToSplit = null;
+    }
+
+    async function saveTransactionMemberAssignment() {
+      if (!selectedTransactionToSplit || !window.supabaseClient) return;
+      const memberId = document.getElementById('selectMemberAssign').value || null;
+
+      try {
+        await window.supabaseClient
+          .from('transactions')
+          .update({ member_id: memberId })
+          .eq('id', selectedTransactionToSplit.id);
+
+        addLog(`Lançamento atribuído: ${selectedTransactionToSplit.description}`);
+        closeSplitModal();
+        loadAllData();
+      } catch (err) {
+        alert('Erro ao atribuir membro: ' + err.message);
       }
+    }
+
+    // --- GERAR FATURA INDIVIDUAL EM PDF ---
+    function openGenerateMemberPdfModal() {
+      const select = document.getElementById('selectPdfMember');
+      select.innerHTML = '';
+      currentMembers.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.id;
+        opt.textContent = m.name;
+        select.appendChild(opt);
+      });
+
+      if (currentMembers.length === 0) {
+        return alert('Cadastre primeiro os membros na aba Membros para gerar o PDF individual.');
+      }
+
+      document.getElementById('modalMemberPdf').classList.remove('hidden');
+      generateMemberReportPreview();
+    }
+
+    function closeMemberPdfModal() {
+      document.getElementById('modalMemberPdf').classList.add('hidden');
+    }
+
+    function generateMemberReportPreview() {
+      const memberId = document.getElementById('selectPdfMember').value;
+      const member = currentMembers.find(m => m.id === memberId);
+      if (!member) return;
+
+      document.getElementById('reportMemberName').textContent = `Titular: ${member.name}`;
+      document.getElementById('reportDate').textContent = new Date().toLocaleDateString();
+
+      const memberTxs = currentTransactions.filter(t => t.member_id === memberId);
+      const container = document.getElementById('reportItemsContainer');
+      container.innerHTML = '';
+
+      let total = 0;
+      memberTxs.forEach(t => {
+        total += Number(t.amount);
+        const div = document.createElement('div');
+        div.className = 'py-1 flex items-center justify-between text-xs';
+        div.innerHTML = `
+          <div>
+            <span class="font-bold">${t.description}</span>
+            <span class="text-[10px] text-slate-500"> (${t.date})</span>
+          </div>
+          <span class="font-bold">R$ ${Number(t.amount).toFixed(2)}</span>
+        `;
+        container.appendChild(div);
+      });
+
+      if (memberTxs.length === 0) {
+        container.innerHTML = '<p class="text-center text-slate-400 py-4">Nenhum lançamento vinculado a este membro.</p>';
+      }
+
+      document.getElementById('reportTotalAmount').textContent = `R$ ${total.toFixed(2)}`;
+    }
+
+    // --- RESET E EXCLUSÕES ---
+    function openResetInvoicesModal() {
+      if (currentInvoices.length === 0) return alert('Não há faturas para zerar.');
       document.getElementById('modalResetInvoices').classList.remove('hidden');
     }
 
@@ -689,21 +1068,10 @@ ${pdfText.slice(0, 15000)}`;
     async function executeResetAllInvoices() {
       if (!window.supabaseClient || !currentUser) return;
       try {
-        // Remove transações vinculadas às faturas do usuário
-        await window.supabaseClient
-          .from('transactions')
-          .delete()
-          .eq('user_id', currentUser.id)
-          .not('invoice_id', 'is', null);
+        await window.supabaseClient.from('transactions').delete().eq('user_id', currentUser.id).not('invoice_id', 'is', null);
+        await window.supabaseClient.from('invoices').delete().eq('user_id', currentUser.id);
 
-        // Remove todas as faturas do usuário
-        const { error } = await window.supabaseClient
-          .from('invoices')
-          .delete()
-          .eq('user_id', currentUser.id);
-
-        if (error) throw error;
-
+        addLog('Reset total de faturas e compras executado.');
         closeResetInvoicesModal();
         alert('Todas as faturas foram zeradas com sucesso!');
         loadAllData();
@@ -713,43 +1081,88 @@ ${pdfText.slice(0, 15000)}`;
     }
 
     async function deleteSingleInvoice(invoiceId) {
-      if (!confirm('Deseja excluir esta fatura e todos os seus lançamentos?')) return;
+      if (!confirm('Deseja eliminar esta fatura e todos os seus itens?')) return;
       if (!window.supabaseClient || !currentUser) return;
 
       try {
-        await window.supabaseClient
-          .from('transactions')
-          .delete()
-          .eq('invoice_id', invoiceId);
+        await window.supabaseClient.from('transactions').delete().eq('invoice_id', invoiceId);
+        await window.supabaseClient.from('invoices').delete().eq('id', invoiceId);
 
-        const { error } = await window.supabaseClient
-          .from('invoices')
-          .delete()
-          .eq('id', invoiceId);
-
-        if (error) throw error;
+        addLog(`Fatura excluída: ${invoiceId}`);
         loadAllData();
       } catch (err) {
-        alert('Erro ao excluir fatura: ' + err.message);
+        alert('Erro ao eliminar fatura: ' + err.message);
       }
     }
 
+    // --- MEMBROS & BANCOS ---
+    function openNewMemberModal() { document.getElementById('modalNewMember').classList.remove('hidden'); }
+    function closeNewMemberModal() { document.getElementById('modalNewMember').classList.add('hidden'); }
+
+    async function saveNewMember() {
+      const name = document.getElementById('inputMemberName').value.trim();
+      const email = document.getElementById('inputMemberEmail').value.trim();
+      if (!name) return alert('Informe o nome do membro.');
+
+      await window.supabaseClient.from('members').insert([{ user_id: currentUser.id, name, email }]);
+      addLog(`Membro adicionado: ${name}`);
+      document.getElementById('inputMemberName').value = '';
+      document.getElementById('inputMemberEmail').value = '';
+      closeNewMemberModal();
+      loadAllData();
+    }
+
+    function openNewBankModal() { document.getElementById('modalNewBank').classList.remove('hidden'); }
+    function closeNewBankModal() { document.getElementById('modalNewBank').classList.add('hidden'); }
+
+    async function saveNewBank() {
+      const name = document.getElementById('inputBankName').value.trim();
+      if (!name) return alert('Informe o nome do banco.');
+
+      await window.supabaseClient.from('banks').insert([{ user_id: currentUser.id, name }]);
+      addLog(`Banco adicionado: ${name}`);
+      document.getElementById('inputBankName').value = '';
+      closeNewBankModal();
+      loadAllData();
+    }
+
+    // --- LOGS ---
+    function openLogsModal() {
+      const logs = JSON.parse(localStorage.getItem('set_logs') || '[]');
+      const container = document.getElementById('appLogsConsole');
+      container.innerHTML = logs.length ? logs.map(l => `<div>${l}</div>`).join('') : '<div>Nenhum log gravado.</div>';
+      document.getElementById('modalLogs').classList.remove('hidden');
+    }
+
+    function closeLogsModal() { document.getElementById('modalLogs').classList.add('hidden'); }
+
+    function clearAppLogs() {
+      localStorage.removeItem('set_logs');
+      document.getElementById('appLogsConsole').innerHTML = '<div>Logs limpos com sucesso.</div>';
+    }
+
+    // --- CARREGAMENTO DE DADOS ---
     async function loadAllData() {
       if (!window.supabaseClient || !currentUser) return;
 
-      const [invRes, transRes, membRes] = await Promise.all([
+      const [invRes, transRes, membRes, bankRes] = await Promise.all([
         window.supabaseClient.from('invoices').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false }),
         window.supabaseClient.from('transactions').select('*').eq('user_id', currentUser.id).order('date', { ascending: false }),
-        window.supabaseClient.from('members').select('*').eq('user_id', currentUser.id)
+        window.supabaseClient.from('members').select('*').eq('user_id', currentUser.id),
+        window.supabaseClient.from('banks').select('*').eq('user_id', currentUser.id)
       ]);
 
       currentInvoices = invRes.data || [];
       currentTransactions = transRes.data || [];
       currentMembers = membRes.data || [];
+      currentBanks = bankRes.data || [];
 
       renderDashboard();
       renderInvoicesList();
       renderTransactionsList();
+      renderMembersList();
+      renderBanksList();
+      renderCharts();
     }
 
     function renderDashboard() {
@@ -762,6 +1175,7 @@ ${pdfText.slice(0, 15000)}`;
       document.getElementById('cardTransCount').textContent = `${currentTransactions.length} itens catalogados`;
 
       document.getElementById('cardTotalMembers').textContent = currentMembers.length;
+      document.getElementById('cardTotalBanks').textContent = currentBanks.length;
       document.getElementById('badgeInvoicesCount').textContent = currentInvoices.length;
     }
 
@@ -781,17 +1195,17 @@ ${pdfText.slice(0, 15000)}`;
         div.className = 'py-3 flex items-center justify-between gap-2';
         div.innerHTML = `
           <div class="flex items-center gap-3">
-            <div class="w-9 h-9 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center font-bold text-sm">
+            <div class="w-9 h-9 rounded-xl bg-rose-950/60 text-rose-400 flex items-center justify-center font-bold text-sm">
               <i class="ph-bold ph-credit-card"></i>
             </div>
             <div>
-              <p class="text-xs font-bold text-slate-800 dark:text-white">${inv.bank_name}</p>
+              <p class="text-xs font-bold text-white">${inv.bank_name}</p>
               <p class="text-[10px] text-slate-400">Vencimento: ${inv.due_date} • ${inv.status === 'open' ? 'Em aberto' : 'Pago'}</p>
             </div>
           </div>
           <div class="flex items-center gap-3">
-            <span class="text-xs font-black text-rose-600 dark:text-rose-400">R$ ${Number(inv.total_amount).toFixed(2)}</span>
-            <button onclick="deleteSingleInvoice('${inv.id}')" class="p-1.5 text-slate-400 hover:text-rose-600 transition" title="Excluir fatura">
+            <span class="text-xs font-black text-rose-400">R$ ${Number(inv.total_amount).toFixed(2)}</span>
+            <button onclick="deleteSingleInvoice('${inv.id}')" class="p-1.5 text-slate-400 hover:text-rose-400 transition" title="Eliminar fatura">
               <i class="ph-bold ph-trash text-sm"></i>
             </button>
           </div>
@@ -812,18 +1226,161 @@ ${pdfText.slice(0, 15000)}`;
       emptyState.classList.add('hidden');
 
       currentTransactions.forEach(t => {
+        const member = currentMembers.find(m => m.id === t.member_id);
+        const memberName = member ? member.name : 'Geral (Sem atribuição)';
+        const badgeColor = member ? 'bg-indigo-950 text-indigo-300 border-indigo-800' : 'bg-slate-800 text-slate-400 border-slate-700';
+
         const div = document.createElement('div');
         div.className = 'py-2.5 flex items-center justify-between gap-2 text-xs';
-        const instBadge = t.installment_info ? `<span class="ml-1 text-[9px] px-1.5 py-0.2 bg-slate-100 dark:bg-slate-800 rounded text-slate-500 font-bold">${t.installment_info}</span>` : '';
+        const instBadge = t.installment_info ? `<span class="ml-1 text-[9px] px-1.5 py-0.2 bg-slate-800 rounded text-slate-400 font-bold">${t.installment_info}</span>` : '';
         div.innerHTML = `
           <div>
-            <p class="font-bold text-slate-800 dark:text-slate-100">${t.description} ${instBadge}</p>
+            <p class="font-bold text-slate-100">${t.description} ${instBadge}</p>
             <p class="text-[10px] text-slate-400">${t.date} • ${t.category}</p>
           </div>
-          <span class="font-black text-rose-600 dark:text-rose-400">R$ ${Number(t.amount).toFixed(2)}</span>
+          <div class="flex items-center gap-2.5">
+            <button onclick="openSplitTransactionModal('${t.id}')" class="px-2 py-0.5 rounded-lg border text-[10px] font-bold ${badgeColor} hover:brightness-125 transition">
+              ${memberName}
+            </button>
+            <span class="font-black text-rose-400">R$ ${Number(t.amount).toFixed(2)}</span>
+          </div>
         `;
         container.appendChild(div);
       });
+    }
+
+    function renderMembersList() {
+      const container = document.getElementById('membersList');
+      const emptyState = document.getElementById('emptyMembers');
+      container.innerHTML = '';
+
+      if (currentMembers.length === 0) {
+        emptyState.classList.remove('hidden');
+        return;
+      }
+      emptyState.classList.add('hidden');
+
+      currentMembers.forEach(m => {
+        const total = currentTransactions.filter(t => t.member_id === m.id).reduce((a, b) => a + Number(b.amount), 0);
+        const div = document.createElement('div');
+        div.className = 'p-4 rounded-xl border border-slate-800 bg-slate-900/60 flex flex-col justify-between';
+        div.innerHTML = `
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-full bg-indigo-950 text-indigo-300 flex items-center justify-center font-bold text-xs">
+              ${m.name.slice(0, 2).toUpperCase()}
+            </div>
+            <div>
+              <h5 class="text-xs font-bold text-white">${m.name}</h5>
+              <span class="text-[10px] text-slate-400">${m.email || 'Membro cadastrado'}</span>
+            </div>
+          </div>
+          <div class="mt-3 pt-2 border-t border-slate-800 flex items-baseline justify-between text-xs">
+            <span class="text-slate-400">Total Devido:</span>
+            <span class="font-bold text-rose-400">R$ ${total.toFixed(2)}</span>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function renderBanksList() {
+      const container = document.getElementById('banksList');
+      const emptyState = document.getElementById('emptyBanks');
+      container.innerHTML = '';
+
+      if (currentBanks.length === 0) {
+        emptyState.classList.remove('hidden');
+        return;
+      }
+      emptyState.classList.add('hidden');
+
+      currentBanks.forEach(b => {
+        const div = document.createElement('div');
+        div.className = 'p-3.5 rounded-xl border border-slate-800 bg-slate-900/60 flex items-center gap-3';
+        div.innerHTML = `
+          <div class="w-8 h-8 rounded-lg bg-emerald-950 text-emerald-400 flex items-center justify-center text-sm font-bold">
+            <i class="ph-bold ph-bank"></i>
+          </div>
+          <div>
+            <h5 class="text-xs font-bold text-white">${b.name}</h5>
+            <span class="text-[10px] text-slate-400">Cartão / Conta ativa</span>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function renderCharts() {
+      const isDark = document.documentElement.classList.contains('dark');
+      const textColor = isDark ? '#94a3b8' : '#64748b';
+      const gridColor = isDark ? '#1e293b' : '#e2e8f0';
+
+      const bankMap = {};
+      currentInvoices.forEach(i => { bankMap[i.bank_name] = (bankMap[i.bank_name] || 0) + Number(i.total_amount); });
+
+      const ctx1 = document.getElementById('chartInvoices').getContext('2d');
+      if (chartInvoices) chartInvoices.destroy();
+      chartInvoices = new Chart(ctx1, {
+        type: 'bar',
+        data: {
+          labels: Object.keys(bankMap).length ? Object.keys(bankMap) : ['Sem dados'],
+          datasets: [{
+            data: Object.values(bankMap).length ? Object.values(bankMap) : [0],
+            backgroundColor: '#10b981',
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { grid: { color: gridColor }, ticks: { color: textColor, font: { size: 10 } } },
+            x: { grid: { display: false }, ticks: { color: textColor, font: { size: 10 } } }
+          }
+        }
+      });
+
+      const memberMap = {};
+      currentMembers.forEach(m => {
+        const sum = currentTransactions.filter(t => t.member_id === m.id).reduce((a, b) => a + Number(b.amount), 0);
+        if (sum > 0) memberMap[m.name] = sum;
+      });
+
+      const ctx2 = document.getElementById('chartSplit').getContext('2d');
+      if (chartSplit) chartSplit.destroy();
+      chartSplit = new Chart(ctx2, {
+        type: 'doughnut',
+        data: {
+          labels: Object.keys(memberMap).length ? Object.keys(memberMap) : ['Sem rateio'],
+          datasets: [{
+            data: Object.values(memberMap).length ? Object.values(memberMap) : [1],
+            backgroundColor: ['#10b981', '#6366f1', '#f59e0b', '#ec4899', '#06b6d4'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 }, color: textColor } } },
+          cutout: '70%'
+        }
+      });
+    }
+
+    function exportCSV() {
+      if (currentTransactions.length === 0) return alert('Sem lançamentos para exportar.');
+      let csv = 'ID;Descricao;Data;Valor;Categoria;Parcela;Membro\n';
+      currentTransactions.forEach(t => {
+        const member = currentMembers.find(m => m.id === t.member_id);
+        csv += `"${t.id}";"${t.description}";"${t.date}";"${t.amount}";"${t.category}";"${t.installment_info || ''}";"${member ? member.name : ''}"\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `set_relatorio_${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
     }
 
     function openConfigModal() {
@@ -831,13 +1388,12 @@ ${pdfText.slice(0, 15000)}`;
       document.getElementById('modalConfig').classList.remove('hidden');
     }
 
-    function closeConfigModal() {
-      document.getElementById('modalConfig').classList.add('hidden');
-    }
+    function closeConfigModal() { document.getElementById('modalConfig').classList.add('hidden'); }
 
     function saveGeminiKey() {
       const k = document.getElementById('inputGeminiKey').value.trim();
       localStorage.setItem('set_gemini_key', k);
+      addLog('Chave Gemini configurada pelo utilizador.');
       closeConfigModal();
     }
   </script>
