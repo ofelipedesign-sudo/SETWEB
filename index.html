@@ -77,8 +77,8 @@
 
   <!-- CONFIGURAÇÃO SUPABASE -->
   <script>
-    const SUPABASE_PROJECT_URL = 'https://opfgooigsqypgzcaehrf.supabase.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_7ffqvqRKZd3T78kEBLZ7Zw_4hoLRG5d';
+    const SUPABASE_PROJECT_URL = 'https://opfgooigsgypgzcaehrf.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9wZmdvb2lnc2d5cGd6Y2FlaHJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE5MTQ3MjksImV4cCI6MjEwNzQ5MDcyOX0.3NRYTFNzSa7KcGdB00bGm2wBUgoK9-EMloaCT00b-K4';
 
     try {
       window.supabaseClient = window.supabase.createClient(SUPABASE_PROJECT_URL, SUPABASE_ANON_KEY, {
@@ -86,12 +86,6 @@
           persistSession: true,
           autoRefreshToken: true,
           detectSessionInUrl: true
-        },
-        global: {
-          headers: {
-            'apikey': SUPABASE_ANON_KEY,
-            'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
-          }
         }
       });
     } catch (e) {
@@ -99,7 +93,7 @@
     }
   </script>
 
-  <!-- 1. TELA DE AUTENTICAÇÃO -->
+  <!-- 1. ECRÃ DE AUTENTICAÇÃO -->
   <div id="authScreen" class="min-h-[100dvh] w-full flex flex-col justify-center items-center px-4 py-8 bg-slate-950">
     <div class="w-full max-w-sm flex flex-col gap-5">
       <div class="text-center">
@@ -123,7 +117,7 @@
           </div>
 
           <div>
-            <label class="block text-xs font-bold text-slate-300 mb-1.5">Senha</label>
+            <label class="block text-xs font-bold text-slate-300 mb-1.5">Palavra-passe</label>
             <input type="password" id="authPassword" required minlength="6" placeholder="Mínimo 6 caracteres" class="w-full px-3.5 py-3 text-sm rounded-xl border border-slate-700 bg-slate-800 text-white focus:outline-none focus:border-brand-500 transition">
           </div>
 
@@ -145,7 +139,6 @@
   <!-- 2. APLICAÇÃO PRINCIPAL -->
   <div id="appContainer" class="hidden min-h-screen flex flex-col">
 
-    <!-- Topo / Header com Menu SET -->
     <header class="app-header-safe bg-slate-900 border-b border-slate-800 sticky top-0 z-30 transition-colors duration-200">
       <div class="max-w-7xl mx-auto px-4 pb-3 flex items-center justify-between gap-2">
         <div class="flex items-center space-x-2.5">
@@ -162,14 +155,12 @@
         </div>
 
         <div class="flex items-center gap-2">
-          <!-- Ação Rápida Importar Fatura com IA -->
           <button onclick="triggerInvoiceUpload()" class="px-3 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white flex items-center gap-1.5 shadow-sm transition">
             <i class="ph-bold ph-sparkle text-amber-300 text-sm"></i>
             <span>Importar Fatura IA</span>
           </button>
           <input type="file" id="pdfFileInput" accept=".pdf,.csv,.ofx" onchange="handleFileSelected(event)" class="hidden">
 
-          <!-- Dropdown com Funções Originais da Folha de Cálculo -->
           <div class="relative">
             <button onclick="toggleSetMenuDropdown()" id="btnSetMenu" class="px-3 py-2 text-xs font-bold rounded-xl bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-200 flex items-center gap-1.5 transition">
               <i class="ph-bold ph-list"></i>
@@ -189,7 +180,7 @@
                 </button>
                 <button onclick="switchTab('members'); closeSetMenuDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium rounded-lg hover:bg-slate-800 flex items-center gap-2">
                   <i class="ph-bold ph-users text-indigo-400"></i>
-                  <span>Catalogar Membros / Usuários</span>
+                  <span>Catalogar Membros / Utilizadores</span>
                 </button>
                 <button onclick="openGenerateMemberPdfModal(); closeSetMenuDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium rounded-lg hover:bg-slate-800 flex items-center gap-2">
                   <i class="ph-bold ph-file-pdf text-rose-400"></i>
@@ -232,10 +223,8 @@
       </div>
     </header>
 
-    <!-- Conteúdo Principal -->
     <main class="app-main-safe max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 py-4 w-full flex-1 flex flex-col gap-4">
 
-      <!-- Navegação por Abas Desktop -->
       <div class="flex items-center justify-between border-b border-slate-800 pb-3 gap-2">
         <div class="flex items-center gap-2">
           <button onclick="switchTab('dashboard')" id="tabNavDash" class="px-4 py-2 rounded-lg text-sm font-semibold transition bg-emerald-950/40 text-emerald-300 border border-emerald-800 flex items-center gap-2">
@@ -277,7 +266,7 @@
             <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Lançamentos</span>
             <div class="mt-2">
               <h3 id="cardTotalTransactions" class="text-2xl font-black text-white tracking-tight">R$ 0,00</h3>
-              <p id="cardTransCount" class="text-[11px] text-slate-400 mt-0.5">0 compras registradas</p>
+              <p id="cardTransCount" class="text-[11px] text-slate-400 mt-0.5">0 compras registadas</p>
             </div>
           </div>
 
@@ -337,7 +326,7 @@
             </button>
           </div>
           <div id="invoicesList" class="divide-y divide-slate-800"></div>
-          <div id="emptyInvoices" class="p-8 text-center text-slate-400 text-xs">Nenhuma fatura registrada.</div>
+          <div id="emptyInvoices" class="p-8 text-center text-slate-400 text-xs">Nenhuma fatura registada.</div>
         </div>
       </div>
 
@@ -449,7 +438,7 @@
         </div>
 
         <div>
-          <h4 class="text-xs font-bold text-slate-300 mb-2">Itens Detectados (<span id="aiItemsCount">0</span> lançamentos)</h4>
+          <h4 class="text-xs font-bold text-slate-300 mb-2">Itens Detetados (<span id="aiItemsCount">0</span> lançamentos)</h4>
           <div id="aiItemsContainer" class="max-h-56 overflow-y-auto divide-y divide-slate-800 custom-scrollbar text-xs"></div>
         </div>
 
@@ -715,11 +704,11 @@
           
           if (data.session && data.user) {
             currentUser = data.user;
-            addLog(`Conta criada e logada: ${email}`);
+            addLog(`Conta criada e autenticada: ${email}`);
             showApp();
             loadAllData();
           } else {
-            alert('Conta criada com sucesso! Caso necessário, confirme o e-mail ou clique em Entrar.');
+            alert('Conta criada com sucesso! Caso necessário, confirme o e-mail ou tente fazer login.');
             setAuthMode('login');
           }
         } else {
