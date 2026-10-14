@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-PT" class="dark">
+<html lang="pt-BR" class="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -75,14 +75,22 @@
 </head>
 <body class="bg-slate-950 text-slate-100 antialiased min-h-screen transition-colors duration-200 select-none">
 
-  <!-- CONFIGURAÇÃO SUPABASE ATUALIZADA -->
+  <!-- CONFIGURAÇÃO SUPABASE -->
   <script>
     const SUPABASE_PROJECT_URL = 'https://opfgooigsqypgzcaehrf.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_7ffqvqRKZd3T78kEBLZ7Zw_4hoLRG5d';
 
-    window.supabaseClient = (window.supabase && SUPABASE_ANON_KEY !== 'COLE_AQUI_SUA_CHAVE_ANON') 
-      ? window.supabase.createClient(SUPABASE_PROJECT_URL, SUPABASE_ANON_KEY) 
-      : null;
+    try {
+      window.supabaseClient = window.supabase.createClient(SUPABASE_PROJECT_URL, SUPABASE_ANON_KEY, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true
+        }
+      });
+    } catch (e) {
+      console.error('Falha ao inicializar Supabase:', e);
+    }
   </script>
 
   <!-- 1. TELA DE AUTENTICAÇÃO -->
@@ -109,7 +117,7 @@
           </div>
 
           <div>
-            <label class="block text-xs font-bold text-slate-300 mb-1.5">Palavra-passe</label>
+            <label class="block text-xs font-bold text-slate-300 mb-1.5">Senha</label>
             <input type="password" id="authPassword" required minlength="6" placeholder="Mínimo 6 caracteres" class="w-full px-3.5 py-3 text-sm rounded-xl border border-slate-700 bg-slate-800 text-white focus:outline-none focus:border-brand-500 transition">
           </div>
 
@@ -131,7 +139,6 @@
   <!-- 2. APLICAÇÃO PRINCIPAL -->
   <div id="appContainer" class="hidden min-h-screen flex flex-col">
 
-    <!-- Topo / Header com Menu SET -->
     <header class="app-header-safe bg-slate-900 border-b border-slate-800 sticky top-0 z-30 transition-colors duration-200">
       <div class="max-w-7xl mx-auto px-4 pb-3 flex items-center justify-between gap-2">
         <div class="flex items-center space-x-2.5">
@@ -148,14 +155,12 @@
         </div>
 
         <div class="flex items-center gap-2">
-          <!-- Ação Rápida Importar Fatura com IA -->
           <button onclick="triggerInvoiceUpload()" class="px-3 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white flex items-center gap-1.5 shadow-sm transition">
             <i class="ph-bold ph-sparkle text-amber-300 text-sm"></i>
             <span>Importar Fatura IA</span>
           </button>
           <input type="file" id="pdfFileInput" accept=".pdf,.csv,.ofx" onchange="handleFileSelected(event)" class="hidden">
 
-          <!-- Dropdown com Funções Originais da Folha de Cálculo -->
           <div class="relative">
             <button onclick="toggleSetMenuDropdown()" id="btnSetMenu" class="px-3 py-2 text-xs font-bold rounded-xl bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-200 flex items-center gap-1.5 transition">
               <i class="ph-bold ph-list"></i>
@@ -218,10 +223,8 @@
       </div>
     </header>
 
-    <!-- Conteúdo Principal -->
     <main class="app-main-safe max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 py-4 w-full flex-1 flex flex-col gap-4">
 
-      <!-- Navegação por Abas Desktop -->
       <div class="flex items-center justify-between border-b border-slate-800 pb-3 gap-2">
         <div class="flex items-center gap-2">
           <button onclick="switchTab('dashboard')" id="tabNavDash" class="px-4 py-2 rounded-lg text-sm font-semibold transition bg-emerald-950/40 text-emerald-300 border border-emerald-800 flex items-center gap-2">
@@ -284,7 +287,6 @@
           </div>
         </div>
 
-        <!-- Área de Upload Drag & Drop -->
         <div onclick="triggerInvoiceUpload()" class="border-2 border-dashed border-slate-800 hover:border-emerald-500 rounded-3xl p-8 text-center cursor-pointer transition bg-slate-900/40 hover:bg-slate-900/80">
           <div class="w-12 h-12 rounded-2xl bg-emerald-950/60 text-emerald-400 flex items-center justify-center mx-auto mb-3 text-2xl">
             <i class="ph-bold ph-file-arrow-up"></i>
@@ -293,7 +295,6 @@
           <p class="text-xs text-slate-400 mt-1 max-w-md mx-auto">O motor interpretativo IA extrai o emissor, data de vencimento, montante consolidado e todos os lançamentos individuais de forma automática.</p>
         </div>
 
-        <!-- Gráficos -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div class="lg:col-span-2 bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 shadow-sm">
             <h4 class="text-xs sm:text-sm font-bold text-slate-100 mb-3">Gastos por Banco / Cartão</h4>
@@ -385,7 +386,6 @@
 
     </main>
 
-    <!-- BARRA INFERIOR MOBILE -->
     <nav class="app-bottom-nav-safe sm:hidden fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-lg border-t border-slate-800 z-40 px-3 pt-2 flex items-center justify-around shadow-2xl">
       <button onclick="switchTab('dashboard')" id="mTabDash" class="flex flex-col items-center gap-1 text-emerald-400">
         <i class="ph-bold ph-chart-pie-slice text-xl"></i>
@@ -492,7 +492,6 @@
           <select id="selectPdfMember" onchange="generateMemberReportPreview()" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-white focus:outline-none"></select>
         </div>
 
-        <!-- Área de Impressão do Relatório -->
         <div id="printArea" class="p-4 bg-white text-slate-900 rounded-xl text-xs flex flex-col gap-2 min-h-48 border border-slate-200">
           <div class="flex items-center justify-between border-b border-slate-200 pb-2">
             <div>
@@ -598,6 +597,7 @@
 
   <!-- 3. LÓGICA JAVASCRIPT INTEGRADA -->
   <script>
+    let currentAuthMode = 'login';
     let currentUser = null;
     let currentInvoices = [];
     let currentTransactions = [];
@@ -645,12 +645,17 @@
         showAuth();
         return;
       }
-      const { data: { session } } = await window.supabaseClient.auth.getSession();
-      if (session && session.user) {
-        currentUser = session.user;
-        showApp();
-        loadAllData();
-      } else {
+      try {
+        const { data: { session } } = await window.supabaseClient.auth.getSession();
+        if (session && session.user) {
+          currentUser = session.user;
+          showApp();
+          loadAllData();
+        } else {
+          showAuth();
+        }
+      } catch (err) {
+        console.warn('Erro ao verificar sessão:', err);
         showAuth();
       }
     }
@@ -666,6 +671,7 @@
     }
 
     function setAuthMode(mode) {
+      currentAuthMode = mode;
       const tabLog = document.getElementById('tabAuthLogin');
       const tabReg = document.getElementById('tabAuthRegister');
       const btn = document.getElementById('btnAuthSubmit');
@@ -676,26 +682,47 @@
       } else {
         tabReg.className = "flex-1 py-2.5 rounded-lg bg-slate-700 text-white shadow-sm transition";
         tabLog.className = "flex-1 py-2.5 rounded-lg text-slate-400 transition";
-        btn.textContent = "Criar Conta";
+        btn.textContent = "Criar Minha Conta";
       }
     }
 
     async function handleAuthSubmit(e) {
       e.preventDefault();
-      if (!window.supabaseClient) return alert('Supabase não configurado.');
+      if (!window.supabaseClient) return alert('Cliente Supabase não inicializado.');
 
       const email = document.getElementById('authEmail').value.trim();
       const password = document.getElementById('authPassword').value;
 
       try {
-        const { data, error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        currentUser = data.user;
-        addLog(`Utilizador autenticado: ${email}`);
-        showApp();
-        loadAllData();
+        if (currentAuthMode === 'register') {
+          const { data, error } = await window.supabaseClient.auth.signUp({ 
+            email, 
+            password 
+          });
+          if (error) throw error;
+          
+          if (data.session && data.user) {
+            currentUser = data.user;
+            addLog(`Conta criada e logada: ${email}`);
+            showApp();
+            loadAllData();
+          } else {
+            alert('Conta criada com sucesso! Caso necessário, confirme o e-mail ou clique em Entrar.');
+            setAuthMode('login');
+          }
+        } else {
+          const { data, error } = await window.supabaseClient.auth.signInWithPassword({ 
+            email, 
+            password 
+          });
+          if (error) throw error;
+          currentUser = data.user;
+          addLog(`Utilizador autenticado: ${email}`);
+          showApp();
+          loadAllData();
+        }
       } catch (err) {
-        alert('Erro de login: ' + err.message);
+        alert('Erro de autenticação: ' + (err.message || 'Falha de rede'));
       }
     }
 
