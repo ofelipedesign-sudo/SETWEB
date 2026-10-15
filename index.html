@@ -150,7 +150,6 @@
   <!-- 2. APLICAÇÃO PRINCIPAL -->
   <div id="appContainer" class="hidden min-h-screen flex flex-col">
 
-    <!-- Topo / Header com Menu SET -->
     <header class="app-header-safe bg-slate-900 border-b border-slate-800 sticky top-0 z-30 transition-colors duration-200">
       <div class="max-w-7xl mx-auto px-4 pb-3 flex items-center justify-between gap-2">
         <div class="flex items-center space-x-2.5">
@@ -167,7 +166,6 @@
         </div>
 
         <div class="flex items-center gap-2">
-          <!-- Botão Importar Fatura IA -->
           <button onclick="triggerInvoiceUpload()" class="px-3 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white flex items-center gap-1.5 shadow-sm transition">
             <i class="ph-bold ph-sparkle text-amber-300 text-sm"></i>
             <span>Importar Fatura IA</span>
@@ -906,7 +904,7 @@
       }
     }
 
-    // MOTOR DE IA COM RESOLUÇÃO DINÂMICA DE MODELOS
+    // MOTOR DE IA COM TIMEOUT E GESTÃO ROBUSTA DE ERROS
     async function parseInvoiceWithAI(pdfText, apiKey) {
       const prompt = `Você é um motor contábil especialista em conciliação de faturas de cartões de crédito e extratos bancários.
 Analise o texto extraído da fatura e retorne as informações em JSON estruturado estrito.
@@ -939,61 +937,41 @@ Retorne EXCLUSIVAMENTE o JSON no formato:
 }
 
 TEXTO DA FATURA:
-${pdfText.slice(0, 15000)}`;
+${pdfText.slice(0, 12000)}`;
 
-      let candidateEndpoints = [];
-      try {
-        const listResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-        if (listResp.ok) {
-          const listData = await listResp.json();
-          const validModels = (listData.models || [])
-            .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
-            .map(m => m.name.replace('models/', ''));
-
-          const flashModels = validModels.filter(m => m.includes('flash'));
-          const otherModels = validModels.filter(m => !m.includes('flash'));
-          const ordered = [...flashModels, ...otherModels];
-
-          ordered.forEach(m => {
-            candidateEndpoints.push(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`);
-            candidateEndpoints.push(`https://generativelanguage.googleapis.com/v1/models/${m}:generateContent`);
-          });
-        }
-      } catch (errList) {
-        console.warn('Fallback da lista de modelos:', errList);
-      }
-
-      if (candidateEndpoints.length === 0) {
-        candidateEndpoints = [
-          'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
-          'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent',
-          'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent',
-          'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
-        ];
-      }
+      const endpoints = [
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
+        'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent'
+      ];
 
       let lastError = null;
 
-      for (const endpoint of candidateEndpoints) {
+      for (const endpoint of endpoints) {
         try {
-          animateProgressTo(72, 'A interpretar compras e parcelas');
+          animateProgressTo(75, 'A interpretar compras e parcelas');
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 25000);
+
           const response = await fetch(`${endpoint}?key=${apiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            signal: controller.signal,
             body: JSON.stringify({
               contents: [{ parts: [{ text: prompt }] }],
               generationConfig: { temperature: 0.1 }
             })
           });
 
+          clearTimeout(timeoutId);
+
           if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            const errMsg = errorData.error?.message || `HTTP ${response.status}`;
-            lastError = new Error(errMsg);
+            lastError = new Error(errorData.error?.message || `HTTP ${response.status}`);
             continue;
           }
 
-          animateProgressTo(88, 'A estruturar JSON contábil');
+          animateProgressTo(90, 'A estruturar lançamentos');
           const data = await response.json();
           let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
@@ -1006,7 +984,7 @@ ${pdfText.slice(0, 15000)}`;
         }
       }
 
-      throw lastError || new Error('Não foi possível estabelecer ligação com a Gemini API.');
+      throw lastError || new Error('Tempo limite esgotado ou falha de ligação com o Gemini.');
     }
 
     async function processPdfWithGemini(textContent, apiKey) {
@@ -1019,10 +997,10 @@ ${pdfText.slice(0, 15000)}`;
         setTimeout(() => {
           hideLoading();
           showInvoiceAIModal(parsed);
-        }, 500);
+        }, 400);
       } catch (err) {
         hideLoading();
-        alert('Erro ao interpretar com IA: ' + err.message);
+        alert('Erro ao interpretar com IA: ' + err.message + '\n\nVerifique se a chave Gemini no menu Funções > Configurações está válida e com cota.');
       }
     }
 
@@ -1070,7 +1048,7 @@ ${pdfText.slice(0, 15000)}`;
           status: 'open'
         };
 
-        animateProgressTo(48, 'A gravar registo de fatura');
+        animateProgressTo(50, 'A gravar fatura principal');
         const { data: invResult, error: invErr } = await window.supabaseClient
           .from('invoices')
           .insert([invoiceData])
@@ -1091,18 +1069,18 @@ ${pdfText.slice(0, 15000)}`;
         }));
 
         if (transRows.length > 0) {
-          animateProgressTo(78, 'A inserir lançamentos individuais');
+          animateProgressTo(80, 'A gravar lançamentos individuais');
           await window.supabaseClient.from('transactions').insert(transRows);
         }
 
-        animateProgressTo(100, 'Gravado com sucesso');
+        animateProgressTo(100, 'Gravação concluída');
         addLog(`Fatura guardada na base de dados com ${transRows.length} itens.`);
 
         setTimeout(() => {
           hideLoading();
           alert('Fatura e itens guardados com sucesso!');
           loadAllData();
-        }, 500);
+        }, 400);
       } catch (e) {
         hideLoading();
         alert('Erro ao guardar fatura: ' + e.message);
