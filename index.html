@@ -110,7 +110,7 @@
           <button type="button" id="tabAuthRegister" onclick="setAuthMode('register')" class="flex-1 py-2.5 rounded-lg text-slate-400 transition">Criar Conta</button>
         </div>
 
-        <form id="formAuth" onsubmit="handleAuthSubmit(event)" class="flex flex-col gap-4">
+        <form id="formAuth" onsubmit="event.preventDefault(); handleAuthSubmit(event);" class="flex flex-col gap-4">
           <div>
             <label class="block text-xs font-bold text-slate-300 mb-1.5">E-mail</label>
             <input type="email" id="authEmail" required placeholder="seu@email.com" class="w-full px-3.5 py-3 text-sm rounded-xl border border-slate-700 bg-slate-800 text-white focus:outline-none focus:border-brand-500 transition">
@@ -659,7 +659,21 @@
 
     window.addEventListener('DOMContentLoaded', async () => {
       initTheme();
-      checkSession();
+
+      if (window.supabaseClient) {
+        window.supabaseClient.auth.onAuthStateChange((event, session) => {
+          if (session && session.user) {
+            currentUser = session.user;
+            showApp();
+            loadAllData().catch(err => console.error('Erro ao carregar dados:', err));
+          } else {
+            currentUser = null;
+            showAuth();
+          }
+        });
+      } else {
+        showAuth();
+      }
 
       document.addEventListener('click', (e) => {
         const dd = document.getElementById('setMenuDropdown');
@@ -669,26 +683,6 @@
         }
       });
     });
-
-    async function checkSession() {
-      if (!window.supabaseClient) {
-        showAuth();
-        return;
-      }
-      try {
-        const { data: { session } } = await window.supabaseClient.auth.getSession();
-        if (session && session.user) {
-          currentUser = session.user;
-          showApp();
-          loadAllData();
-        } else {
-          showAuth();
-        }
-      } catch (err) {
-        console.warn('Erro ao verificar sessão:', err);
-        showAuth();
-      }
-    }
 
     function showAuth() {
       document.getElementById('authScreen').classList.remove('hidden');
@@ -717,11 +711,19 @@
     }
 
     async function handleAuthSubmit(e) {
-      e.preventDefault();
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+
       if (!window.supabaseClient) return alert('Cliente Supabase não inicializado.');
 
       const email = document.getElementById('authEmail').value.trim();
       const password = document.getElementById('authPassword').value;
+      const btn = document.getElementById('btnAuthSubmit');
+
+      btn.disabled = true;
+      btn.textContent = 'Processando...';
 
       try {
         if (currentAuthMode === 'register') {
@@ -735,7 +737,7 @@
             currentUser = data.user;
             addLog(`Conta criada e autenticada: ${email}`);
             showApp();
-            loadAllData();
+            await loadAllData();
           } else {
             alert('Conta criada com sucesso! Caso necessário, confirme o e-mail ou tente fazer login.');
             setAuthMode('login');
@@ -749,10 +751,13 @@
           currentUser = data.user;
           addLog(`Utilizador autenticado: ${email}`);
           showApp();
-          loadAllData();
+          await loadAllData();
         }
       } catch (err) {
-        alert('Erro de autenticação: ' + (err.message || 'Falha de rede'));
+        alert('Erro ao autenticar: ' + (err.message || 'Credenciais inválidas ou erro de rede'));
+      } finally {
+        btn.disabled = false;
+        btn.textContent = currentAuthMode === 'login' ? 'Aceder ao SET' : 'Criar Minha Conta';
       }
     }
 
@@ -1411,4 +1416,59 @@ ${pdfText.slice(0, 15000)}`;
 
       const memberMap = {};
       currentMembers.forEach(m => {
-        const sum = currentTransactions.filter(t => t.member_id === m.id).reduce((a, b) => a + Number(b.amount
+        const sum = currentTransactions.filter(t => t.member_id === m.id).reduce((a, b) => a + Number(b.amount), 0);
+        if (sum > 0) memberMap[m.name] = sum;
+      });
+
+      const ctx2 = document.getElementById('chartSplit').getContext('2d');
+      if (chartSplit) chartSplit.destroy();
+      chartSplit = new Chart(ctx2, {
+        type: 'doughnut',
+        data: {
+          labels: Object.keys(memberMap).length ? Object.keys(memberMap) : ['Sem rateio'],
+          datasets: [{
+            data: Object.values(memberMap).length ? Object.values(memberMap) : [1],
+            backgroundColor: ['#10b981', '#6366f1', '#f59e0b', '#ec4899', '#06b6d4'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 }, color: textColor } } },
+          cutout: '70%'
+        }
+      });
+    }
+
+    function exportCSV() {
+      if (currentTransactions.length === 0) return alert('Sem lançamentos para exportar.');
+      let csv = 'ID;Descricao;Data;Valor;Categoria;Parcela;Membro\n';
+      currentTransactions.forEach(t => {
+        const member = currentMembers.find(m => m.id === t.member_id);
+        csv += `"${t.id}";"${t.description}";"${t.date}";"${t.amount}";"${t.category}";"${t.installment_info || ''}";"${member ? member.name : ''}"\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `set_relatorio_${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+    }
+
+    function openConfigModal() {
+      document.getElementById('inputGeminiKey').value = localStorage.getItem('set_gemini_key') || '';
+      document.getElementById('modalConfig').classList.remove('hidden');
+    }
+
+    function closeConfigModal() { document.getElementById('modalConfig').classList.add('hidden'); }
+
+    function saveGeminiKey() {
+      const k = document.getElementById('inputGeminiKey').value.trim();
+      localStorage.setItem('set_gemini_key', k);
+      addLog('Chave Gemini configurada pelo utilizador.');
+      closeConfigModal();
+    }
+  </script>
+</body>
+</html>
