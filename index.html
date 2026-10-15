@@ -66,6 +66,17 @@
     .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 9999px; }
     .dark .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #334155; }
 
+    @keyframes shimmerBar {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    .animate-shimmer {
+      background: linear-gradient(90deg, #10b981 0%, #34d399 25%, #6ee7b7 50%, #34d399 75%, #10b981 100%);
+      background-size: 200% 100%;
+      animation: shimmerBar 2s linear infinite;
+    }
+
     @media print {
       body * { visibility: hidden; }
       #printArea, #printArea * { visibility: visible; }
@@ -413,7 +424,7 @@
       </button>
     </nav>
 
-    <!-- MODAL DE CARREGAMENTO / PROCESSAMENTO IA -->
+    <!-- MODAL DE CARREGAMENTO DINÂMICO -->
     <div id="modalLoading" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
       <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-2xl flex flex-col items-center gap-4">
         <div class="relative w-16 h-16 flex items-center justify-center">
@@ -424,8 +435,16 @@
           <h3 id="loadingTitle" class="text-sm font-bold text-white tracking-tight">Processando com IA...</h3>
           <p id="loadingSubtext" class="text-xs text-slate-400 mt-1">A analisar extrato e lançamentos da fatura</p>
         </div>
-        <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-          <div class="bg-gradient-to-r from-emerald-500 to-teal-400 h-full w-2/3 animate-pulse rounded-full"></div>
+        
+        <!-- Barra de Progresso Dinâmica -->
+        <div class="w-full flex flex-col gap-1.5 mt-1">
+          <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden p-0.5 border border-slate-700/60 shadow-inner">
+            <div id="loadingProgressBar" class="animate-shimmer h-full rounded-full transition-all duration-500 ease-out shadow-sm" style="width: 15%;"></div>
+          </div>
+          <div class="flex justify-between items-center px-1 text-[10px] text-slate-400 font-bold">
+            <span id="loadingStepLabel">Iniciando...</span>
+            <span id="loadingPercentLabel">15%</span>
+          </div>
         </div>
       </div>
     </div>
@@ -629,10 +648,21 @@
     let chartInvoices = null;
     let chartSplit = null;
 
-    function showLoading(title, subtext) {
+    function showLoading(title, subtext, percentage = 15, step = 'Iniciando...') {
       document.getElementById('loadingTitle').textContent = title || 'Processando com IA...';
       document.getElementById('loadingSubtext').textContent = subtext || 'A analisar os dados da fatura';
+      updateLoadingProgress(percentage, step);
       document.getElementById('modalLoading').classList.remove('hidden');
+    }
+
+    function updateLoadingProgress(percentage, step) {
+      const p = Math.max(5, Math.min(100, percentage));
+      const bar = document.getElementById('loadingProgressBar');
+      const pctLabel = document.getElementById('loadingPercentLabel');
+      const stepLabel = document.getElementById('loadingStepLabel');
+      if (bar) bar.style.width = p + '%';
+      if (pctLabel) pctLabel.textContent = p + '%';
+      if (stepLabel && step) stepLabel.textContent = step;
     }
 
     function hideLoading() {
@@ -811,7 +841,7 @@
         return;
       }
 
-      showLoading('Lendo arquivo PDF...', 'Extraindo o conteúdo textual das páginas');
+      showLoading('Lendo arquivo PDF...', 'Extraindo o conteúdo textual das páginas', 20, 'Extraindo PDF');
 
       try {
         addLog(`A processar ficheiro PDF: ${file.name}`);
@@ -825,7 +855,7 @@
           textContent += ' ' + content.items.map(item => item.str).join(' ');
         }
 
-        showLoading('IA Analisando Fatura...', 'O Gemini está estruturando valores, vencimento e compras');
+        showLoading('IA Analisando Fatura...', 'O Gemini está estruturando valores, vencimento e compras', 55, 'Processando com IA');
         await processPdfWithGemini(textContent, apiKey);
       } catch (err) {
         hideLoading();
@@ -940,9 +970,12 @@ ${pdfText.slice(0, 15000)}`;
       try {
         const parsed = await parseInvoiceWithAI(textContent, apiKey);
         pendingParsedInvoice = parsed;
+        updateLoadingProgress(85, 'Concluindo leitura');
         addLog(`Fatura interpretada: ${parsed.bank_name} (R$ ${parsed.total_amount})`);
-        hideLoading();
-        showInvoiceAIModal(parsed);
+        setTimeout(() => {
+          hideLoading();
+          showInvoiceAIModal(parsed);
+        }, 300);
       } catch (err) {
         hideLoading();
         alert('Erro ao interpretar com IA: ' + err.message);
@@ -982,7 +1015,7 @@ ${pdfText.slice(0, 15000)}`;
       if (!pendingParsedInvoice || !window.supabaseClient) return;
 
       closeInvoiceAIModal();
-      showLoading('Gravando no Banco de Dados...', 'Sincronizando fatura e transações no Supabase');
+      showLoading('Gravando no Banco de Dados...', 'Sincronizando fatura e transações no Supabase', 20, 'Preparando registros');
 
       try {
         const invoiceData = {
@@ -993,6 +1026,7 @@ ${pdfText.slice(0, 15000)}`;
           status: 'open'
         };
 
+        updateLoadingProgress(45, 'Gravando cabeçalho da fatura');
         const { data: invResult, error: invErr } = await window.supabaseClient
           .from('invoices')
           .insert([invoiceData])
@@ -1013,13 +1047,18 @@ ${pdfText.slice(0, 15000)}`;
         }));
 
         if (transRows.length > 0) {
+          updateLoadingProgress(75, 'Inserindo lançamentos conciliados');
           await window.supabaseClient.from('transactions').insert(transRows);
         }
 
+        updateLoadingProgress(100, 'Finalizado com sucesso');
         addLog(`Fatura guardada na base de dados com ${transRows.length} itens.`);
-        hideLoading();
-        alert('Fatura e itens guardados com sucesso!');
-        loadAllData();
+        
+        setTimeout(() => {
+          hideLoading();
+          alert('Fatura e itens guardados com sucesso!');
+          loadAllData();
+        }, 400);
       } catch (e) {
         hideLoading();
         alert('Erro ao guardar fatura: ' + e.message);
