@@ -36,7 +36,7 @@
           }
         }
       }
-    }
+    };
   </script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
@@ -83,11 +83,18 @@
       #printArea { position: absolute; left: 0; top: 0; width: 100%; }
     }
   </style>
-</head>
-<body class="bg-slate-950 text-slate-100 antialiased min-h-screen transition-colors duration-200 select-none">
 
-  <!-- CONFIGURAÇÃO SUPABASE -->
+  <!-- INICIALIZAÇÃO DE BASE & FUNÇÕES DE AUTENTICAÇÃO NO TOPO -->
   <script>
+    window.currentAuthMode = 'login';
+    window.currentUser = null;
+    window.currentInvoices = [];
+    window.currentTransactions = [];
+    window.currentMembers = [];
+    window.currentBanks = [];
+    window.pendingParsedInvoice = null;
+    window.selectedTransactionToSplit = null;
+
     const SUPABASE_PROJECT_URL = 'https://opfgooigsgypgzcaehrf.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9wZmdvb2lnc2d5cGd6Y2FlaHJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE5MTQ3MjksImV4cCI6MjEwNzQ5MDcyOX0.3NRYTFNzSa7KcGdB00bGm2wBUgoK9-EMloaCT00b-K4';
 
@@ -102,7 +109,84 @@
     } catch (e) {
       console.error('Falha ao inicializar o Supabase:', e);
     }
+
+    window.setAuthMode = function(mode) {
+      window.currentAuthMode = mode;
+      const tabLog = document.getElementById('tabAuthLogin');
+      const tabReg = document.getElementById('tabAuthRegister');
+      const btn = document.getElementById('btnAuthSubmit');
+      if (!tabLog || !tabReg || !btn) return;
+
+      if (mode === 'login') {
+        tabLog.className = "flex-1 py-2.5 rounded-lg bg-slate-700 text-white shadow-sm transition";
+        tabReg.className = "flex-1 py-2.5 rounded-lg text-slate-400 transition";
+        btn.textContent = "Aceder ao SET";
+      } else {
+        tabReg.className = "flex-1 py-2.5 rounded-lg bg-slate-700 text-white shadow-sm transition";
+        tabLog.className = "flex-1 py-2.5 rounded-lg text-slate-400 transition";
+        btn.textContent = "Criar Minha Conta";
+      }
+    };
+
+    window.handleAuthSubmit = async function(e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+
+      if (!window.supabaseClient) {
+        alert('Cliente Supabase não inicializado.');
+        return false;
+      }
+
+      const emailInput = document.getElementById('authEmail');
+      const passInput = document.getElementById('authPassword');
+      const btn = document.getElementById('btnAuthSubmit');
+
+      if (!emailInput || !passInput) return false;
+
+      const email = emailInput.value.trim();
+      const password = passInput.value;
+
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Processando...';
+      }
+
+      try {
+        if (window.currentAuthMode === 'register') {
+          const { data, error } = await window.supabaseClient.auth.signUp({ email, password });
+          if (error) throw error;
+          
+          if (data && data.session && data.user) {
+            window.currentUser = data.user;
+            if (typeof window.showApp === 'function') window.showApp();
+            if (typeof window.loadAllData === 'function') await window.loadAllData();
+          } else {
+            alert('Conta criada com sucesso! Pode agora iniciar sessão com as credenciais registadas.');
+            window.setAuthMode('login');
+          }
+        } else {
+          const { data, error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
+          if (error) throw error;
+          
+          window.currentUser = data.user;
+          if (typeof window.showApp === 'function') window.showApp();
+          if (typeof window.loadAllData === 'function') await window.loadAllData();
+        }
+      } catch (err) {
+        alert('Erro ao autenticar: ' + (err.message || 'Credenciais inválidas ou erro de rede.'));
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = window.currentAuthMode === 'login' ? 'Aceder ao SET' : 'Criar Minha Conta';
+        }
+      }
+      return false;
+    };
   </script>
+</head>
+<body class="bg-slate-950 text-slate-100 antialiased min-h-screen transition-colors duration-200 select-none">
 
   <!-- 1. TELA DE AUTENTICAÇÃO -->
   <div id="authScreen" class="min-h-[100dvh] w-full flex flex-col justify-center items-center px-4 py-8 bg-slate-950">
@@ -121,7 +205,7 @@
           <button type="button" id="tabAuthRegister" onclick="setAuthMode('register')" class="flex-1 py-2.5 rounded-lg text-slate-400 transition">Criar Conta</button>
         </div>
 
-        <form id="formAuth" onsubmit="event.preventDefault(); handleAuthSubmit(event);" class="flex flex-col gap-4">
+        <form id="formAuth" onsubmit="return handleAuthSubmit(event);" class="flex flex-col gap-4">
           <div>
             <label class="block text-xs font-bold text-slate-300 mb-1.5">E-mail</label>
             <input type="email" id="authEmail" required placeholder="seu@email.com" class="w-full px-3.5 py-3 text-sm rounded-xl border border-slate-700 bg-slate-800 text-white focus:outline-none focus:border-brand-500 transition">
@@ -825,19 +909,29 @@
 
   <!-- 3. LÓGICA JAVASCRIPT INTEGRADA -->
   <script>
-    let currentAuthMode = 'login';
-    let currentUser = null;
-    let currentInvoices = [];
-    let currentTransactions = [];
-    let currentMembers = [];
-    let currentBanks = [];
-    let pendingParsedInvoice = null;
-    let selectedTransactionToSplit = null;
+    window.showAuth = function() {
+      const a = document.getElementById('authScreen');
+      const c = document.getElementById('appContainer');
+      if (a) a.classList.remove('hidden');
+      if (c) c.classList.add('hidden');
+    };
+
+    window.showApp = function() {
+      const a = document.getElementById('authScreen');
+      const c = document.getElementById('appContainer');
+      if (a) a.classList.add('hidden');
+      if (c) c.classList.remove('hidden');
+    };
+
+    window.signOut = async function() {
+      if (window.supabaseClient) await window.supabaseClient.auth.signOut();
+      window.currentUser = null;
+      window.showAuth();
+    };
 
     let chartInvoices = null;
     let chartSplit = null;
 
-    // MOTOR DE PROGRESSO NOMINAL DINÂMICO
     let currentProgress = 0;
     let targetProgress = 0;
     let progressRafId = null;
@@ -896,39 +990,53 @@
     }
 
     function addLog(msg) {
-      const logs = JSON.parse(localStorage.getItem('set_logs') || '[]');
-      const timestamp = new Date().toLocaleTimeString();
-      logs.unshift(`[${timestamp}] ${msg}`);
-      localStorage.setItem('set_logs', JSON.stringify(logs.slice(0, 50)));
+      try {
+        const logs = JSON.parse(localStorage.getItem('set_logs') || '[]');
+        const timestamp = new Date().toLocaleTimeString();
+        logs.unshift(`[${timestamp}] ${msg}`);
+        localStorage.setItem('set_logs', JSON.stringify(logs.slice(0, 50)));
+      } catch (e) {
+        console.warn('Armazenamento local restrito:', e);
+      }
     }
 
     function initTheme() {
-      const savedTheme = localStorage.getItem('set_theme');
-      const isDark = savedTheme ? savedTheme === 'dark' : true;
-      document.documentElement.classList.toggle('dark', isDark);
+      try {
+        const savedTheme = localStorage.getItem('set_theme');
+        const isDark = savedTheme ? savedTheme === 'dark' : true;
+        document.documentElement.classList.toggle('dark', isDark);
+      } catch (e) {}
     }
 
     function toggleTheme() {
       const isDark = document.documentElement.classList.toggle('dark');
-      localStorage.setItem('set_theme', isDark ? 'dark' : 'light');
+      try {
+        localStorage.setItem('set_theme', isDark ? 'dark' : 'light');
+      } catch (e) {}
     }
 
     window.addEventListener('DOMContentLoaded', async () => {
       initTheme();
 
+      // Atrela o ouvinte direto ao formulário garantindo que nunca falhe ao clicar em submeter
+      const form = document.getElementById('formAuth');
+      if (form) {
+        form.addEventListener('submit', window.handleAuthSubmit);
+      }
+
       if (window.supabaseClient) {
         window.supabaseClient.auth.onAuthStateChange((event, session) => {
           if (session && session.user) {
-            currentUser = session.user;
-            showApp();
-            loadAllData().catch(err => console.error('Erro ao carregar dados:', err));
+            window.currentUser = session.user;
+            window.showApp();
+            window.loadAllData().catch(err => console.error('Erro ao carregar dados:', err));
           } else {
-            currentUser = null;
-            showAuth();
+            window.currentUser = null;
+            window.showAuth();
           }
         });
       } else {
-        showAuth();
+        window.showAuth();
       }
 
       document.addEventListener('click', (e) => {
@@ -939,89 +1047,6 @@
         }
       });
     });
-
-    function showAuth() {
-      document.getElementById('authScreen').classList.remove('hidden');
-      document.getElementById('appContainer').classList.add('hidden');
-    }
-
-    function showApp() {
-      document.getElementById('authScreen').classList.add('hidden');
-      document.getElementById('appContainer').classList.remove('hidden');
-    }
-
-    function setAuthMode(mode) {
-      currentAuthMode = mode;
-      const tabLog = document.getElementById('tabAuthLogin');
-      const tabReg = document.getElementById('tabAuthRegister');
-      const btn = document.getElementById('btnAuthSubmit');
-      if (mode === 'login') {
-        tabLog.className = "flex-1 py-2.5 rounded-lg bg-slate-700 text-white shadow-sm transition";
-        tabReg.className = "flex-1 py-2.5 rounded-lg text-slate-400 transition";
-        btn.textContent = "Aceder ao SET";
-      } else {
-        tabReg.className = "flex-1 py-2.5 rounded-lg bg-slate-700 text-white shadow-sm transition";
-        tabLog.className = "flex-1 py-2.5 rounded-lg text-slate-400 transition";
-        btn.textContent = "Criar Minha Conta";
-      }
-    }
-
-    async function handleAuthSubmit(e) {
-      if (e) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-
-      if (!window.supabaseClient) return alert('Cliente Supabase não inicializado.');
-
-      const email = document.getElementById('authEmail').value.trim();
-      const password = document.getElementById('authPassword').value;
-      const btn = document.getElementById('btnAuthSubmit');
-
-      btn.disabled = true;
-      btn.textContent = 'Processando...';
-
-      try {
-        if (currentAuthMode === 'register') {
-          const { data, error } = await window.supabaseClient.auth.signUp({ 
-            email, 
-            password 
-          });
-          if (error) throw error;
-          
-          if (data.session && data.user) {
-            currentUser = data.user;
-            addLog(`Conta criada e autenticada: ${email}`);
-            showApp();
-            await loadAllData();
-          } else {
-            alert('Conta criada com sucesso! Caso necessário, confirme o e-mail ou tente fazer login.');
-            setAuthMode('login');
-          }
-        } else {
-          const { data, error } = await window.supabaseClient.auth.signInWithPassword({ 
-            email, 
-            password 
-          });
-          if (error) throw error;
-          currentUser = data.user;
-          addLog(`Utilizador autenticado: ${email}`);
-          showApp();
-          await loadAllData();
-        }
-      } catch (err) {
-        alert('Erro ao autenticar: ' + (err.message || 'Credenciais inválidas ou erro de rede'));
-      } finally {
-        btn.disabled = false;
-        btn.textContent = currentAuthMode === 'login' ? 'Aceder ao SET' : 'Criar Minha Conta';
-      }
-    }
-
-    async function signOut() {
-      if (window.supabaseClient) await window.supabaseClient.auth.signOut();
-      currentUser = null;
-      showAuth();
-    }
 
     function toggleSetMenuDropdown() {
       document.getElementById('setMenuDropdown').classList.toggle('hidden');
@@ -1100,7 +1125,6 @@
       }
     }
 
-    // MOTOR DE IA COM EXTRAÇÃO PRECISA DE PARCELAS
     async function parseInvoiceWithAI(pdfText, apiKey) {
       const prompt = `Você é um motor contábil especialista em conciliação de faturas de cartões de crédito e extratos bancários.
 Analise o texto extraído da fatura e retorne as informações em JSON estruturado estrito.
@@ -1216,7 +1240,7 @@ ${pdfText.slice(0, 14000)}`;
     async function processPdfWithGemini(textContent, apiKey) {
       try {
         const parsed = await parseInvoiceWithAI(textContent, apiKey);
-        pendingParsedInvoice = parsed;
+        window.pendingParsedInvoice = parsed;
         addLog(`Fatura interpretada: ${parsed.bank_name} (R$ ${parsed.total_amount})`);
 
         animateProgressTo(100, 'Concluído com sucesso');
@@ -1261,14 +1285,14 @@ ${pdfText.slice(0, 14000)}`;
     }
 
     async function confirmSaveInvoice() {
-      if (!pendingParsedInvoice || !window.supabaseClient) return;
+      if (!window.pendingParsedInvoice || !window.supabaseClient) return;
 
       closeInvoiceAIModal();
       showLoading('A gravar na Base de Dados...', 'A sincronizar fatura e transações no Supabase', 20, 'A preparar dados');
 
       try {
         const invoiceData = {
-          user_id: currentUser.id,
+          user_id: window.currentUser.id,
           bank_name: document.getElementById('aiBankName').value,
           due_date: document.getElementById('aiDueDate').value,
           total_amount: parseFloat(document.getElementById('aiTotalAmount').value),
@@ -1284,8 +1308,8 @@ ${pdfText.slice(0, 14000)}`;
         if (invErr) throw invErr;
         const invoiceId = invResult[0].id;
 
-        const transRows = (pendingParsedInvoice.items || []).map(item => ({
-          user_id: currentUser.id,
+        const transRows = (window.pendingParsedInvoice.items || []).map(item => ({
+          user_id: window.currentUser.id,
           invoice_id: invoiceId,
           description: item.description,
           amount: item.amount,
@@ -1307,7 +1331,7 @@ ${pdfText.slice(0, 14000)}`;
         setTimeout(() => {
           hideLoading();
           alert('Fatura e itens guardados com sucesso!');
-          loadAllData();
+          window.loadAllData();
         }, 400);
       } catch (e) {
         hideLoading();
@@ -1315,10 +1339,8 @@ ${pdfText.slice(0, 14000)}`;
       }
     }
 
-    // --- ATRIBUIÇÃO DIRETA DE MEMBRO (1 PESSOA) ---
-    async function assignSingleMember(txId, memberId) {
+    window.assignSingleMember = async function(txId, memberId) {
       if (!window.supabaseClient) return;
-
       const mId = memberId ? memberId : null;
 
       try {
@@ -1329,28 +1351,27 @@ ${pdfText.slice(0, 14000)}`;
 
         if (error) throw error;
 
-        const tx = currentTransactions.find(t => t.id === txId);
+        const tx = window.currentTransactions.find(t => t.id === txId);
         if (tx) tx.member_id = mId;
 
         renderDashboard();
         renderMembersList();
         renderCharts();
 
-        const memberObj = currentMembers.find(m => m.id === mId);
+        const memberObj = window.currentMembers.find(m => m.id === mId);
         addLog(`Transação ${tx ? tx.description : txId} atribuída diretamente para: ${memberObj ? memberObj.name : 'Geral'}`);
       } catch (err) {
         alert('Erro ao vincular membro: ' + err.message);
-        loadAllData();
+        window.loadAllData();
       }
-    }
+    };
 
-    // --- DIVIDIR TRANSAÇÃO (RATEIO ENTRE 2 PESSOAS) ---
-    function openSplitTransactionModal(txId) {
-      const tx = currentTransactions.find(t => t.id === txId);
+    window.openSplitTransactionModal = function(txId) {
+      const tx = window.currentTransactions.find(t => t.id === txId);
       if (!tx) return;
-      selectedTransactionToSplit = tx;
+      window.selectedTransactionToSplit = tx;
 
-      const invoice = currentInvoices.find(i => i.id === tx.invoice_id);
+      const invoice = window.currentInvoices.find(i => i.id === tx.invoice_id);
       const bankName = invoice ? invoice.bank_name : 'Santander';
 
       document.getElementById('splitTxDesc').textContent = tx.description;
@@ -1364,11 +1385,11 @@ ${pdfText.slice(0, 14000)}`;
       sel1.innerHTML = '';
       sel2.innerHTML = '';
 
-      if (currentMembers.length === 0) {
+      if (window.currentMembers.length === 0) {
         return alert('Cadastre primeiro membros na aba "Membros" para poder dividir transações.');
       }
 
-      currentMembers.forEach((m) => {
+      window.currentMembers.forEach((m) => {
         const o1 = document.createElement('option');
         o1.value = m.id;
         o1.textContent = m.name;
@@ -1383,7 +1404,7 @@ ${pdfText.slice(0, 14000)}`;
       if (tx.member_id) {
         sel1.value = tx.member_id;
       }
-      if (currentMembers.length > 1) {
+      if (window.currentMembers.length > 1) {
         sel2.selectedIndex = sel1.selectedIndex === 0 ? 1 : 0;
       }
 
@@ -1392,29 +1413,29 @@ ${pdfText.slice(0, 14000)}`;
       recalculateSplit();
 
       document.getElementById('modalSplitTransaction').classList.remove('hidden');
-    }
+    };
 
-    function closeSplitModal() {
+    window.closeSplitModal = function() {
       document.getElementById('modalSplitTransaction').classList.add('hidden');
-      selectedTransactionToSplit = null;
-    }
+      window.selectedTransactionToSplit = null;
+    };
 
-    function onSplitSliderChange(val) {
+    window.onSplitSliderChange = function(val) {
       document.getElementById('splitNumberInput').value = val;
       recalculateSplit();
-    }
+    };
 
-    function onSplitInputChange(val) {
+    window.onSplitInputChange = function(val) {
       let v = parseInt(val) || 0;
       if (v < 0) v = 0;
       if (v > 100) v = 100;
       document.getElementById('splitSlider').value = v;
       recalculateSplit();
-    }
+    };
 
     function recalculateSplit() {
-      if (!selectedTransactionToSplit) return;
-      const total = Number(selectedTransactionToSplit.amount);
+      if (!window.selectedTransactionToSplit) return;
+      const total = Number(window.selectedTransactionToSplit.amount);
       const p1 = parseInt(document.getElementById('splitSlider').value) || 0;
       const p2 = 100 - p1;
 
@@ -1435,8 +1456,8 @@ ${pdfText.slice(0, 14000)}`;
       document.getElementById('cardMember2Percent').textContent = `${p2}%`;
     }
 
-    async function executeSplitTransaction() {
-      if (!selectedTransactionToSplit || !window.supabaseClient) return;
+    window.executeSplitTransaction = async function() {
+      if (!window.selectedTransactionToSplit || !window.supabaseClient) return;
 
       const m1 = document.getElementById('splitMember1').value;
       const m2 = document.getElementById('splitMember2').value;
@@ -1445,7 +1466,7 @@ ${pdfText.slice(0, 14000)}`;
       if (!m1 || !m2) return alert('Selecione ambos os membros.');
       if (m1 === m2) return alert('Selecione membros diferentes para realizar a divisão.');
 
-      const total = Number(selectedTransactionToSplit.amount);
+      const total = Number(window.selectedTransactionToSplit.amount);
       const val1 = Number((total * (p1 / 100)).toFixed(2));
       const val2 = Number((total - val1).toFixed(2));
 
@@ -1455,64 +1476,63 @@ ${pdfText.slice(0, 14000)}`;
           .update({
             amount: val1,
             member_id: m1,
-            installment_info: selectedTransactionToSplit.installment_info ? `${selectedTransactionToSplit.installment_info} (Rateio)` : '(Rateio)'
+            installment_info: window.selectedTransactionToSplit.installment_info ? `${window.selectedTransactionToSplit.installment_info} (Rateio)` : '(Rateio)'
           })
-          .eq('id', selectedTransactionToSplit.id);
+          .eq('id', window.selectedTransactionToSplit.id);
 
         if (updErr) throw updErr;
 
         const { error: insErr } = await window.supabaseClient
           .from('transactions')
           .insert([{
-            user_id: currentUser.id,
-            invoice_id: selectedTransactionToSplit.invoice_id,
+            user_id: window.currentUser.id,
+            invoice_id: window.selectedTransactionToSplit.invoice_id,
             member_id: m2,
-            description: selectedTransactionToSplit.description,
+            description: window.selectedTransactionToSplit.description,
             amount: val2,
-            date: selectedTransactionToSplit.date,
-            category: selectedTransactionToSplit.category,
-            installment_info: selectedTransactionToSplit.installment_info ? `${selectedTransactionToSplit.installment_info} (Rateio)` : '(Rateio)',
-            installment_total: selectedTransactionToSplit.installment_total || null,
+            date: window.selectedTransactionToSplit.date,
+            category: window.selectedTransactionToSplit.category,
+            installment_info: window.selectedTransactionToSplit.installment_info ? `${window.selectedTransactionToSplit.installment_info} (Rateio)` : '(Rateio)',
+            installment_total: window.selectedTransactionToSplit.installment_total || null,
             type: 'expense'
           }]);
 
         if (insErr) throw insErr;
 
-        addLog(`Transação dividida: ${selectedTransactionToSplit.description} (R$ ${val1.toFixed(2)} / R$ ${val2.toFixed(2)})`);
-        closeSplitModal();
+        addLog(`Transação dividida: ${window.selectedTransactionToSplit.description} (R$ ${val1.toFixed(2)} / R$ ${val2.toFixed(2)})`);
+        window.closeSplitModal();
         alert('Transação dividida com sucesso!');
-        loadAllData();
+        window.loadAllData();
       } catch (err) {
         alert('Erro ao dividir transação: ' + err.message);
       }
-    }
+    };
 
-    // --- GERAR FATURA INDIVIDUAL EM PDF (PADRÃO 7 COLUNAS LIMPO) ---
-    function openGenerateMemberPdfModal() {
+    window.openGenerateMemberPdfModal = function() {
       const select = document.getElementById('selectPdfMember');
       select.innerHTML = '';
-      currentMembers.forEach(m => {
+      window.currentMembers.forEach(m => {
         const opt = document.createElement('option');
         opt.value = m.id;
         opt.textContent = m.name;
         select.appendChild(opt);
       });
 
-      if (currentMembers.length === 0) {
+      if (window.currentMembers.length === 0) {
         return alert('Cadastre primeiro os membros na aba Membros para gerar o PDF individual.');
       }
 
       document.getElementById('modalMemberPdf').classList.remove('hidden');
       generateMemberReportPreview();
-    }
+    };
 
-    function closeMemberPdfModal() {
+    window.closeMemberPdfModal = function() {
       document.getElementById('modalMemberPdf').classList.add('hidden');
-    }
+    };
 
     function generateMemberReportPreview() {
       const memberId = document.getElementById('selectPdfMember').value;
-      const member = currentMembers.find(m => m.id === memberId);
+      const member = window.currentMembers.find(m => m.id === memberId);
       if (!member) return;
 
       const now = new Date();
@@ -1527,7 +1547,7 @@ ${pdfText.slice(0, 14000)}`;
       document.getElementById('reportMemberName').textContent = member.name;
       document.getElementById('reportDate').textContent = now.toLocaleDateString('pt-BR');
 
-      const memberTxs = currentTransactions.filter(t => t.member_id === memberId);
+      const memberTxs = window.currentTransactions.filter(t => t.member_id === memberId);
       document.getElementById('reportCount').textContent = `${memberTxs.length} lançamentos`;
 
       const container = document.getElementById('reportItemsContainer');
@@ -1542,7 +1562,7 @@ ${pdfText.slice(0, 14000)}`;
         const val = Number(t.amount);
         total += val;
 
-        const invoice = currentInvoices.find(i => i.id === t.invoice_id);
+        const invoice = window.currentInvoices.find(i => i.id === t.invoice_id);
         const bankName = invoice ? invoice.bank_name : 'Santander';
         bankMap[bankName] = (bankMap[bankName] || 0) + val;
 
@@ -1582,7 +1602,7 @@ ${pdfText.slice(0, 14000)}`;
     }
 
     function buildInvoiceTextSummary(member) {
-      const memberTxs = currentTransactions.filter(t => t.member_id === member.id);
+      const memberTxs = window.currentTransactions.filter(t => t.member_id === member.id);
       const total = memberTxs.reduce((a, b) => a + Number(b.amount), 0);
       const now = new Date();
       const monthNames = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
@@ -1605,9 +1625,9 @@ ${pdfText.slice(0, 14000)}`;
       return { text, total, count: memberTxs.length };
     }
 
-    function sendInvoiceWhatsApp() {
+    window.sendInvoiceWhatsApp = function() {
       const memberId = document.getElementById('selectPdfMember').value;
-      const member = currentMembers.find(m => m.id === memberId);
+      const member = window.currentMembers.find(m => m.id === memberId);
       if (!member) return;
 
       const { text } = buildInvoiceTextSummary(member);
@@ -1622,19 +1642,18 @@ ${pdfText.slice(0, 14000)}`;
       }
 
       window.open(waUrl, '_blank');
-    }
+    };
 
-    // DISPARO AUTOMÁTICO COM PDF 7 COLUNAS E ESTÉTICA OFICIAL
-    async function sendInvoiceEmail() {
+    window.sendInvoiceEmail = async function() {
       const memberId = document.getElementById('selectPdfMember').value;
-      const member = currentMembers.find(m => m.id === memberId);
+      const member = window.currentMembers.find(m => m.id === memberId);
       if (!member) return;
       if (!member.email) return alert('Este membro não possui um e-mail cadastrado.');
 
       const GOOGLE_SCRIPT_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbzB7GoExKRwmaYukAHJFuGG64HgURnJDIUMcrCJligEttcvI32U7Nk_lBud7DCE07mK7w/exec';
 
       const { text, total } = buildInvoiceTextSummary(member);
-      const memberTxs = currentTransactions.filter(t => t.member_id === member.id);
+      const memberTxs = window.currentTransactions.filter(t => t.member_id === member.id);
       
       const now = new Date();
       const monthNames = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
@@ -1648,7 +1667,7 @@ ${pdfText.slice(0, 14000)}`;
       let rowsPdfHtml = '';
       memberTxs.forEach(t => {
         const val = Number(t.amount);
-        const invoice = currentInvoices.find(i => i.id === t.invoice_id);
+        const invoice = window.currentInvoices.find(i => i.id === t.invoice_id);
         const bankName = invoice ? invoice.bank_name : 'Santander';
         bankMap[bankName] = (bankMap[bankName] || 0) + val;
 
@@ -1691,7 +1710,6 @@ ${pdfText.slice(0, 14000)}`;
             table { width: 100%; border-collapse: collapse; margin-top: 15px; }
             th { background: #f1f5f9; padding: 8px 5px; text-align: left; font-size: 10px; font-weight: bold; text-transform: uppercase; color: #0f172a; border-bottom: 2px solid #94a3b8; }
             .bank-box { margin-top: 15px; border-top: 2px solid #0f172a; padding-top: 8px; font-size: 11px; font-weight: bold; }
-            .total-banner { margin-top: 10px; background: #0b4f9c; color: #ffffff; padding: 10px 14px; border-radius: 6px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
             .footer { font-size: 9px; color: #64748b; text-align: center; margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 8px; }
           </style>
         </head>
@@ -1718,9 +1736,7 @@ ${pdfText.slice(0, 14000)}`;
                 <th style="text-align: right;">Valor (R$)</th>
               </tr>
             </thead>
-            <tbody>
-              ${rowsPdfHtml}
-            </tbody>
+            <tbody>${rowsPdfHtml}</tbody>
           </table>
 
           <div class="bank-box">
@@ -1747,7 +1763,6 @@ ${pdfText.slice(0, 14000)}`;
       const emailHtml = `
         <div style="background-color: #f1f5f9; padding: 30px 10px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
           <div style="max-width: 560px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.06); border: 1px solid #e2e8f0;">
-            
             <div style="background-color: #0b5394; padding: 35px 20px 28px 20px; text-align: center; color: #ffffff;">
               <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; opacity: 0.9; margin-bottom: 8px;">
                 SISTEMA DE EMPRÉSTIMO TERCEIRIZADO
@@ -1810,11 +1825,10 @@ ${pdfText.slice(0, 14000)}`;
                   <span style="font-size: 11px; color: #64748b; font-weight: bold; border-left: 1px solid #cbd5e1; padding-left: 6px; margin-left: 4px;">Sistema de Empréstimo Terceirizado</span>
                 </div>
                 <div style="font-size: 11px; color: #94a3b8;">
-                  Sistema de Empréstimo Terceirizado (<strong style="color: #64748b;">SET</strong>)<br>
+                  Sistema de Empréstimo Terceirizado (<strong>SET</strong>)<br>
                   Este é um email automático — por favor, não responda diretamente.
                 </div>
               </div>
-
             </div>
           </div>
         </div>
@@ -1848,69 +1862,67 @@ ${pdfText.slice(0, 14000)}`;
         btn.disabled = false;
         btn.innerHTML = originalText;
       }
-    }
+    };
 
-    // --- RESET E EXCLUSÕES ---
-    function openResetInvoicesModal() {
-      if (currentInvoices.length === 0) return alert('Não há faturas para zerar.');
+    window.openResetInvoicesModal = function() {
+      if (window.currentInvoices.length === 0) return alert('Não há faturas para zerar.');
       document.getElementById('modalResetInvoices').classList.remove('hidden');
-    }
+    };
 
-    function closeResetInvoicesModal() {
+    window.closeResetInvoicesModal = function() {
       document.getElementById('modalResetInvoices').classList.add('hidden');
-    }
+    };
 
-    async function executeResetAllInvoices() {
-      if (!window.supabaseClient || !currentUser) return;
+    window.executeResetAllInvoices = async function() {
+      if (!window.supabaseClient || !window.currentUser) return;
       try {
-        await window.supabaseClient.from('transactions').delete().eq('user_id', currentUser.id).not('invoice_id', 'is', null);
-        await window.supabaseClient.from('invoices').delete().eq('user_id', currentUser.id);
+        await window.supabaseClient.from('transactions').delete().eq('user_id', window.currentUser.id).not('invoice_id', 'is', null);
+        await window.supabaseClient.from('invoices').delete().eq('user_id', window.currentUser.id);
 
         addLog('Reset total de faturas e compras executado.');
-        closeResetInvoicesModal();
+        window.closeResetInvoicesModal();
         alert('Todas as faturas foram zeradas com sucesso!');
-        loadAllData();
+        window.loadAllData();
       } catch (err) {
         alert('Erro ao zerar faturas: ' + err.message);
       }
-    }
+    };
 
-    async function deleteSingleInvoice(invoiceId) {
+    window.deleteSingleInvoice = async function(invoiceId) {
       if (!confirm('Deseja eliminar esta fatura e todos os seus itens?')) return;
-      if (!window.supabaseClient || !currentUser) return;
+      if (!window.supabaseClient || !window.currentUser) return;
 
       try {
         await window.supabaseClient.from('transactions').delete().eq('invoice_id', invoiceId);
         await window.supabaseClient.from('invoices').delete().eq('id', invoiceId);
 
         addLog(`Fatura excluída: ${invoiceId}`);
-        loadAllData();
+        window.loadAllData();
       } catch (err) {
         alert('Erro ao eliminar fatura: ' + err.message);
       }
-    }
+    };
 
-    // --- GERENCIAMENTO DE MEMBROS (CADASTRO E EDIÇÃO) ---
-    function openNewMemberModal() { document.getElementById('modalNewMember').classList.remove('hidden'); }
-    function closeNewMemberModal() { document.getElementById('modalNewMember').classList.add('hidden'); }
+    window.openNewMemberModal = function() { document.getElementById('modalNewMember').classList.remove('hidden'); };
+    window.closeNewMemberModal = function() { document.getElementById('modalNewMember').classList.add('hidden'); };
 
-    async function saveNewMember() {
+    window.saveNewMember = async function() {
       const name = document.getElementById('inputMemberName').value.trim();
       const email = document.getElementById('inputMemberEmail').value.trim();
       const phone = document.getElementById('inputMemberPhone').value.trim();
       if (!name) return alert('Informe o nome do membro.');
 
-      await window.supabaseClient.from('members').insert([{ user_id: currentUser.id, name, email, phone }]);
+      await window.supabaseClient.from('members').insert([{ user_id: window.currentUser.id, name, email, phone }]);
       addLog(`Membro adicionado: ${name}`);
       document.getElementById('inputMemberName').value = '';
       document.getElementById('inputMemberEmail').value = '';
       document.getElementById('inputMemberPhone').value = '';
-      closeNewMemberModal();
-      loadAllData();
-    }
+      window.closeNewMemberModal();
+      window.loadAllData();
+    };
 
-    function openEditMemberModal(id) {
-      const member = currentMembers.find(m => m.id === id);
+    window.openEditMemberModal = function(id) {
+      const member = window.currentMembers.find(m => m.id === id);
       if (!member) return;
 
       document.getElementById('editMemberId').value = member.id;
@@ -1919,13 +1931,13 @@ ${pdfText.slice(0, 14000)}`;
       document.getElementById('editMemberPhone').value = member.phone || '';
 
       document.getElementById('modalEditMember').classList.remove('hidden');
-    }
+    };
 
-    function closeEditMemberModal() {
+    window.closeEditMemberModal = function() {
       document.getElementById('modalEditMember').classList.add('hidden');
-    }
+    };
 
-    async function updateMember() {
+    window.updateMember = async function() {
       const id = document.getElementById('editMemberId').value;
       const name = document.getElementById('editMemberName').value.trim();
       const email = document.getElementById('editMemberEmail').value.trim();
@@ -1942,58 +1954,56 @@ ${pdfText.slice(0, 14000)}`;
         if (error) throw error;
 
         addLog(`Membro atualizado: ${name}`);
-        closeEditMemberModal();
+        window.closeEditMemberModal();
         alert('Cadastro de membro atualizado com sucesso!');
-        loadAllData();
+        window.loadAllData();
       } catch (err) {
         alert('Erro ao atualizar membro: ' + err.message);
       }
-    }
+    };
 
-    function openNewBankModal() { document.getElementById('modalNewBank').classList.remove('hidden'); }
-    function closeNewBankModal() { document.getElementById('modalNewBank').classList.add('hidden'); }
+    window.openNewBankModal = function() { document.getElementById('modalNewBank').classList.remove('hidden'); };
+    window.closeNewBankModal = function() { document.getElementById('modalNewBank').classList.add('hidden'); };
 
-    async function saveNewBank() {
+    window.saveNewBank = async function() {
       const name = document.getElementById('inputBankName').value.trim();
       if (!name) return alert('Informe o nome do banco.');
 
-      await window.supabaseClient.from('banks').insert([{ user_id: currentUser.id, name }]);
+      await window.supabaseClient.from('banks').insert([{ user_id: window.currentUser.id, name }]);
       addLog(`Banco adicionado: ${name}`);
       document.getElementById('inputBankName').value = '';
-      closeNewBankModal();
-      loadAllData();
-    }
+      window.closeNewBankModal();
+      window.loadAllData();
+    };
 
-    // --- LOGS ---
-    function openLogsModal() {
+    window.openLogsModal = function() {
       const logs = JSON.parse(localStorage.getItem('set_logs') || '[]');
       const container = document.getElementById('appLogsConsole');
       container.innerHTML = logs.length ? logs.map(l => `<div>${l}</div>`).join('') : '<div>Nenhum log gravado.</div>';
       document.getElementById('modalLogs').classList.remove('hidden');
-    }
+    };
 
-    function closeLogsModal() { document.getElementById('modalLogs').classList.add('hidden'); }
+    window.closeLogsModal = function() { document.getElementById('modalLogs').classList.add('hidden'); };
 
-    function clearAppLogs() {
+    window.clearAppLogs = function() {
       localStorage.removeItem('set_logs');
       document.getElementById('appLogsConsole').innerHTML = '<div>Logs limpos com sucesso.</div>';
-    }
+    };
 
-    // --- CARREGAMENTO DE DADOS ---
-    async function loadAllData() {
-      if (!window.supabaseClient || !currentUser) return;
+    window.loadAllData = async function() {
+      if (!window.supabaseClient || !window.currentUser) return;
 
       const [invRes, transRes, membRes, bankRes] = await Promise.all([
-        window.supabaseClient.from('invoices').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false }),
-        window.supabaseClient.from('transactions').select('*').eq('user_id', currentUser.id).order('date', { ascending: false }),
-        window.supabaseClient.from('members').select('*').eq('user_id', currentUser.id),
-        window.supabaseClient.from('banks').select('*').eq('user_id', currentUser.id)
+        window.supabaseClient.from('invoices').select('*').eq('user_id', window.currentUser.id).order('created_at', { ascending: false }),
+        window.supabaseClient.from('transactions').select('*').eq('user_id', window.currentUser.id).order('date', { ascending: false }),
+        window.supabaseClient.from('members').select('*').eq('user_id', window.currentUser.id),
+        window.supabaseClient.from('banks').select('*').eq('user_id', window.currentUser.id)
       ]);
 
-      currentInvoices = invRes.data || [];
-      currentTransactions = transRes.data || [];
-      currentMembers = membRes.data || [];
-      currentBanks = bankRes.data || [];
+      window.currentInvoices = invRes.data || [];
+      window.currentTransactions = transRes.data || [];
+      window.currentMembers = membRes.data || [];
+      window.currentBanks = bankRes.data || [];
 
       renderDashboard();
       renderInvoicesList();
@@ -2001,20 +2011,20 @@ ${pdfText.slice(0, 14000)}`;
       renderMembersList();
       renderBanksList();
       renderCharts();
-    }
+    };
 
     function renderDashboard() {
-      const openTotal = currentInvoices.filter(i => i.status === 'open').reduce((a, b) => a + Number(b.total_amount), 0);
+      const openTotal = window.currentInvoices.filter(i => i.status === 'open').reduce((a, b) => a + Number(b.total_amount), 0);
       document.getElementById('cardOpenInvoices').textContent = 'R$ ' + openTotal.toFixed(2);
-      document.getElementById('cardOpenCount').textContent = `${currentInvoices.filter(i => i.status === 'open').length} faturas pendentes`;
+      document.getElementById('cardOpenCount').textContent = `${window.currentInvoices.filter(i => i.status === 'open').length} faturas pendentes`;
 
-      const transTotal = currentTransactions.reduce((a, b) => a + Number(b.amount), 0);
+      const transTotal = window.currentTransactions.reduce((a, b) => a + Number(b.amount), 0);
       document.getElementById('cardTotalTransactions').textContent = 'R$ ' + transTotal.toFixed(2);
-      document.getElementById('cardTransCount').textContent = `${currentTransactions.length} itens catalogados`;
+      document.getElementById('cardTransCount').textContent = `${window.currentTransactions.length} itens catalogados`;
 
-      document.getElementById('cardTotalMembers').textContent = currentMembers.length;
-      document.getElementById('cardTotalBanks').textContent = currentBanks.length;
-      document.getElementById('badgeInvoicesCount').textContent = currentInvoices.length;
+      document.getElementById('cardTotalMembers').textContent = window.currentMembers.length;
+      document.getElementById('cardTotalBanks').textContent = window.currentBanks.length;
+      document.getElementById('badgeInvoicesCount').textContent = window.currentInvoices.length;
     }
 
     function renderInvoicesList() {
@@ -2022,13 +2032,13 @@ ${pdfText.slice(0, 14000)}`;
       const emptyState = document.getElementById('emptyInvoices');
       container.innerHTML = '';
 
-      if (currentInvoices.length === 0) {
+      if (window.currentInvoices.length === 0) {
         emptyState.classList.remove('hidden');
         return;
       }
       emptyState.classList.add('hidden');
 
-      currentInvoices.forEach(inv => {
+      window.currentInvoices.forEach(inv => {
         const div = document.createElement('div');
         div.className = 'py-3 flex items-center justify-between gap-2';
         div.innerHTML = `
@@ -2057,13 +2067,13 @@ ${pdfText.slice(0, 14000)}`;
       const emptyState = document.getElementById('emptyTransactions');
       container.innerHTML = '';
 
-      if (currentTransactions.length === 0) {
+      if (window.currentTransactions.length === 0) {
         emptyState.classList.remove('hidden');
         return;
       }
       emptyState.classList.add('hidden');
 
-      currentTransactions.forEach(t => {
+      window.currentTransactions.forEach(t => {
         const div = document.createElement('div');
         div.className = 'py-2.5 flex items-center justify-between gap-2 text-xs flex-wrap sm:flex-nowrap';
         
@@ -2074,7 +2084,7 @@ ${pdfText.slice(0, 14000)}`;
         }
 
         let memberOptions = '<option value="">Sem rateio (Geral)</option>';
-        currentMembers.forEach(m => {
+        window.currentMembers.forEach(m => {
           const selected = t.member_id === m.id ? 'selected' : '';
           memberOptions += `<option value="${m.id}" ${selected}>${m.name}</option>`;
         });
@@ -2109,14 +2119,14 @@ ${pdfText.slice(0, 14000)}`;
       const emptyState = document.getElementById('emptyMembers');
       container.innerHTML = '';
 
-      if (currentMembers.length === 0) {
+      if (window.currentMembers.length === 0) {
         emptyState.classList.remove('hidden');
         return;
       }
       emptyState.classList.add('hidden');
 
-      currentMembers.forEach(m => {
-        const total = currentTransactions.filter(t => t.member_id === m.id).reduce((a, b) => a + Number(b.amount), 0);
+      window.currentMembers.forEach(m => {
+        const total = window.currentTransactions.filter(t => t.member_id === m.id).reduce((a, b) => a + Number(b.amount), 0);
         const div = document.createElement('div');
         div.className = 'p-4 rounded-xl border border-slate-800 bg-slate-900/60 flex flex-col justify-between relative group hover:border-slate-700 transition';
         div.innerHTML = `
@@ -2148,13 +2158,13 @@ ${pdfText.slice(0, 14000)}`;
       const emptyState = document.getElementById('emptyBanks');
       container.innerHTML = '';
 
-      if (currentBanks.length === 0) {
+      if (window.currentBanks.length === 0) {
         emptyState.classList.remove('hidden');
         return;
       }
       emptyState.classList.add('hidden');
 
-      currentBanks.forEach(b => {
+      window.currentBanks.forEach(b => {
         const div = document.createElement('div');
         div.className = 'p-3.5 rounded-xl border border-slate-800 bg-slate-900/60 flex items-center gap-3';
         div.innerHTML = `
@@ -2175,7 +2185,7 @@ ${pdfText.slice(0, 14000)}`;
       const gridColor = '#1e293b';
 
       const bankMap = {};
-      currentInvoices.forEach(i => { bankMap[i.bank_name] = (bankMap[i.bank_name] || 0) + Number(i.total_amount); });
+      window.currentInvoices.forEach(i => { bankMap[i.bank_name] = (bankMap[i.bank_name] || 0) + Number(i.total_amount); });
 
       const ctx1 = document.getElementById('chartInvoices')?.getContext('2d');
       if (ctx1) {
@@ -2231,8 +2241,8 @@ ${pdfText.slice(0, 14000)}`;
       }
 
       const memberMap = {};
-      currentMembers.forEach(m => {
-        const sum = currentTransactions.filter(t => t.member_id === m.id).reduce((a, b) => a + Number(b.amount), 0);
+      window.currentMembers.forEach(m => {
+        const sum = window.currentTransactions.filter(t => t.member_id === m.id).reduce((a, b) => a + Number(b.amount), 0);
         if (sum > 0) memberMap[m.name] = sum;
       });
 
@@ -2263,3 +2273,58 @@ ${pdfText.slice(0, 14000)}`;
                   padding: 14
                 } 
               },
+              tooltip: {
+                backgroundColor: '#0f172a',
+                titleColor: '#f8fafc',
+                bodyColor: '#e2e8f0',
+                borderColor: '#334155',
+                borderWidth: 1,
+                padding: 10,
+                callbacks: {
+                  label: function(context) {
+                    return ` R$ ${Number(context.parsed).toFixed(2)}`;
+                  }
+                }
+              }
+            },
+            cutout: '72%'
+          }
+        });
+      }
+    }
+
+    window.exportCSV = function() {
+      if (window.currentTransactions.length === 0) return alert('Sem lançamentos para exportar.');
+      let csv = 'ID;Descricao;Data;Valor;Categoria;Parcela;QtdTotal;Membro\n';
+      window.currentTransactions.forEach(t => {
+        const member = window.currentMembers.find(m => m.id === t.member_id);
+        csv += `"${t.id}";"${t.description}";"${t.date}";"${t.amount}";"${t.category}";"${t.installment_info || ''}";"${t.installment_total || ''}";"${member ? member.name : ''}"\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `set_relatorio_${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+    };
+
+    window.openConfigModal = function() {
+      try {
+        document.getElementById('inputGeminiKey').value = localStorage.getItem('set_gemini_key') || '';
+      } catch (e) {}
+      document.getElementById('modalConfig').classList.remove('hidden');
+    };
+
+    window.closeConfigModal = function() { document.getElementById('modalConfig').classList.add('hidden'); };
+
+    window.saveGeminiKey = function() {
+      const k = document.getElementById('inputGeminiKey').value.trim();
+      try {
+        localStorage.setItem('set_gemini_key', k);
+      } catch (e) {}
+      addLog('Chave Gemini configurada pelo utilizador.');
+      window.closeConfigModal();
+    };
+  </script>
+</body>
+</html>
