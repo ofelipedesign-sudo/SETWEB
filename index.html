@@ -893,7 +893,7 @@
 
         document.getElementById('loadingTitle').textContent = 'IA a Analisar Fatura...';
         document.getElementById('loadingSubtext').textContent = 'O Gemini está a estruturar valores, vencimento e compras';
-        animateProgressTo(55, 'A contactar Gemini IA');
+        animateProgressTo(50, 'A contactar Gemini IA');
 
         await processPdfWithGemini(textContent, apiKey);
       } catch (err) {
@@ -904,7 +904,7 @@
       }
     }
 
-    // MOTOR DE IA COM TIMEOUT E GESTÃO ROBUSTA DE ERROS
+    // MOTOR DE IA COM DESCOBERTA DINÂMICA DE MODELOS (v1beta)
     async function parseInvoiceWithAI(pdfText, apiKey) {
       const prompt = `Você é um motor contábil especialista em conciliação de faturas de cartões de crédito e extratos bancários.
 Analise o texto extraído da fatura e retorne as informações em JSON estruturado estrito.
@@ -937,17 +937,43 @@ Retorne EXCLUSIVAMENTE o JSON no formato:
 }
 
 TEXTO DA FATURA:
-${pdfText.slice(0, 12000)}`;
+${pdfText.slice(0, 14000)}`;
 
-      const endpoints = [
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
-        'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent'
-      ];
+      let candidateEndpoints = [];
+
+      try {
+        animateProgressTo(60, 'Descobrindo modelos disponíveis');
+        const listResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+        if (listResp.ok) {
+          const listData = await listResp.json();
+          const validModels = (listData.models || [])
+            .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
+            .map(m => m.name.replace('models/', ''));
+
+          const flashModels = validModels.filter(m => m.includes('flash'));
+          const otherModels = validModels.filter(m => !m.includes('flash'));
+          const ordered = [...flashModels, ...otherModels];
+
+          ordered.forEach(m => {
+            candidateEndpoints.push(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`);
+          });
+        }
+      } catch (errList) {
+        console.warn('Fallback da lista de modelos:', errList);
+      }
+
+      if (candidateEndpoints.length === 0) {
+        candidateEndpoints = [
+          'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
+          'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent',
+          'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
+          'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
+        ];
+      }
 
       let lastError = null;
 
-      for (const endpoint of endpoints) {
+      for (const endpoint of candidateEndpoints) {
         try {
           animateProgressTo(75, 'A interpretar compras e parcelas');
           const controller = new AbortController();
@@ -984,7 +1010,7 @@ ${pdfText.slice(0, 12000)}`;
         }
       }
 
-      throw lastError || new Error('Tempo limite esgotado ou falha de ligação com o Gemini.');
+      throw lastError || new Error('Não foi possível estabelecer conexão com o Gemini.');
     }
 
     async function processPdfWithGemini(textContent, apiKey) {
