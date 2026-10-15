@@ -424,7 +424,7 @@
       </button>
     </nav>
 
-    <!-- MODAL DE CARREGAMENTO DINÂMICO -->
+    <!-- MODAL DE CARREGAMENTO DINÂMICO NOMINAL (0 a 100%) -->
     <div id="modalLoading" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
       <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-2xl flex flex-col items-center gap-4">
         <div class="relative w-16 h-16 flex items-center justify-center">
@@ -436,14 +436,13 @@
           <p id="loadingSubtext" class="text-xs text-slate-400 mt-1">A analisar extrato e lançamentos da fatura</p>
         </div>
         
-        <!-- Barra de Progresso Dinâmica -->
         <div class="w-full flex flex-col gap-1.5 mt-1">
           <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden p-0.5 border border-slate-700/60 shadow-inner">
-            <div id="loadingProgressBar" class="animate-shimmer h-full rounded-full transition-all duration-500 ease-out shadow-sm" style="width: 15%;"></div>
+            <div id="loadingProgressBar" class="animate-shimmer h-full rounded-full transition-all duration-150 ease-out shadow-sm" style="width: 0%;"></div>
           </div>
-          <div class="flex justify-between items-center px-1 text-[10px] text-slate-400 font-bold">
-            <span id="loadingStepLabel">Iniciando...</span>
-            <span id="loadingPercentLabel">15%</span>
+          <div class="flex justify-between items-center px-1 text-[10px] text-slate-400 font-bold font-mono">
+            <span id="loadingStepLabel" class="font-sans font-semibold">A iniciar...</span>
+            <span id="loadingPercentLabel">0%</span>
           </div>
         </div>
       </div>
@@ -648,24 +647,61 @@
     let chartInvoices = null;
     let chartSplit = null;
 
-    function showLoading(title, subtext, percentage = 15, step = 'Iniciando...') {
-      document.getElementById('loadingTitle').textContent = title || 'Processando com IA...';
-      document.getElementById('loadingSubtext').textContent = subtext || 'A analisar os dados da fatura';
-      updateLoadingProgress(percentage, step);
-      document.getElementById('modalLoading').classList.remove('hidden');
+    // MOTOR DE PROGRESSO NOMINAL DINÂMICO (0 a 100%)
+    let currentProgress = 0;
+    let targetProgress = 0;
+    let progressRafId = null;
+
+    function renderProgressStep() {
+      if (currentProgress < targetProgress) {
+        currentProgress += Math.max(1, Math.ceil((targetProgress - currentProgress) * 0.12));
+        if (currentProgress > targetProgress) currentProgress = targetProgress;
+
+        const bar = document.getElementById('loadingProgressBar');
+        const pctLabel = document.getElementById('loadingPercentLabel');
+        if (bar) bar.style.width = currentProgress + '%';
+        if (pctLabel) pctLabel.textContent = Math.round(currentProgress) + '%';
+      }
+
+      if (currentProgress < 100) {
+        progressRafId = requestAnimationFrame(renderProgressStep);
+      }
     }
 
-    function updateLoadingProgress(percentage, step) {
-      const p = Math.max(5, Math.min(100, percentage));
+    function animateProgressTo(target, stepLabelText) {
+      targetProgress = Math.min(100, Math.max(0, target));
+      if (stepLabelText) {
+        const lbl = document.getElementById('loadingStepLabel');
+        if (lbl) lbl.textContent = stepLabelText;
+      }
+      if (!progressRafId) {
+        progressRafId = requestAnimationFrame(renderProgressStep);
+      }
+    }
+
+    function showLoading(title, subtext, initialProgress = 1, stepText = 'A iniciar...') {
+      cancelAnimationFrame(progressRafId);
+      progressRafId = null;
+      currentProgress = 0;
+      targetProgress = initialProgress;
+
+      document.getElementById('loadingTitle').textContent = title || 'Processando com IA...';
+      document.getElementById('loadingSubtext').textContent = subtext || 'A analisar os dados da fatura';
+      
       const bar = document.getElementById('loadingProgressBar');
       const pctLabel = document.getElementById('loadingPercentLabel');
       const stepLabel = document.getElementById('loadingStepLabel');
-      if (bar) bar.style.width = p + '%';
-      if (pctLabel) pctLabel.textContent = p + '%';
-      if (stepLabel && step) stepLabel.textContent = step;
+      if (bar) bar.style.width = '0%';
+      if (pctLabel) pctLabel.textContent = '0%';
+      if (stepLabel) stepLabel.textContent = stepText;
+
+      document.getElementById('modalLoading').classList.remove('hidden');
+      animateProgressTo(initialProgress, stepText);
     }
 
     function hideLoading() {
+      cancelAnimationFrame(progressRafId);
+      progressRafId = null;
       document.getElementById('modalLoading').classList.add('hidden');
     }
 
@@ -841,7 +877,7 @@
         return;
       }
 
-      showLoading('Lendo arquivo PDF...', 'Extraindo o conteúdo textual das páginas', 20, 'Extraindo PDF');
+      showLoading('A ler ficheiro PDF...', 'A extrair páginas e conteúdo textual', 15, 'A ler PDF');
 
       try {
         addLog(`A processar ficheiro PDF: ${file.name}`);
@@ -853,9 +889,14 @@
           const page = await pdf.getPage(i);
           const content = await page.getTextContent();
           textContent += ' ' + content.items.map(item => item.str).join(' ');
+          const pagePct = Math.round(15 + (i / pdf.numPages) * 20);
+          animateProgressTo(pagePct, `A ler página ${i}/${pdf.numPages}`);
         }
 
-        showLoading('IA Analisando Fatura...', 'O Gemini está estruturando valores, vencimento e compras', 55, 'Processando com IA');
+        document.getElementById('loadingTitle').textContent = 'IA a Analisar Fatura...';
+        document.getElementById('loadingSubtext').textContent = 'O Gemini está a estruturar valores, vencimento e compras';
+        animateProgressTo(55, 'A contactar Gemini IA');
+
         await processPdfWithGemini(textContent, apiKey);
       } catch (err) {
         hideLoading();
@@ -935,6 +976,7 @@ ${pdfText.slice(0, 15000)}`;
 
       for (const endpoint of candidateEndpoints) {
         try {
+          animateProgressTo(72, 'A interpretar compras e parcelas');
           const response = await fetch(`${endpoint}?key=${apiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -951,6 +993,7 @@ ${pdfText.slice(0, 15000)}`;
             continue;
           }
 
+          animateProgressTo(88, 'A estruturar JSON contábil');
           const data = await response.json();
           let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
@@ -970,12 +1013,13 @@ ${pdfText.slice(0, 15000)}`;
       try {
         const parsed = await parseInvoiceWithAI(textContent, apiKey);
         pendingParsedInvoice = parsed;
-        updateLoadingProgress(85, 'Concluindo leitura');
         addLog(`Fatura interpretada: ${parsed.bank_name} (R$ ${parsed.total_amount})`);
+
+        animateProgressTo(100, 'Concluído com sucesso');
         setTimeout(() => {
           hideLoading();
           showInvoiceAIModal(parsed);
-        }, 300);
+        }, 500);
       } catch (err) {
         hideLoading();
         alert('Erro ao interpretar com IA: ' + err.message);
@@ -1015,7 +1059,7 @@ ${pdfText.slice(0, 15000)}`;
       if (!pendingParsedInvoice || !window.supabaseClient) return;
 
       closeInvoiceAIModal();
-      showLoading('Gravando no Banco de Dados...', 'Sincronizando fatura e transações no Supabase', 20, 'Preparando registros');
+      showLoading('A gravar na Base de Dados...', 'A sincronizar fatura e transações no Supabase', 20, 'A preparar dados');
 
       try {
         const invoiceData = {
@@ -1026,7 +1070,7 @@ ${pdfText.slice(0, 15000)}`;
           status: 'open'
         };
 
-        updateLoadingProgress(45, 'Gravando cabeçalho da fatura');
+        animateProgressTo(48, 'A gravar registo de fatura');
         const { data: invResult, error: invErr } = await window.supabaseClient
           .from('invoices')
           .insert([invoiceData])
@@ -1047,18 +1091,18 @@ ${pdfText.slice(0, 15000)}`;
         }));
 
         if (transRows.length > 0) {
-          updateLoadingProgress(75, 'Inserindo lançamentos conciliados');
+          animateProgressTo(78, 'A inserir lançamentos individuais');
           await window.supabaseClient.from('transactions').insert(transRows);
         }
 
-        updateLoadingProgress(100, 'Finalizado com sucesso');
+        animateProgressTo(100, 'Gravado com sucesso');
         addLog(`Fatura guardada na base de dados com ${transRows.length} itens.`);
-        
+
         setTimeout(() => {
           hideLoading();
           alert('Fatura e itens guardados com sucesso!');
           loadAllData();
-        }, 400);
+        }, 500);
       } catch (e) {
         hideLoading();
         alert('Erro ao guardar fatura: ' + e.message);
