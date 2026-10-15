@@ -347,7 +347,7 @@
           <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
             <div>
               <h4 class="text-sm font-bold text-white">Lançamentos Conciliados & Rateio</h4>
-              <p class="text-xs text-slate-400">Atribua cada despesa ao membro correspondente ou divida entre utilizadores</p>
+              <p class="text-xs text-slate-400">Selecione uma transação para atribuir diretamente ou dividir entre dois membros.</p>
             </div>
             <div class="flex items-center gap-2">
               <button onclick="openGenerateMemberPdfModal()" class="px-3 py-1.5 text-xs font-bold rounded-xl bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700 flex items-center gap-1">
@@ -446,6 +446,90 @@
       </div>
     </div>
 
+    <!-- MODAL: DIVIDIR TRANSAÇÃO (PROPORCIONAL ENTRE DOIS MEMBROS - ESTILO PLANILHA) -->
+    <div id="modalSplitTransaction" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+      <div class="app-modal-sheet bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-6 shadow-2xl border-t sm:border border-slate-800 flex flex-col gap-4">
+        
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-lg bg-emerald-950 text-emerald-400 flex items-center justify-center">
+              <i class="ph-bold ph-scissors text-lg"></i>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-white">Dividir Transação</h3>
+              <p class="text-[11px] text-slate-400">Distribua o valor entre dois usuários de forma proporcional</p>
+            </div>
+          </div>
+          <button onclick="closeSplitModal()" class="p-1 text-slate-400 hover:text-white"><i class="ph-bold ph-x text-lg"></i></button>
+        </div>
+
+        <!-- Cartão de Detalhes da Linha Selecionada -->
+        <div class="p-4 bg-emerald-950/20 border border-emerald-500/30 rounded-2xl flex flex-col gap-1.5">
+          <span id="splitTxDesc" class="text-xs font-black text-emerald-400 tracking-wide uppercase"></span>
+          <div class="flex items-center gap-3 text-[11px] text-slate-300">
+            <span id="splitTxDate" class="flex items-center gap-1"><i class="ph-bold ph-calendar"></i> ---</span>
+            <span id="splitTxBank" class="flex items-center gap-1"><i class="ph-bold ph-bank"></i> ---</span>
+            <span id="splitTxCategory" class="flex items-center gap-1"><i class="ph-bold ph-tag"></i> ---</span>
+          </div>
+          <div class="mt-1">
+            <h4 id="splitTxTotal" class="text-2xl font-black text-emerald-400 tracking-tight">R$ 0,00</h4>
+          </div>
+        </div>
+
+        <!-- Seleção de Usuários -->
+        <div>
+          <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Usuários</span>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] text-slate-300 font-semibold mb-1">Usuário 1</label>
+              <select id="splitMember1" onchange="recalculateSplit()" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-white focus:outline-none"></select>
+            </div>
+            <div>
+              <label class="block text-[11px] text-slate-300 font-semibold mb-1">Usuário 2</label>
+              <select id="splitMember2" onchange="recalculateSplit()" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-white focus:outline-none"></select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Slider e Percentagem -->
+        <div>
+          <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Divisão do Valor</span>
+          <div class="flex items-center gap-3">
+            <span class="text-xs font-mono text-slate-400">0%</span>
+            <input type="range" id="splitSlider" min="0" max="100" value="50" oninput="onSplitSliderChange(this.value)" class="w-full accent-emerald-500 cursor-pointer h-2 bg-slate-800 rounded-lg">
+            <span class="text-xs font-mono text-slate-400">100%</span>
+            <div class="flex items-center gap-1 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1">
+              <input type="number" id="splitNumberInput" min="0" max="100" value="50" oninput="onSplitInputChange(this.value)" class="w-10 bg-transparent text-xs font-bold text-white text-center focus:outline-none">
+              <span class="text-xs text-slate-400 font-bold">%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cartões de Resultado da Divisão -->
+        <div class="grid grid-cols-2 gap-3">
+          <div class="p-3.5 bg-blue-950/30 border border-blue-500/30 rounded-2xl text-center">
+            <span id="cardMember1Label" class="text-[10px] font-bold text-blue-400 uppercase tracking-wider block">Usuário 1</span>
+            <h4 id="cardMember1Amount" class="text-lg font-black text-blue-300 mt-1">R$ 0,00</h4>
+            <span id="cardMember1Percent" class="text-[11px] text-blue-400/80 font-semibold">50%</span>
+          </div>
+
+          <div class="p-3.5 bg-rose-950/30 border border-rose-500/30 rounded-2xl text-center">
+            <span id="cardMember2Label" class="text-[10px] font-bold text-rose-400 uppercase tracking-wider block">Usuário 2</span>
+            <h4 id="cardMember2Amount" class="text-lg font-black text-rose-300 mt-1">R$ 0,00</h4>
+            <span id="cardMember2Percent" class="text-[11px] text-rose-400/80 font-semibold">50%</span>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+          <button onclick="closeSplitModal()" class="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white transition">Cancelar</button>
+          <button onclick="executeSplitTransaction()" class="px-5 py-2.5 text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white rounded-xl shadow-md transition flex items-center gap-1.5">
+            <i class="ph-bold ph-check"></i>
+            <span>Confirmar Divisão</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- MODAL: CONFIRMAÇÃO DE FATURA EXTRAÍDA PELA IA -->
     <div id="modalInvoiceAI" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
       <div class="app-modal-sheet bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-xl w-full p-6 shadow-2xl border-t sm:border border-slate-800 flex flex-col gap-4 overflow-y-auto custom-scrollbar">
@@ -480,34 +564,6 @@
         <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
           <button type="button" onclick="closeInvoiceAIModal()" class="px-4 py-2.5 text-xs font-semibold text-slate-500">Cancelar</button>
           <button type="button" onclick="confirmSaveInvoice()" class="px-6 py-2.5 text-xs font-bold bg-brand-600 text-white rounded-xl shadow-md">Salvar Fatura & Lançamentos</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- MODAL: DIVIDIR TRANSAÇÃO ENTRE MEMBROS -->
-    <div id="modalSplitTransaction" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
-      <div class="app-modal-sheet bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-md w-full p-6 shadow-2xl border-t sm:border border-slate-800 flex flex-col gap-4">
-        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-          <div class="flex items-center gap-2">
-            <i class="ph-bold ph-scissors text-amber-400 text-lg"></i>
-            <h3 class="text-sm font-bold text-white">Dividir Transação</h3>
-          </div>
-          <button onclick="closeSplitModal()" class="p-1 text-slate-400 hover:text-white"><i class="ph-bold ph-x text-lg"></i></button>
-        </div>
-
-        <div class="p-3 bg-slate-800/50 rounded-xl border border-slate-700">
-          <p id="splitTxDesc" class="text-xs font-bold text-white"></p>
-          <p id="splitTxTotal" class="text-sm font-black text-rose-400 mt-0.5"></p>
-        </div>
-
-        <div>
-          <label class="block text-xs font-bold text-slate-300 mb-1">Atribuir a um Membro</label>
-          <select id="selectMemberAssign" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-white focus:outline-none"></select>
-        </div>
-
-        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
-          <button onclick="closeSplitModal()" class="px-4 py-2 text-xs font-semibold text-slate-400">Cancelar</button>
-          <button onclick="saveTransactionMemberAssignment()" class="px-5 py-2 text-xs font-bold bg-brand-600 text-white rounded-xl shadow-md">Gravar Atribuição</button>
         </div>
       </div>
     </div>
@@ -645,7 +701,7 @@
     let chartInvoices = null;
     let chartSplit = null;
 
-    // MOTOR DE PROGRESSO NOMINAL DINÂMICO (0 a 100%)
+    // MOTOR DE PROGRESSO NOMINAL DINÂMICO
     let currentProgress = 0;
     let targetProgress = 0;
     let progressRafId = null;
@@ -1113,24 +1169,54 @@ ${pdfText.slice(0, 14000)}`;
       }
     }
 
-    // --- DIVIDIR TRANSAÇÃO / ATRIBUIR MEMBRO ---
+    // --- DIVIDIR TRANSAÇÃO (LÓGICA DA PLANILHA IMPLEMENTADA) ---
     function openSplitTransactionModal(txId) {
       const tx = currentTransactions.find(t => t.id === txId);
       if (!tx) return;
       selectedTransactionToSplit = tx;
 
+      const invoice = currentInvoices.find(i => i.id === tx.invoice_id);
+      const bankName = invoice ? invoice.bank_name : 'Cartão';
+
       document.getElementById('splitTxDesc').textContent = tx.description;
+      document.getElementById('splitTxDate').innerHTML = `<i class="ph-bold ph-calendar"></i> ${tx.date}`;
+      document.getElementById('splitTxBank').innerHTML = `<i class="ph-bold ph-bank"></i> ${bankName}`;
+      document.getElementById('splitTxCategory').innerHTML = `<i class="ph-bold ph-tag"></i> ${tx.category || 'Outros'}`;
       document.getElementById('splitTxTotal').textContent = `R$ ${Number(tx.amount).toFixed(2)}`;
 
-      const select = document.getElementById('selectMemberAssign');
-      select.innerHTML = '<option value="">Sem atribuição (Geral)</option>';
-      currentMembers.forEach(m => {
-        const opt = document.createElement('option');
-        opt.value = m.id;
-        opt.textContent = m.name;
-        if (tx.member_id === m.id) opt.selected = true;
-        select.appendChild(opt);
+      const sel1 = document.getElementById('splitMember1');
+      const sel2 = document.getElementById('splitMember2');
+      sel1.innerHTML = '';
+      sel2.innerHTML = '';
+
+      if (currentMembers.length === 0) {
+        return alert('Cadastre primeiro membros na aba "Membros" para poder dividir transações.');
+      }
+
+      currentMembers.forEach((m, idx) => {
+        const o1 = document.createElement('option');
+        o1.value = m.id;
+        o1.textContent = m.name;
+        sel1.appendChild(o1);
+
+        const o2 = document.createElement('option');
+        o2.value = m.id;
+        o2.textContent = m.name;
+        sel2.appendChild(o2);
       });
+
+      // Usuário 1 padrão (o que já estiver vinculado ou o primeiro)
+      if (tx.member_id) {
+        sel1.value = tx.member_id;
+      }
+      // Usuário 2 padrão (o segundo membro da lista se houver)
+      if (currentMembers.length > 1) {
+        sel2.selectedIndex = sel1.selectedIndex === 0 ? 1 : 0;
+      }
+
+      document.getElementById('splitSlider').value = 50;
+      document.getElementById('splitNumberInput').value = 50;
+      recalculateSplit();
 
       document.getElementById('modalSplitTransaction').classList.remove('hidden');
     }
@@ -1140,21 +1226,93 @@ ${pdfText.slice(0, 14000)}`;
       selectedTransactionToSplit = null;
     }
 
-    async function saveTransactionMemberAssignment() {
+    function onSplitSliderChange(val) {
+      document.getElementById('splitNumberInput').value = val;
+      recalculateSplit();
+    }
+
+    function onSplitInputChange(val) {
+      let v = parseInt(val) || 0;
+      if (v < 0) v = 0;
+      if (v > 100) v = 100;
+      document.getElementById('splitSlider').value = v;
+      recalculateSplit();
+    }
+
+    function recalculateSplit() {
+      if (!selectedTransactionToSplit) return;
+      const total = Number(selectedTransactionToSplit.amount);
+      const p1 = parseInt(document.getElementById('splitSlider').value) || 0;
+      const p2 = 100 - p1;
+
+      const sel1 = document.getElementById('splitMember1');
+      const sel2 = document.getElementById('splitMember2');
+      const name1 = sel1.options[sel1.selectedIndex]?.textContent || 'Usuário 1';
+      const name2 = sel2.options[sel2.selectedIndex]?.textContent || 'Usuário 2';
+
+      const v1 = (total * (p1 / 100));
+      const v2 = total - v1;
+
+      document.getElementById('cardMember1Label').textContent = name1;
+      document.getElementById('cardMember1Amount').textContent = `R$ ${v1.toFixed(2)}`;
+      document.getElementById('cardMember1Percent').textContent = `${p1}%`;
+
+      document.getElementById('cardMember2Label').textContent = name2;
+      document.getElementById('cardMember2Amount').textContent = `R$ ${v2.toFixed(2)}`;
+      document.getElementById('cardMember2Percent').textContent = `${p2}%`;
+    }
+
+    async function executeSplitTransaction() {
       if (!selectedTransactionToSplit || !window.supabaseClient) return;
-      const memberId = document.getElementById('selectMemberAssign').value || null;
+
+      const m1 = document.getElementById('splitMember1').value;
+      const m2 = document.getElementById('splitMember2').value;
+      const p1 = parseInt(document.getElementById('splitSlider').value) || 0;
+      const p2 = 100 - p1;
+
+      if (!m1 || !m2) return alert('Selecione ambos os membros.');
+      if (m1 === m2) return alert('Selecione membros diferentes para realizar a divisão.');
+
+      const total = Number(selectedTransactionToSplit.amount);
+      const val1 = Number((total * (p1 / 100)).toFixed(2));
+      const val2 = Number((total - val1).toFixed(2));
 
       try {
-        await window.supabaseClient
+        // 1. Atualizar o registro existente com o valor da primeira parcela
+        const { error: updErr } = await window.supabaseClient
           .from('transactions')
-          .update({ member_id: memberId })
+          .update({
+            amount: val1,
+            member_id: m1,
+            installment_info: selectedTransactionToSplit.installment_info ? `${selectedTransactionToSplit.installment_info} (Rateio)` : '(Rateio)'
+          })
           .eq('id', selectedTransactionToSplit.id);
 
-        addLog(`Lançamento atribuído: ${selectedTransactionToSplit.description}`);
+        if (updErr) throw updErr;
+
+        // 2. Inserir a segunda parcela como um novo registro vinculado ao Usuário 2
+        const { error: insErr } = await window.supabaseClient
+          .from('transactions')
+          .insert([{
+            user_id: currentUser.id,
+            invoice_id: selectedTransactionToSplit.invoice_id,
+            member_id: m2,
+            description: selectedTransactionToSplit.description,
+            amount: val2,
+            date: selectedTransactionToSplit.date,
+            category: selectedTransactionToSplit.category,
+            installment_info: selectedTransactionToSplit.installment_info ? `${selectedTransactionToSplit.installment_info} (Rateio)` : '(Rateio)',
+            type: 'expense'
+          }]);
+
+        if (insErr) throw insErr;
+
+        addLog(`Transação dividida: ${selectedTransactionToSplit.description} (R$ ${val1.toFixed(2)} / R$ ${val2.toFixed(2)})`);
         closeSplitModal();
+        alert('Transação dividida com sucesso!');
         loadAllData();
       } catch (err) {
-        alert('Erro ao atribuir membro: ' + err.message);
+        alert('Erro ao dividir transação: ' + err.message);
       }
     }
 
@@ -1387,7 +1545,7 @@ ${pdfText.slice(0, 14000)}`;
 
       currentTransactions.forEach(t => {
         const member = currentMembers.find(m => m.id === t.member_id);
-        const memberName = member ? member.name : 'Geral (Sem atribuição)';
+        const memberName = member ? member.name : 'Geral (Sem rateio)';
         const badgeColor = member ? 'bg-indigo-950 text-indigo-300 border-indigo-800' : 'bg-slate-800 text-slate-400 border-slate-700';
 
         const div = document.createElement('div');
@@ -1399,8 +1557,9 @@ ${pdfText.slice(0, 14000)}`;
             <p class="text-[10px] text-slate-400">${t.date} • ${t.category}</p>
           </div>
           <div class="flex items-center gap-2.5">
-            <button onclick="openSplitTransactionModal('${t.id}')" class="px-2 py-0.5 rounded-lg border text-[10px] font-bold ${badgeColor} hover:brightness-125 transition">
-              ${memberName}
+            <button onclick="openSplitTransactionModal('${t.id}')" class="px-2.5 py-1 rounded-lg border text-[10px] font-bold ${badgeColor} hover:brightness-125 transition flex items-center gap-1" title="Clique para ratear ou dividir">
+              <i class="ph-bold ph-scissors text-[11px]"></i>
+              <span>${memberName}</span>
             </button>
             <span class="font-black text-rose-400">R$ ${Number(t.amount).toFixed(2)}</span>
           </div>
