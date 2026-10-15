@@ -262,12 +262,10 @@
         </div>
       </div>
 
-      <!-- ABA 1: PAINEL (DESIGN OTIMIZADO E ORGANIZADO) -->
+      <!-- ABA 1: PAINEL -->
       <div id="viewDashboard" class="flex flex-col gap-4">
         
-        <!-- Cartões de Métricas com Micro-indicadores -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-          <!-- Card 1: Faturas em Aberto -->
           <div class="bg-gradient-to-br from-slate-900 to-slate-900/90 p-4 rounded-2xl border border-slate-800/90 shadow-sm flex flex-col justify-between">
             <div class="flex items-center justify-between">
               <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Faturas em Aberto</span>
@@ -281,7 +279,6 @@
             </div>
           </div>
 
-          <!-- Card 2: Total Lançamentos -->
           <div class="bg-gradient-to-br from-slate-900 to-slate-900/90 p-4 rounded-2xl border border-slate-800/90 shadow-sm flex flex-col justify-between">
             <div class="flex items-center justify-between">
               <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Lançamentos</span>
@@ -295,7 +292,6 @@
             </div>
           </div>
 
-          <!-- Card 3: Rateio Membros -->
           <div class="bg-gradient-to-br from-slate-900 to-slate-900/90 p-4 rounded-2xl border border-slate-800/90 shadow-sm flex flex-col justify-between">
             <div class="flex items-center justify-between">
               <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Rateio Membros</span>
@@ -309,7 +305,6 @@
             </div>
           </div>
 
-          <!-- Card 4: Bancos Ativos -->
           <div class="bg-gradient-to-br from-slate-900 to-slate-900/90 p-4 rounded-2xl border border-slate-800/90 shadow-sm flex flex-col justify-between">
             <div class="flex items-center justify-between">
               <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Bancos Ativos</span>
@@ -324,7 +319,6 @@
           </div>
         </div>
 
-        <!-- Barra Ergonómica de Importação Rápida (Substituindo o quadro excessivamente alto) -->
         <div onclick="triggerInvoiceUpload()" class="border border-dashed border-emerald-500/30 hover:border-emerald-500 bg-slate-900/50 hover:bg-slate-900/90 rounded-2xl p-3.5 sm:p-4 cursor-pointer transition flex items-center justify-between gap-3 group shadow-sm">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-xl bg-emerald-950/60 text-emerald-400 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition">
@@ -344,9 +338,7 @@
           </button>
         </div>
 
-        <!-- Gráficos com Proporções e Espessuras Otimizadas -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <!-- Gráfico 1: Gastos por Banco / Cartão (Com barra calibrada em maxBarThickness) -->
           <div class="lg:col-span-2 bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800/90 shadow-sm flex flex-col justify-between">
             <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2.5">
               <div>
@@ -360,7 +352,6 @@
             </div>
           </div>
 
-          <!-- Gráfico 2: Distribuição do Rateio -->
           <div class="bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800/90 shadow-sm flex flex-col justify-between">
             <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2.5">
               <div>
@@ -498,7 +489,7 @@
       </div>
     </div>
 
-    <!-- MODAL: DIVIDIR TRANSAÇÃO (PROPORCIONAL ENTRE DOIS MEMBROS - PLANILHA) -->
+    <!-- MODAL: DIVIDIR TRANSAÇÃO (RATEIO ENTRE 2 PESSOAS) -->
     <div id="modalSplitTransaction" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
       <div class="app-modal-sheet bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-6 shadow-2xl border-t sm:border border-slate-800 flex flex-col gap-4">
         
@@ -1496,7 +1487,7 @@ ${pdfText.slice(0, 14000)}`;
       }
     }
 
-    // --- GERAR FATURA INDIVIDUAL EM PDF ---
+    // --- GERAR FATURA INDIVIDUAL EM PDF (PADRÃO 7 COLUNAS LIMPO) ---
     function openGenerateMemberPdfModal() {
       const select = document.getElementById('selectPdfMember');
       select.innerHTML = '';
@@ -2161,4 +2152,114 @@ ${pdfText.slice(0, 14000)}`;
         emptyState.classList.remove('hidden');
         return;
       }
-      emptyState.classList
+      emptyState.classList.add('hidden');
+
+      currentBanks.forEach(b => {
+        const div = document.createElement('div');
+        div.className = 'p-3.5 rounded-xl border border-slate-800 bg-slate-900/60 flex items-center gap-3';
+        div.innerHTML = `
+          <div class="w-8 h-8 rounded-lg bg-emerald-950 text-emerald-400 flex items-center justify-center text-sm font-bold">
+            <i class="ph-bold ph-bank"></i>
+          </div>
+          <div>
+            <h5 class="text-xs font-bold text-white">${b.name}</h5>
+            <span class="text-[10px] text-slate-400">Cartão / Conta ativa</span>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function renderCharts() {
+      const textColor = '#94a3b8';
+      const gridColor = '#1e293b';
+
+      const bankMap = {};
+      currentInvoices.forEach(i => { bankMap[i.bank_name] = (bankMap[i.bank_name] || 0) + Number(i.total_amount); });
+
+      const ctx1 = document.getElementById('chartInvoices')?.getContext('2d');
+      if (ctx1) {
+        if (chartInvoices) chartInvoices.destroy();
+        chartInvoices = new Chart(ctx1, {
+          type: 'bar',
+          data: {
+            labels: Object.keys(bankMap).length ? Object.keys(bankMap) : ['Sem dados'],
+            datasets: [{
+              data: Object.values(bankMap).length ? Object.values(bankMap) : [0],
+              backgroundColor: '#10b981',
+              borderRadius: 8,
+              borderSkipped: false,
+              maxBarThickness: 48,
+              barPercentage: 0.6
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { 
+              legend: { display: false },
+              tooltip: {
+                backgroundColor: '#0f172a',
+                titleColor: '#f8fafc',
+                bodyColor: '#34d399',
+                borderColor: '#334155',
+                borderWidth: 1,
+                padding: 10,
+                callbacks: {
+                  label: function(context) {
+                    return ` Total: R$ ${Number(context.parsed.y).toFixed(2)}`;
+                  }
+                }
+              }
+            },
+            scales: {
+              y: { 
+                grid: { color: gridColor }, 
+                ticks: { 
+                  color: textColor, 
+                  font: { size: 10, family: 'Plus Jakarta Sans' },
+                  callback: function(value) { return 'R$ ' + value; }
+                } 
+              },
+              x: { 
+                grid: { display: false }, 
+                ticks: { color: textColor, font: { size: 11, weight: 'bold', family: 'Plus Jakarta Sans' } } 
+              }
+            }
+          }
+        });
+      }
+
+      const memberMap = {};
+      currentMembers.forEach(m => {
+        const sum = currentTransactions.filter(t => t.member_id === m.id).reduce((a, b) => a + Number(b.amount), 0);
+        if (sum > 0) memberMap[m.name] = sum;
+      });
+
+      const ctx2 = document.getElementById('chartSplit')?.getContext('2d');
+      if (ctx2) {
+        if (chartSplit) chartSplit.destroy();
+        chartSplit = new Chart(ctx2, {
+          type: 'doughnut',
+          data: {
+            labels: Object.keys(memberMap).length ? Object.keys(memberMap) : ['Sem rateio'],
+            datasets: [{
+              data: Object.values(memberMap).length ? Object.values(memberMap) : [1],
+              backgroundColor: ['#10b981', '#6366f1', '#f59e0b', '#ec4899', '#06b6d4', '#8b5cf6'],
+              borderWidth: 0,
+              hoverOffset: 6
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { 
+              legend: { 
+                position: 'bottom', 
+                labels: { 
+                  boxWidth: 10, 
+                  font: { size: 11, family: 'Plus Jakarta Sans' }, 
+                  color: textColor,
+                  padding: 14
+                } 
+              },
