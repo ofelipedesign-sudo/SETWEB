@@ -92,6 +92,7 @@
     window.currentTransactions = [];
     window.currentMembers = [];
     window.currentBanks = [];
+    window.currentPayments = [];
     window.pendingParsedInvoice = null;
     window.selectedTransactionToSplit = null;
 
@@ -488,13 +489,13 @@
         </div>
       </div>
 
-      <!-- ABA 4: MEMBROS -->
+      <!-- ABA 4: MEMBROS (COM GESTÃO DE PAGAMENTOS E ALERTA DE PENDÊNCIAS) -->
       <div id="viewMembers" class="flex flex-col gap-4 hidden">
         <div class="bg-slate-900 rounded-2xl border border-slate-800 p-4 shadow-sm">
           <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
             <div>
-              <h4 class="text-sm font-bold text-white">Membros do SET</h4>
-              <p class="text-xs text-slate-400">Pessoas cadastradas para rateio de despesas</p>
+              <h4 class="text-sm font-bold text-white">Membros & Controlo de Pagamentos</h4>
+              <p class="text-xs text-slate-400">Registe os pagamentos parciais ou integrais e acompanhe pendências</p>
             </div>
             <button onclick="openNewMemberModal()" class="px-3 py-1.5 text-xs font-bold rounded-xl bg-brand-600 text-white hover:bg-brand-700">
               + Novo Membro
@@ -569,6 +570,37 @@
             <span id="loadingStepLabel" class="font-sans font-semibold">A iniciar...</span>
             <span id="loadingPercentLabel">0%</span>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: REGISTAR PAGAMENTO DE MEMBRO -->
+    <div id="modalPayment" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+      <div class="app-modal-sheet bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-sm w-full p-6 shadow-2xl border-t sm:border border-slate-800 flex flex-col gap-4">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+          <div class="flex items-center gap-2">
+            <i class="ph-bold ph-money text-emerald-400 text-lg"></i>
+            <h3 class="text-sm font-bold text-white">Registar Pagamento</h3>
+          </div>
+          <button onclick="closePaymentModal()" class="p-1 text-slate-400 hover:text-white"><i class="ph-bold ph-x text-lg"></i></button>
+        </div>
+
+        <input type="hidden" id="payMemberId">
+        
+        <div class="p-3 bg-slate-800/50 rounded-xl border border-slate-700 flex flex-col gap-1">
+          <span id="payMemberName" class="text-xs font-bold text-white">---</span>
+          <span class="text-[11px] text-slate-400">Total Devido: <strong id="payMemberTotal" class="text-rose-400">R$ 0,00</strong></span>
+          <span class="text-[11px] text-slate-400">Já Pago: <strong id="payMemberAlreadyPaid" class="text-emerald-400">R$ 0,00</strong></span>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-bold text-slate-300 mb-1">Valor do Pagamento (R$)</label>
+          <input type="number" step="0.01" id="payAmountInput" placeholder="0.00" class="w-full px-3 py-2 text-sm font-bold rounded-xl border border-slate-700 bg-slate-800 text-white focus:outline-none focus:border-emerald-500">
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+          <button onclick="closePaymentModal()" class="px-3 py-1.5 text-xs text-slate-400">Cancelar</button>
+          <button onclick="savePaymentRecord()" class="px-4 py-2 text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white rounded-xl shadow-md transition">Guardar Pagamento</button>
         </div>
       </div>
     </div>
@@ -995,9 +1027,7 @@
         const timestamp = new Date().toLocaleTimeString();
         logs.unshift(`[${timestamp}] ${msg}`);
         localStorage.setItem('set_logs', JSON.stringify(logs.slice(0, 50)));
-      } catch (e) {
-        console.warn('Armazenamento local restrito:', e);
-      }
+      } catch (e) {}
     }
 
     function initTheme() {
@@ -1018,7 +1048,6 @@
     window.addEventListener('DOMContentLoaded', async () => {
       initTheme();
 
-      // Atrela o ouvinte direto ao formulário garantindo que nunca falhe ao clicar em submeter
       const form = document.getElementById('formAuth');
       if (form) {
         form.addEventListener('submit', window.handleAuthSubmit);
@@ -1962,6 +1991,61 @@ ${pdfText.slice(0, 14000)}`;
       }
     };
 
+    // --- GESTÃO DE PAGAMENTOS E PENDÊNCIAS ---
+    window.openPaymentModal = function(memberId) {
+      const member = window.currentMembers.find(m => m.id === memberId);
+      if (!member) return;
+
+      const totalDue = window.currentTransactions
+        .filter(t => t.member_id === memberId)
+        .reduce((a, b) => a + Number(b.amount), 0);
+
+      const alreadyPaid = window.currentPayments
+        .filter(p => p.member_id === memberId)
+        .reduce((a, b) => a + Number(b.amount), 0);
+
+      document.getElementById('payMemberId').value = member.id;
+      document.getElementById('payMemberName').textContent = member.name;
+      document.getElementById('payMemberTotal').textContent = `R$ ${totalDue.toFixed(2)}`;
+      document.getElementById('payMemberAlreadyPaid').textContent = `R$ ${alreadyPaid.toFixed(2)}`;
+      document.getElementById('payAmountInput').value = (totalDue - alreadyPaid > 0 ? (totalDue - alreadyPaid).toFixed(2) : '0.00');
+
+      document.getElementById('modalPayment').classList.remove('hidden');
+    };
+
+    window.closePaymentModal = function() {
+      document.getElementById('modalPayment').classList.add('hidden');
+    };
+
+    window.savePaymentRecord = async function() {
+      const memberId = document.getElementById('payMemberId').value;
+      const amount = parseFloat(document.getElementById('payAmountInput').value);
+
+      if (isNaN(amount) || amount <= 0) {
+        return alert('Informe um valor de pagamento válido.');
+      }
+
+      try {
+        const { error } = await window.supabaseClient
+          .from('payments')
+          .insert([{
+            user_id: window.currentUser.id,
+            member_id: memberId,
+            amount: amount,
+            date: new Date().toISOString().split('T')[0]
+          }]);
+
+        if (error) throw error;
+
+        addLog(`Pagamento registado para o membro ${memberId}: R$ ${amount.toFixed(2)}`);
+        window.closePaymentModal();
+        alert('Pagamento registado com sucesso!');
+        window.loadAllData();
+      } catch (err) {
+        alert('Erro ao registar pagamento: ' + err.message);
+      }
+    };
+
     window.openNewBankModal = function() { document.getElementById('modalNewBank').classList.remove('hidden'); };
     window.closeNewBankModal = function() { document.getElementById('modalNewBank').classList.add('hidden'); };
 
@@ -1993,17 +2077,19 @@ ${pdfText.slice(0, 14000)}`;
     window.loadAllData = async function() {
       if (!window.supabaseClient || !window.currentUser) return;
 
-      const [invRes, transRes, membRes, bankRes] = await Promise.all([
+      const [invRes, transRes, membRes, bankRes, payRes] = await Promise.all([
         window.supabaseClient.from('invoices').select('*').eq('user_id', window.currentUser.id).order('created_at', { ascending: false }),
         window.supabaseClient.from('transactions').select('*').eq('user_id', window.currentUser.id).order('date', { ascending: false }),
         window.supabaseClient.from('members').select('*').eq('user_id', window.currentUser.id),
-        window.supabaseClient.from('banks').select('*').eq('user_id', window.currentUser.id)
+        window.supabaseClient.from('banks').select('*').eq('user_id', window.currentUser.id),
+        window.supabaseClient.from('payments').select('*').eq('user_id', window.currentUser.id)
       ]);
 
       window.currentInvoices = invRes.data || [];
       window.currentTransactions = transRes.data || [];
       window.currentMembers = membRes.data || [];
       window.currentBanks = bankRes.data || [];
+      window.currentPayments = payRes.data || [];
 
       renderDashboard();
       renderInvoicesList();
@@ -2114,6 +2200,7 @@ ${pdfText.slice(0, 14000)}`;
       });
     }
 
+    // LISTAGEM DE MEMBROS COM ALERTA DE PENDÊNCIAS E REGISTO DE PAGAMENTOS
     function renderMembersList() {
       const container = document.getElementById('membersList');
       const emptyState = document.getElementById('emptyMembers');
@@ -2126,9 +2213,23 @@ ${pdfText.slice(0, 14000)}`;
       emptyState.classList.add('hidden');
 
       window.currentMembers.forEach(m => {
-        const total = window.currentTransactions.filter(t => t.member_id === m.id).reduce((a, b) => a + Number(b.amount), 0);
+        const totalDue = window.currentTransactions.filter(t => t.member_id === m.id).reduce((a, b) => a + Number(b.amount), 0);
+        const alreadyPaid = window.currentPayments.filter(p => p.member_id === m.id).reduce((a, b) => a + Number(b.amount), 0);
+        const remaining = totalDue - alreadyPaid;
+
+        let statusBadge = '';
+        if (totalDue === 0) {
+          statusBadge = `<span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-bold">Sem débitos</span>`;
+        } else if (remaining <= 0.01) {
+          statusBadge = `<span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold flex items-center gap-1"><i class="ph-bold ph-check-circle"></i> Quitado</span>`;
+        } else if (alreadyPaid > 0) {
+          statusBadge = `<span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-800 font-bold flex items-center gap-1"><i class="ph-bold ph-warning"></i> Parcial (Falta R$ ${remaining.toFixed(2)})</span>`;
+        } else {
+          statusBadge = `<span class="text-[10px] px-2 py-0.5 rounded-full bg-rose-950 text-rose-300 border border-rose-800 font-bold flex items-center gap-1"><i class="ph-bold ph-warning-octagon"></i> Pendente</span>`;
+        }
+
         const div = document.createElement('div');
-        div.className = 'p-4 rounded-xl border border-slate-800 bg-slate-900/60 flex flex-col justify-between relative group hover:border-slate-700 transition';
+        div.className = 'p-4 rounded-xl border border-slate-800 bg-slate-900/60 flex flex-col justify-between relative group hover:border-slate-700 transition gap-3';
         div.innerHTML = `
           <div class="flex items-start justify-between gap-2">
             <div class="flex items-center gap-3">
@@ -2140,13 +2241,33 @@ ${pdfText.slice(0, 14000)}`;
                 <span class="text-[10px] text-slate-400 block truncate">${m.email || 'Sem e-mail'} • ${m.phone || 'Sem WhatsApp'}</span>
               </div>
             </div>
-            <button onclick="openEditMemberModal('${m.id}')" class="p-1.5 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-lg transition" title="Editar dados do membro">
-              <i class="ph-bold ph-pencil-simple text-sm"></i>
-            </button>
+            <div class="flex items-center gap-1">
+              <button onclick="openPaymentModal('${m.id}')" class="p-1.5 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-lg transition" title="Registar pagamento">
+                <i class="ph-bold ph-money text-sm"></i>
+              </button>
+              <button onclick="openEditMemberModal('${m.id}')" class="p-1.5 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-lg transition" title="Editar dados do membro">
+                <i class="ph-bold ph-pencil-simple text-sm"></i>
+              </button>
+            </div>
           </div>
-          <div class="mt-3 pt-2 border-t border-slate-800 flex items-baseline justify-between text-xs">
-            <span class="text-slate-400">Total Devido:</span>
-            <span class="font-bold text-rose-400">R$ ${total.toFixed(2)}</span>
+
+          <div class="flex items-center justify-between">
+            ${statusBadge}
+          </div>
+
+          <div class="pt-2 border-t border-slate-800 flex flex-col gap-1 text-xs">
+            <div class="flex items-baseline justify-between text-slate-400">
+              <span>Total Devido:</span>
+              <span class="font-bold text-white">R$ ${totalDue.toFixed(2)}</span>
+            </div>
+            <div class="flex items-baseline justify-between text-slate-400">
+              <span>Pago:</span>
+              <span class="font-bold text-emerald-400">R$ ${alreadyPaid.toFixed(2)}</span>
+            </div>
+            <div class="flex items-baseline justify-between font-bold pt-1 border-t border-slate-800/60">
+              <span class="text-slate-300">Restante:</span>
+              <span class="text-rose-400 text-sm">R$ ${remaining > 0 ? remaining.toFixed(2) : '0,00'}</span>
+            </div>
           </div>
         `;
         container.appendChild(div);
