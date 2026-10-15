@@ -446,7 +446,7 @@
       </div>
     </div>
 
-    <!-- MODAL: DIVIDIR TRANSAÇÃO (PROPORCIONAL ENTRE DOIS MEMBROS - ESTILO PLANILHA) -->
+    <!-- MODAL: DIVIDIR TRANSAÇÃO (PROPORCIONAL ENTRE DOIS MEMBROS) -->
     <div id="modalSplitTransaction" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
       <div class="app-modal-sheet bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-6 shadow-2xl border-t sm:border border-slate-800 flex flex-col gap-4">
         
@@ -526,14 +526,14 @@
       </div>
     </div>
 
-    <!-- MODAL: FATURA INDIVIDUAL EM PDF / EMAIL / WHATSAPP (PADRÃO PLANILHA) -->
+    <!-- MODAL: FATURA INDIVIDUAL EM PDF / EMAIL / WHATSAPP COM 7 COLUNAS -->
     <div id="modalMemberPdf" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
-      <div class="app-modal-sheet bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-6 shadow-2xl border-t sm:border border-slate-800 flex flex-col gap-4 overflow-y-auto custom-scrollbar">
+      <div class="app-modal-sheet bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-4xl w-full p-6 shadow-2xl border-t sm:border border-slate-800 flex flex-col gap-4 overflow-y-auto custom-scrollbar">
         
         <div class="flex items-center justify-between border-b border-slate-800 pb-3">
           <div class="flex items-center gap-2">
             <i class="ph-bold ph-file-pdf text-rose-400 text-lg"></i>
-            <h3 class="text-sm font-bold text-white">Gerar Fatura Individual em PDF</h3>
+            <h3 class="text-sm font-bold text-white">Gerar Fatura Individual em PDF (Padrão SET)</h3>
           </div>
           <button onclick="closeMemberPdfModal()" class="p-1 text-slate-400 hover:text-white"><i class="ph-bold ph-x text-lg"></i></button>
         </div>
@@ -567,23 +567,56 @@
           </div>
         </div>
 
-        <div id="printArea" class="p-4 bg-white text-slate-900 rounded-xl text-xs flex flex-col gap-2 min-h-40 border border-slate-200">
-          <div class="flex items-center justify-between border-b border-slate-200 pb-2">
-            <div>
-              <h2 class="font-bold text-sm">SET - Extrato de Despesas</h2>
-              <p id="reportMemberName" class="text-slate-500 font-semibold"></p>
-            </div>
-            <div class="text-right">
-              <span class="text-[10px] text-slate-400">Emissão:</span>
-              <p id="reportDate" class="font-bold"></p>
+        <!-- PRÉ-VISUALIZAÇÃO IDÊNTICA AO PDF OFICIAL COM 7 COLUNAS -->
+        <div id="printArea" class="p-6 bg-white text-slate-900 rounded-xl text-xs flex flex-col gap-3 min-h-40 border border-slate-200">
+          <div class="border-b-2 border-slate-800 pb-3">
+            <h2 class="font-black text-sm uppercase tracking-wide">SISTEMA DE EMPRÉSTIMO TERCEIRIZADO (SET)</h2>
+            <p class="text-[11px] font-bold text-slate-600">TRANSAÇÕES INDIVIDUALIZADAS</p>
+            <div class="grid grid-cols-2 gap-1 text-[11px] text-slate-700 mt-2">
+              <div><strong>Referência:</strong> <span id="reportPeriodRef">Outubro/2026</span></div>
+              <div><strong>Transações:</strong> <span id="reportCount">0 lançamentos</span></div>
+              <div><strong>Usuário:</strong> <span id="reportMemberName">---</span></div>
+              <div><strong>Gerado em:</strong> <span id="reportDate">---</span></div>
+              <div class="col-span-2"><strong>Chave PIX:</strong> fp.danado16@gmail.com</div>
             </div>
           </div>
 
-          <div id="reportItemsContainer" class="divide-y divide-slate-100 flex-1 my-2"></div>
+          <!-- TABELA DE 7 COLUNAS -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-[11px]">
+              <thead>
+                <tr class="border-b-2 border-slate-400 bg-slate-100 font-bold text-slate-800">
+                  <th class="py-1.5 px-2">Data</th>
+                  <th class="py-1.5 px-2">Descrição</th>
+                  <th class="py-1.5 px-2">Categoria</th>
+                  <th class="py-1.5 px-2">Banco</th>
+                  <th class="py-1.5 px-2 text-center">Parcela</th>
+                  <th class="py-1.5 px-2 text-center">Qtd. Parc.</th>
+                  <th class="py-1.5 px-2 text-right">Valor (R$)</th>
+                </tr>
+              </thead>
+              <tbody id="reportItemsContainer" class="divide-y divide-slate-200 font-medium"></tbody>
+            </table>
+          </div>
 
-          <div class="border-t border-slate-200 pt-2 flex items-baseline justify-between font-bold">
-            <span>Total Devido:</span>
-            <span id="reportTotalAmount" class="text-base text-rose-600">R$ 0,00</span>
+          <!-- RESUMO POR BANCO E TOTALIZAÇÃO -->
+          <div class="mt-3 pt-3 border-t-2 border-slate-800 flex flex-col gap-2">
+            <div class="flex items-center justify-between text-xs font-bold">
+              <span>RESUMO POR BANCO:</span>
+              <span id="reportBankSummary" class="text-slate-700">Santander: R$ 0,00</span>
+            </div>
+
+            <div class="p-3 bg-[#0b4f9c] text-white rounded-lg flex items-center justify-between font-black text-sm">
+              <div class="text-xs font-normal" id="reportCountTypes">À vista: 0 | Parceladas: 0</div>
+              <div class="flex items-center gap-3">
+                <span class="tracking-wide">TOTAL DOS LANÇAMENTOS</span>
+                <span id="reportTotalAmount" class="text-lg">R$ 0,00</span>
+              </div>
+            </div>
+
+            <div class="text-[10px] text-center text-slate-500 mt-1">
+              Documento gerado pelo Sistema de Empréstimo Terceirizado (SET) | PIX: fp.danado16@gmail.com
+            </div>
           </div>
         </div>
 
@@ -655,7 +688,7 @@
       </div>
     </div>
 
-    <!-- NOVO MODAL: EDITAR MEMBRO -->
+    <!-- MODAL: EDITAR MEMBRO -->
     <div id="modalEditMember" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
       <div class="app-modal-sheet bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-sm w-full p-6 shadow-2xl border-t sm:border border-slate-800 flex flex-col gap-4">
         <div class="flex items-center justify-between border-b border-slate-800 pb-2">
@@ -1023,7 +1056,7 @@
       }
     }
 
-    // MOTOR DE IA COM DESCOBERTA DINÂMICA DE MODELOS (v1beta)
+    // MOTOR DE IA COM EXTRAÇÃO PRECISA DE PARCELAS (ATUAL / TOTAL)
     async function parseInvoiceWithAI(pdfText, apiKey) {
       const prompt = `Você é um motor contábil especialista em conciliação de faturas de cartões de crédito e extratos bancários.
 Analise o texto extraído da fatura e retorne as informações em JSON estruturado estrito.
@@ -1031,13 +1064,15 @@ Analise o texto extraído da fatura e retorne as informações em JSON estrutura
 REGRAS:
 1. "bank_name": Identifique o banco emissor (ex: "Bradesco", "Santander", "Nubank", "Itaú", "Inter", "C6").
 2. "due_date": Data de vencimento no formato YYYY-MM-DD.
-3. "total_amount": O valor total final da fatura a pagar (número decimal, ex: 1394.47). IGNORE opções de parcelamento fácil, crédito rotativo, encargos de financiamento ou limites futuros.
+3. "total_amount": O valor total final da fatura a pagar (número decimal, ex: 1394.47). IGNORE opções de parcelamento fácil, crédito rotativo ou limites futuros.
 4. "items": Lista contendo cada transação ou lançamento individual presente na fatura:
-   - "description": Estabelecimento ou detalhe do lançamento.
+   - "description": Nome limpo do estabelecimento ou detalhe.
    - "date": Data da compra (YYYY-MM-DD ou aproximada para o mês/ano do documento).
-   - "amount": Valor decimal positivo.
-   - "category": Sugira a categoria mais adequada (Ex: Supermercado, Lazer, Transporte, etc.).
-   - "installment": Parcela se houver (ex: "1/5", "3/10"), senão null.
+   - "amount": Valor decimal positivo referente ao lançamento cobrado no mês.
+   - "category": Categoria (Alimentação, Compras Online, Saúde, Lazer, Tecnologia, Transporte, Outros).
+   - "installment_current": Número inteiro da parcela cobrada nesta fatura (ex: se for 07/12, informe 7). Se for compra à vista, retorne null.
+   - "installment_total": Número inteiro da quantidade total de parcelas contratadas (ex: se for 07/12, informe 12). Se for compra à vista, retorne null.
+   - "installment_display": String no formato "X/Y" (ex: "7/12", "2/2"). Se à vista, retorne "-".
 
 Retorne EXCLUSIVAMENTE o JSON no formato:
 {
@@ -1050,7 +1085,9 @@ Retorne EXCLUSIVAMENTE o JSON no formato:
       "date": "YYYY-MM-DD",
       "amount": 0.00,
       "category": "string",
-      "installment": null
+      "installment_current": null,
+      "installment_total": null,
+      "installment_display": "-"
     }
   ]
 }
@@ -1160,7 +1197,8 @@ ${pdfText.slice(0, 14000)}`;
       (data.items || []).forEach(item => {
         const div = document.createElement('div');
         div.className = 'py-2 flex items-center justify-between';
-        const instBadge = item.installment ? `<span class="ml-1 text-[9px] px-1.5 py-0.2 bg-slate-800 rounded text-slate-400 font-bold">${item.installment}</span>` : '';
+        const instBadge = (item.installment_display && item.installment_display !== '-') ? 
+          `<span class="ml-1 text-[9px] px-1.5 py-0.2 bg-slate-800 rounded text-slate-400 font-bold font-mono">Parc: ${item.installment_display} (Total: ${item.installment_total || '-'})</span>` : '';
         div.innerHTML = `
           <div>
             <p class="font-bold text-slate-100">${item.description} ${instBadge}</p>
@@ -1209,7 +1247,8 @@ ${pdfText.slice(0, 14000)}`;
           amount: item.amount,
           date: item.date || invoiceData.due_date,
           category: item.category || 'Outros',
-          installment_info: item.installment || null,
+          installment_info: (item.installment_display && item.installment_display !== '-') ? item.installment_display : null,
+          installment_total: item.installment_total || null,
           type: 'expense'
         }));
 
@@ -1239,7 +1278,7 @@ ${pdfText.slice(0, 14000)}`;
       selectedTransactionToSplit = tx;
 
       const invoice = currentInvoices.find(i => i.id === tx.invoice_id);
-      const bankName = invoice ? invoice.bank_name : 'Cartão';
+      const bankName = invoice ? invoice.bank_name : 'Santander';
 
       document.getElementById('splitTxDesc').textContent = tx.description;
       document.getElementById('splitTxDate').innerHTML = `<i class="ph-bold ph-calendar"></i> ${tx.date}`;
@@ -1360,6 +1399,7 @@ ${pdfText.slice(0, 14000)}`;
             date: selectedTransactionToSplit.date,
             category: selectedTransactionToSplit.category,
             installment_info: selectedTransactionToSplit.installment_info ? `${selectedTransactionToSplit.installment_info} (Rateio)` : '(Rateio)',
+            installment_total: selectedTransactionToSplit.installment_total || null,
             type: 'expense'
           }]);
 
@@ -1374,7 +1414,7 @@ ${pdfText.slice(0, 14000)}`;
       }
     }
 
-    // --- GERAR FATURA INDIVIDUAL EM PDF, EMAIL & WHATSAPP (ESTÉTICA OFICIAL SET) ---
+    // --- GERAR FATURA INDIVIDUAL EM PDF (PADRÃO 7 COLUNAS IDÊNTICO À PLANILHA) ---
     function openGenerateMemberPdfModal() {
       const select = document.getElementById('selectPdfMember');
       select.innerHTML = '';
@@ -1403,38 +1443,70 @@ ${pdfText.slice(0, 14000)}`;
       if (!member) return;
 
       const now = new Date();
-      const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+      const monthNames = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
       const currentPeriod = `${monthNames[now.getMonth()]} / ${now.getFullYear()} — Todas as transações`;
+      const currentPeriodRef = `${monthNames[now.getMonth()]}/${now.getFullYear()}`;
 
       document.getElementById('bannerInvoicePeriod').textContent = currentPeriod;
       document.getElementById('bannerInvoiceUser').textContent = `Usuário: ${member.name}`;
 
-      document.getElementById('reportMemberName').textContent = `Titular: ${member.name}`;
+      document.getElementById('reportPeriodRef').textContent = currentPeriodRef;
+      document.getElementById('reportMemberName').textContent = member.name;
       document.getElementById('reportDate').textContent = now.toLocaleDateString('pt-BR');
 
       const memberTxs = currentTransactions.filter(t => t.member_id === memberId);
+      document.getElementById('reportCount').textContent = `${memberTxs.length} lançamentos`;
+
       const container = document.getElementById('reportItemsContainer');
       container.innerHTML = '';
 
       let total = 0;
+      let countParceladas = 0;
+      let countAVista = 0;
+      const bankMap = {};
+
       memberTxs.forEach(t => {
-        total += Number(t.amount);
-        const div = document.createElement('div');
-        div.className = 'py-1 flex items-center justify-between text-xs';
-        div.innerHTML = `
-          <div>
-            <span class="font-bold">${t.description}</span>
-            <span class="text-[10px] text-slate-500"> (${t.date})</span>
-          </div>
-          <span class="font-bold">R$ ${Number(t.amount).toFixed(2)}</span>
+        const val = Number(t.amount);
+        total += val;
+
+        const invoice = currentInvoices.find(i => i.id === t.invoice_id);
+        const bankName = invoice ? invoice.bank_name : 'Santander';
+        bankMap[bankName] = (bankMap[bankName] || 0) + val;
+
+        const isParcelada = t.installment_info && t.installment_info !== '-' && !t.installment_info.includes('(Rateio)');
+        if (isParcelada) {
+          countParceladas++;
+        } else {
+          countAVista++;
+        }
+
+        const parcDisplay = t.installment_info ? t.installment_info : '-';
+        const qtdParcDisplay = t.installment_total ? t.installment_total : (t.installment_info && t.installment_info.includes('/') ? t.installment_info.split('/')[1] : '');
+
+        const tr = document.createElement('tr');
+        tr.className = 'border-b border-slate-200 hover:bg-slate-50 transition';
+        tr.innerHTML = `
+          <td class="py-1.5 px-2 font-mono whitespace-nowrap">${t.date}</td>
+          <td class="py-1.5 px-2 font-bold text-slate-800">${t.description}</td>
+          <td class="py-1.5 px-2 text-slate-600">${t.category || 'Outros'}</td>
+          <td class="py-1.5 px-2 text-slate-600">${bankName}</td>
+          <td class="py-1.5 px-2 text-center font-mono font-bold text-slate-700">${parcDisplay}</td>
+          <td class="py-1.5 px-2 text-center font-mono text-slate-700">${qtdParcDisplay || ''}</td>
+          <td class="py-1.5 px-2 text-right font-black text-rose-600 whitespace-nowrap">R$ ${val.toFixed(2)}</td>
         `;
-        container.appendChild(div);
+        container.appendChild(tr);
       });
 
       if (memberTxs.length === 0) {
-        container.innerHTML = '<p class="text-center text-slate-400 py-4">Nenhum lançamento vinculado a este membro.</p>';
+        container.innerHTML = '<tr><td colspan="7" class="text-center text-slate-400 py-6">Nenhum lançamento vinculado a este membro.</td></tr>';
       }
 
+      // Resumo por Banco
+      const bankSummaryStrings = Object.keys(bankMap).map(b => `${b}: R$ ${bankMap[b].toFixed(2)}`);
+      document.getElementById('reportBankSummary').textContent = bankSummaryStrings.length ? bankSummaryStrings.join(' | ') : 'Sem lançamentos';
+
+      // Totais e Contagens
+      document.getElementById('reportCountTypes').textContent = `À vista: ${countAVista} | Parceladas: ${countParceladas}`;
       document.getElementById('reportTotalAmount').textContent = `R$ ${total.toFixed(2)}`;
     }
 
@@ -1442,7 +1514,7 @@ ${pdfText.slice(0, 14000)}`;
       const memberTxs = currentTransactions.filter(t => t.member_id === member.id);
       const total = memberTxs.reduce((a, b) => a + Number(b.amount), 0);
       const now = new Date();
-      const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+      const monthNames = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 
       let text = `*SET Web - Fatura Individual*\n`;
       text += `*Titular:* ${member.name}\n`;
@@ -1453,7 +1525,8 @@ ${pdfText.slice(0, 14000)}`;
       text += `------------------------------------\n`;
 
       memberTxs.forEach(t => {
-        text += `• ${t.date} - ${t.description}: R$ ${Number(t.amount).toFixed(2)}\n`;
+        const p = t.installment_info ? ` (${t.installment_info})` : '';
+        text += `• ${t.date} - ${t.description}${p}: R$ ${Number(t.amount).toFixed(2)}\n`;
       });
 
       text += `------------------------------------\n`;
@@ -1480,7 +1553,7 @@ ${pdfText.slice(0, 14000)}`;
       window.open(waUrl, '_blank');
     }
 
-    // DISPARO AUTOMÁTICO COM A ESTÉTICA VISUAL OFICIAL DO SET E ANEXO PDF
+    // DISPARO AUTOMÁTICO COM O PDF EXATO DE 7 COLUNAS E ESTÉTICA OFICIAL
     async function sendInvoiceEmail() {
       const memberId = document.getElementById('selectPdfMember').value;
       const member = currentMembers.find(m => m.id === memberId);
@@ -1493,58 +1566,74 @@ ${pdfText.slice(0, 14000)}`;
       const memberTxs = currentTransactions.filter(t => t.member_id === member.id);
       
       const now = new Date();
-      const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+      const monthNames = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
       const periodName = `${monthNames[now.getMonth()]}/${now.getFullYear()}`;
       const periodTitle = `${monthNames[now.getMonth()]} / ${now.getFullYear()}`;
 
-      let rowsHtml = '';
+      let countParceladas = 0;
+      let countAVista = 0;
+      const bankMap = {};
+
+      let rowsPdfHtml = '';
       memberTxs.forEach(t => {
-        rowsHtml += `
-          <tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 10px 8px; font-size: 13px;">${t.date}</td>
-            <td style="padding: 10px 8px; font-size: 13px; font-weight: bold;">${t.description}</td>
-            <td style="padding: 10px 8px; font-size: 13px; color: #64748b;">${t.category || 'Outros'}</td>
-            <td style="padding: 10px 8px; font-size: 13px; text-align: right; color: #e11d48; font-weight: bold;">R$ ${Number(t.amount).toFixed(2)}</td>
+        const val = Number(t.amount);
+        const invoice = currentInvoices.find(i => i.id === t.invoice_id);
+        const bankName = invoice ? invoice.bank_name : 'Santander';
+        bankMap[bankName] = (bankMap[bankName] || 0) + val;
+
+        const isParcelada = t.installment_info && t.installment_info !== '-' && !t.installment_info.includes('(Rateio)');
+        if (isParcelada) {
+          countParceladas++;
+        } else {
+          countAVista++;
+        }
+
+        const parcDisplay = t.installment_info ? t.installment_info : '-';
+        const qtdParcDisplay = t.installment_total ? t.installment_total : (t.installment_info && t.installment_info.includes('/') ? t.installment_info.split('/')[1] : '');
+
+        rowsPdfHtml += `
+          <tr style="border-bottom: 1px solid #cbd5e1;">
+            <td style="padding: 7px 5px; font-size: 11px; white-space: nowrap;">${t.date}</td>
+            <td style="padding: 7px 5px; font-size: 11px; font-weight: bold;">${t.description}</td>
+            <td style="padding: 7px 5px; font-size: 11px; color: #475569;">${t.category || 'Outros'}</td>
+            <td style="padding: 7px 5px; font-size: 11px; color: #475569;">${bankName}</td>
+            <td style="padding: 7px 5px; font-size: 11px; text-align: center; font-weight: bold;">${parcDisplay}</td>
+            <td style="padding: 7px 5px; font-size: 11px; text-align: center;">${qtdParcDisplay || ''}</td>
+            <td style="padding: 7px 5px; font-size: 11px; text-align: right; color: #e11d48; font-weight: bold; white-space: nowrap;">R$ ${val.toFixed(2)}</td>
           </tr>
         `;
       });
 
+      const bankSummaryStrings = Object.keys(bankMap).map(b => `${b}: R$ ${bankMap[b].toFixed(2)}`).join(' | ');
+
+      // 1. PDF COMPLETO COM TODAS AS 7 COLUNAS E RESUMO POR BANCO
       const pdfHtml = `
         <!DOCTYPE html>
         <html>
         <head>
           <meta charset="utf-8">
           <style>
-            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #1e293b; padding: 25px; }
-            .header { background: #0b4f9c; color: #ffffff; padding: 25px; border-radius: 8px; text-align: center; }
-            .header h1 { margin: 8px 0; font-size: 26px; letter-spacing: 6px; }
-            .header p { margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; opacity: 0.9; }
-            .info-box { margin: 20px 0; padding: 15px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f8fafc; }
+            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #1e293b; padding: 25px; margin: 0; }
+            .header-bar { border-bottom: 2px solid #0f172a; padding-bottom: 8px; margin-bottom: 12px; }
+            .header-bar h1 { margin: 0; font-size: 16px; font-weight: 900; letter-spacing: 1px; color: #0b4f9c; }
+            .header-bar h2 { margin: 3px 0 0 0; font-size: 12px; font-weight: bold; color: #334155; }
+            .meta-grid { margin-top: 8px; font-size: 11px; line-height: 1.5; color: #334155; }
             table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-            th { background: #f1f5f9; padding: 10px 8px; text-align: left; font-size: 11px; text-transform: uppercase; color: #475569; border-bottom: 2px solid #cbd5e1; }
-            .total-row { text-align: right; margin-top: 20px; padding-top: 15px; border-top: 2px solid #cbd5e1; font-size: 14px; }
-            .total-amount { font-size: 24px; color: #e11d48; font-weight: bold; margin-top: 5px; }
-            .pix-box { margin-top: 20px; padding: 12px 15px; background: #e3f2fd; border-left: 4px solid #1976d2; border-radius: 4px; font-size: 12px; }
+            th { background: #f1f5f9; padding: 8px 5px; text-align: left; font-size: 10px; font-weight: bold; text-transform: uppercase; color: #0f172a; border-bottom: 2px solid #94a3b8; }
+            .bank-box { margin-top: 15px; border-top: 2px solid #0f172a; padding-top: 8px; font-size: 11px; font-weight: bold; }
+            .total-banner { margin-top: 10px; background: #0b4f9c; color: #ffffff; padding: 10px 14px; border-radius: 6px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
+            .footer { font-size: 9px; color: #64748b; text-align: center; margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 8px; }
           </style>
         </head>
         <body>
-          <div class="header">
-            <p>Sistema de Empréstimo Terceirizado</p>
-            <h1>S E T</h1>
-            <p style="text-transform: none; font-size: 12px; opacity: 0.85;">Gestão de Transações Individualizadas</p>
-          </div>
-
-          <div class="info-box">
-            <table style="margin: 0;">
-              <tr>
-                <td style="font-size: 13px;"><strong>Usuário:</strong> ${member.name}</td>
-                <td style="font-size: 13px; text-align: right;"><strong>Período:</strong> ${periodTitle}</td>
-              </tr>
-              <tr>
-                <td style="font-size: 13px; padding-top: 8px;"><strong>Emissão:</strong> ${now.toLocaleDateString('pt-BR')}</td>
-                <td style="font-size: 13px; padding-top: 8px; text-align: right;"><strong>Itens:</strong> ${memberTxs.length} lançamentos</td>
-              </tr>
-            </table>
+          <div class="header-bar">
+            <h1>SISTEMA DE EMPRÉSTIMO TERCEIRIZADO (SET)</h1>
+            <h2>TRANSAÇÕES INDIVIDUALIZADAS</h2>
+            <div class="meta-grid">
+              <div><strong>Referência:</strong> ${periodTitle} &nbsp;|&nbsp; <strong>Transações:</strong> ${memberTxs.length} lançamentos</div>
+              <div><strong>Usuário:</strong> ${member.name} &nbsp;|&nbsp; <strong>Gerado em:</strong> ${now.toLocaleDateString('pt-BR')}</div>
+              <div><strong>Chave PIX:</strong> fp.danado16@gmail.com</div>
+            </div>
           </div>
 
           <table>
@@ -1553,27 +1642,39 @@ ${pdfText.slice(0, 14000)}`;
                 <th>Data</th>
                 <th>Descrição</th>
                 <th>Categoria</th>
-                <th style="text-align: right;">Valor</th>
+                <th>Banco</th>
+                <th style="text-align: center;">Parcela</th>
+                <th style="text-align: center;">Qtd. Parc.</th>
+                <th style="text-align: right;">Valor (R$)</th>
               </tr>
             </thead>
             <tbody>
-              ${rowsHtml}
+              ${rowsPdfHtml}
             </tbody>
           </table>
 
-          <div class="total-row">
-            <span>Total Devido:</span>
-            <div class="total-amount">R$ ${total.toFixed(2)}</div>
+          <div class="bank-box">
+            <span>RESUMO POR BANCO:</span><br>
+            <span style="color: #475569;">${bankSummaryStrings || 'Santander: R$ ' + total.toFixed(2)}</span>
           </div>
 
-          <div class="pix-box">
-            <strong style="color: #1565c0;">💰 CHAVE PIX PARA PAGAMENTO:</strong><br>
-            <span style="font-size: 14px; font-weight: bold; color: #0d47a1;">fp.danado16@gmail.com</span>
+          <table style="margin-top: 12px; background: #0b4f9c; color: #ffffff; border-radius: 6px; width: 100%;">
+            <tr>
+              <td style="padding: 10px 14px; font-size: 11px;">À vista: ${countAVista} &nbsp;|&nbsp; Parceladas: ${countParceladas}</td>
+              <td style="padding: 10px 14px; font-size: 13px; font-weight: bold; text-align: right; text-transform: uppercase;">
+                TOTAL DOS LANÇAMENTOS: &nbsp; <span style="font-size: 16px;">R$ ${total.toFixed(2)}</span>
+              </td>
+            </tr>
+          </table>
+
+          <div class="footer">
+            Documento gerado pelo Sistema de Empréstimo Terceirizado (SET) em ${now.toLocaleDateString('pt-BR')} | PIX: fp.danado16@gmail.com
           </div>
         </body>
         </html>
       `;
 
+      // 2. CORPO DO E-MAIL (ESTÉTICA SET)
       const emailHtml = `
         <div style="background-color: #f1f5f9; padding: 30px 10px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
           <div style="max-width: 560px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.06); border: 1px solid #e2e8f0;">
@@ -1595,7 +1696,7 @@ ${pdfText.slice(0, 14000)}`;
                 Olá, <strong>${member.name}</strong>
               </p>
               <p style="color: #475569; margin-top: 0; margin-bottom: 24px;">
-                Sua fatura de <strong>${periodName}</strong> foi gerada e está disponível em anexo neste email e também no Google Drive.
+                Sua fatura de <strong>${periodTitle}</strong> foi gerada e está disponível em anexo neste email e também no Google Drive.
               </p>
 
               <div style="margin-bottom: 24px;">
@@ -1628,7 +1729,7 @@ ${pdfText.slice(0, 14000)}`;
                   <tr>
                     <td colspan="2" style="padding: 14px 16px; background-color: #fafafa;">
                       <span style="font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; display: block; margin-bottom: 4px;">DOCUMENTO</span>
-                      <span style="color: #475569; font-size: 13px;">PDF em anexo — confira todos os lançamentos do período.</span>
+                      <span style="color: #475569; font-size: 13px;">PDF em anexo — confira todos os lançamentos do período com parcelas detalhadas.</span>
                     </td>
                   </tr>
                 </table>
@@ -1900,10 +2001,16 @@ ${pdfText.slice(0, 14000)}`;
 
         const div = document.createElement('div');
         div.className = 'py-2.5 flex items-center justify-between gap-2 text-xs';
-        const instBadge = t.installment_info ? `<span class="ml-1 text-[9px] px-1.5 py-0.2 bg-slate-800 rounded text-slate-400 font-bold">${t.installment_info}</span>` : '';
+        
+        let parcelBadge = '';
+        if (t.installment_info && t.installment_info !== '-') {
+          const totalInfo = t.installment_total ? ` de ${t.installment_total}` : '';
+          parcelBadge = `<span class="ml-1 text-[9px] px-1.5 py-0.2 bg-slate-800 rounded text-amber-300 font-bold font-mono">Parc: ${t.installment_info}${totalInfo}</span>`;
+        }
+
         div.innerHTML = `
           <div>
-            <p class="font-bold text-slate-100">${t.description} ${instBadge}</p>
+            <p class="font-bold text-slate-100">${t.description} ${parcelBadge}</p>
             <p class="text-[10px] text-slate-400">${t.date} • ${t.category}</p>
           </div>
           <div class="flex items-center gap-2.5">
@@ -1918,7 +2025,6 @@ ${pdfText.slice(0, 14000)}`;
       });
     }
 
-    // LISTAGEM DE MEMBROS COM BOTÃO DE EDIÇÃO
     function renderMembersList() {
       const container = document.getElementById('membersList');
       const emptyState = document.getElementById('emptyMembers');
@@ -2045,10 +2151,10 @@ ${pdfText.slice(0, 14000)}`;
 
     function exportCSV() {
       if (currentTransactions.length === 0) return alert('Sem lançamentos para exportar.');
-      let csv = 'ID;Descricao;Data;Valor;Categoria;Parcela;Membro\n';
+      let csv = 'ID;Descricao;Data;Valor;Categoria;Parcela;QtdTotal;Membro\n';
       currentTransactions.forEach(t => {
         const member = currentMembers.find(m => m.id === t.member_id);
-        csv += `"${t.id}";"${t.description}";"${t.date}";"${t.amount}";"${t.category}";"${t.installment_info || ''}";"${member ? member.name : ''}"\n`;
+        csv += `"${t.id}";"${t.description}";"${t.date}";"${t.amount}";"${t.category}";"${t.installment_info || ''}";"${t.installment_total || ''}";"${member ? member.name : ''}"\n`;
       });
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
