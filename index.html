@@ -5,15 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>SET Web - Sistema de Faturas & Rateio</title>
   
-  <!-- Tailwind CSS CDN -->
+  <!-- CDNs -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Phosphor Icons -->
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
-  <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- Supabase JS CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- PDF.js CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
   <script>
@@ -84,7 +80,7 @@
     }
   </style>
 
-  <!-- INICIALIZAÇÃO E ESCOPO GLOBAL NO HEAD -->
+  <!-- INICIALIZAÇÃO DE BASE & FUNÇÕES DE AUTENTICAÇÃO NO TOPO -->
   <script>
     window.currentAuthMode = 'login';
     window.currentUser = null;
@@ -176,9 +172,11 @@
           if (data && data.session && data.user) {
             window.currentUser = data.user;
             window.showApp();
-            window.loadAllData().catch(e => console.warn('Erro ao carregar dados:', e));
+            if (typeof window.loadAllData === 'function') {
+              window.loadAllData().catch(e => console.warn('Erro ao carregar dados:', e));
+            }
           } else {
-            alert('Conta criada com sucesso! Pode iniciar sessão.');
+            alert('Conta criada com sucesso! Pode agora iniciar sessão.');
             window.setAuthMode('login');
           }
         } else {
@@ -187,10 +185,12 @@
           
           window.currentUser = data.user;
           window.showApp();
-          window.loadAllData().catch(e => console.warn('Erro ao carregar dados:', e));
+          if (typeof window.loadAllData === 'function') {
+            window.loadAllData().catch(e => console.warn('Erro ao carregar dados:', e));
+          }
         }
       } catch (err) {
-        alert('Erro ao autenticar: ' + (err.message || 'Credenciais inválidas ou erro de conexão.'));
+        alert('Erro ao autenticar: ' + (err.message || 'Credenciais inválidas ou erro de ligação.'));
       } finally {
         if (btn) {
           btn.disabled = false;
@@ -363,7 +363,6 @@
 
       <!-- ABA 1: PAINEL -->
       <div id="viewDashboard" class="flex flex-col gap-4">
-        
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
           <div class="bg-gradient-to-br from-slate-900 to-slate-900/90 p-4 rounded-2xl border border-slate-800/90 shadow-sm flex flex-col justify-between">
             <div class="flex items-center justify-between">
@@ -428,7 +427,7 @@
                 <span>Importar nova fatura bancária em PDF</span>
                 <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Gemini IA</span>
               </h4>
-              <p class="text-[11px] text-slate-400 mt-0.5 hidden sm:block">Clique ou arraste o ficheiro para extrair banco, vencimento, parcelas e lançamentos automáticos.</p>
+              <p class="text-[11px] text-slate-400 mt-0.5 hidden sm:block">Extração automática de banco, vencimento, parcelas e lançamentos.</p>
             </div>
           </div>
           <button type="button" class="px-3.5 py-1.5 text-xs font-bold rounded-xl bg-slate-800 text-slate-200 group-hover:bg-brand-600 group-hover:text-white transition shrink-0 flex items-center gap-1">
@@ -615,12 +614,12 @@
         <div>
           <label class="block text-[11px] font-bold text-slate-300 mb-1">Promessa de Pagamento (Data Limite)</label>
           <input type="date" id="payPromiseDate" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-white focus:outline-none focus:border-emerald-500">
-          <p class="text-[10px] text-slate-400 mt-1">Se houver saldo pendente, um lembrete automático será agendado para esta data.</p>
+          <p class="text-[10px] text-slate-400 mt-1">Lembrete associado ao saldo pendente do período.</p>
         </div>
 
         <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
           <button onclick="closePaymentModal()" class="px-3 py-1.5 text-xs text-slate-400">Cancelar</button>
-          <button onclick="savePaymentRecord()" class="px-4 py-2 text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white rounded-xl shadow-md transition">Guardar Pagamento</button>
+          <button onclick="savePaymentRecord()" class="px-4 py-2 text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white rounded-xl shadow-md transition">Guardar</button>
         </div>
       </div>
     </div>
@@ -959,8 +958,178 @@
 
   </div>
 
-  <!-- 4. MOTOR JAVASCRIPT DE PROCESSAMENTO GEMINI & INTERPRETAÇÃO IA -->
+  <!-- 3. MOTOR JAVASCRIPT GLOBAL COMPLETO -->
   <script>
+    let chartInvoices = null;
+    let chartSplit = null;
+
+    let currentProgress = 0;
+    let targetProgress = 0;
+    let progressRafId = null;
+
+    function renderProgressStep() {
+      if (currentProgress < targetProgress) {
+        currentProgress += Math.max(1, Math.ceil((targetProgress - currentProgress) * 0.12));
+        if (currentProgress > targetProgress) currentProgress = targetProgress;
+
+        const bar = document.getElementById('loadingProgressBar');
+        const pctLabel = document.getElementById('loadingPercentLabel');
+        if (bar) bar.style.width = currentProgress + '%';
+        if (pctLabel) pctLabel.textContent = Math.round(currentProgress) + '%';
+      }
+
+      if (currentProgress < 100) {
+        progressRafId = requestAnimationFrame(renderProgressStep);
+      }
+    }
+
+    function animateProgressTo(target, stepLabelText) {
+      targetProgress = Math.min(100, Math.max(0, target));
+      if (stepLabelText) {
+        const lbl = document.getElementById('loadingStepLabel');
+        if (lbl) lbl.textContent = stepLabelText;
+      }
+      if (!progressRafId) {
+        progressRafId = requestAnimationFrame(renderProgressStep);
+      }
+    }
+
+    function showLoading(title, subtext, initialProgress = 1, stepText = 'A iniciar...') {
+      cancelAnimationFrame(progressRafId);
+      progressRafId = null;
+      currentProgress = 0;
+      targetProgress = initialProgress;
+
+      const titleEl = document.getElementById('loadingTitle');
+      const subEl = document.getElementById('loadingSubtext');
+      const bar = document.getElementById('loadingProgressBar');
+      const pctLabel = document.getElementById('loadingPercentLabel');
+      const stepLabel = document.getElementById('loadingStepLabel');
+      const modal = document.getElementById('modalLoading');
+
+      if (titleEl) titleEl.textContent = title || 'Processando com IA...';
+      if (subEl) subEl.textContent = subtext || 'A analisar os dados da fatura';
+      if (bar) bar.style.width = '0%';
+      if (pctLabel) pctLabel.textContent = '0%';
+      if (stepLabel) stepLabel.textContent = stepText;
+      if (modal) modal.classList.remove('hidden');
+
+      animateProgressTo(initialProgress, stepText);
+    }
+
+    function hideLoading() {
+      cancelAnimationFrame(progressRafId);
+      progressRafId = null;
+      const modal = document.getElementById('modalLoading');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function addLog(msg) {
+      try {
+        const logs = JSON.parse(localStorage.getItem('set_logs') || '[]');
+        const timestamp = new Date().toLocaleTimeString();
+        logs.unshift(`[${timestamp}] ${msg}`);
+        localStorage.setItem('set_logs', JSON.stringify(logs.slice(0, 50)));
+      } catch (e) {}
+    }
+
+    function initTheme() {
+      try {
+        const savedTheme = localStorage.getItem('set_theme');
+        const isDark = savedTheme ? savedTheme === 'dark' : true;
+        document.documentElement.classList.toggle('dark', isDark);
+      } catch (e) {}
+    }
+
+    function toggleTheme() {
+      const isDark = document.documentElement.classList.toggle('dark');
+      try {
+        localStorage.setItem('set_theme', isDark ? 'dark' : 'light');
+      } catch (e) {}
+    }
+
+    // --- CARREGAMENTO RESILIENTE DE DADOS ---
+    window.loadAllData = async function() {
+      if (!window.supabaseClient || !window.currentUser) return;
+
+      try {
+        const [invRes, transRes, membRes, bankRes, payRes] = await Promise.allSettled([
+          window.supabaseClient.from('invoices').select('*').eq('user_id', window.currentUser.id).order('created_at', { ascending: false }),
+          window.supabaseClient.from('transactions').select('*').eq('user_id', window.currentUser.id).order('date', { ascending: false }),
+          window.supabaseClient.from('members').select('*').eq('user_id', window.currentUser.id),
+          window.supabaseClient.from('banks').select('*').eq('user_id', window.currentUser.id),
+          window.supabaseClient.from('payments').select('*').eq('user_id', window.currentUser.id)
+        ]);
+
+        window.currentInvoices = invRes.status === 'fulfilled' && !invRes.value.error ? (invRes.value.data || []) : [];
+        window.currentTransactions = transRes.status === 'fulfilled' && !transRes.value.error ? (transRes.value.data || []) : [];
+        window.currentMembers = membRes.status === 'fulfilled' && !membRes.value.error ? (membRes.value.data || []) : [];
+        window.currentBanks = bankRes.status === 'fulfilled' && !bankRes.value.error ? (bankRes.value.data || []) : [];
+        window.currentPayments = payRes.status === 'fulfilled' && !payRes.value.error ? (payRes.value.data || []) : [];
+
+        renderDashboard();
+        renderInvoicesList();
+        renderTransactionsList();
+        renderMembersList();
+        renderBanksList();
+        renderCharts();
+      } catch (err) {
+        console.warn('Erro ao atualizar dados:', err);
+      }
+    };
+
+    window.triggerInvoiceUpload = function() {
+      const input = document.getElementById('pdfFileInput');
+      if (input) input.click();
+    };
+
+    window.handleFileSelected = async function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      let apiKey = '';
+      try {
+        apiKey = localStorage.getItem('set_gemini_key') || '';
+      } catch (err) {}
+
+      if (!apiKey) {
+        window.openConfigModal();
+        alert('Por favor, configure a chave Gemini API no menu de configurações antes de processar faturas.');
+        e.target.value = '';
+        return;
+      }
+
+      showLoading('A ler ficheiro PDF...', 'A extrair páginas e conteúdo textual', 15, 'A ler PDF');
+
+      try {
+        addLog(`A processar ficheiro PDF: ${file.name}`);
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        let textContent = '';
+
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          textContent += ' ' + content.items.map(item => item.str).join(' ');
+          const pagePct = Math.round(15 + (i / pdf.numPages) * 20);
+          animateProgressTo(pagePct, `A ler página ${i}/${pdf.numPages}`);
+        }
+
+        const titleEl = document.getElementById('loadingTitle');
+        const subEl = document.getElementById('loadingSubtext');
+        if (titleEl) titleEl.textContent = 'IA a Analisar Fatura...';
+        if (subEl) subEl.textContent = 'O Gemini está a estruturar valores, vencimento e compras';
+        animateProgressTo(50, 'A contactar Gemini IA');
+
+        await window.processPdfWithGemini(textContent, apiKey);
+      } catch (err) {
+        hideLoading();
+        alert('Erro ao ler PDF: ' + err.message);
+      } finally {
+        e.target.value = '';
+      }
+    };
+
     window.parseInvoiceWithAI = async function(pdfText, apiKey) {
       const prompt = `Você é um motor contábil especialista em conciliação de faturas de cartões de crédito e extratos bancários.
 Analise o texto extraído da fatura e retorne as informações em JSON estruturado estrito.
@@ -1082,7 +1251,7 @@ ${pdfText.slice(0, 14000)}`;
         animateProgressTo(100, 'Concluído com sucesso');
         setTimeout(() => {
           hideLoading();
-          showInvoiceAIModal(parsed);
+          window.showInvoiceAIModal(parsed);
         }, 400);
       } catch (err) {
         hideLoading();
@@ -1175,6 +1344,716 @@ ${pdfText.slice(0, 14000)}`;
       }
     };
 
+    window.assignSingleMember = async function(txId, memberId) {
+      if (!window.supabaseClient) return;
+      const mId = memberId ? memberId : null;
+
+      try {
+        const { error } = await window.supabaseClient
+          .from('transactions')
+          .update({ member_id: mId })
+          .eq('id', txId);
+
+        if (error) throw error;
+
+        const tx = window.currentTransactions.find(t => t.id === txId);
+        if (tx) tx.member_id = mId;
+
+        renderDashboard();
+        renderMembersList();
+        renderCharts();
+
+        const memberObj = window.currentMembers.find(m => m.id === mId);
+        addLog(`Transação ${tx ? tx.description : txId} atribuída diretamente para: ${memberObj ? memberObj.name : 'Geral'}`);
+      } catch (err) {
+        alert('Erro ao vincular membro: ' + err.message);
+        window.loadAllData();
+      }
+    };
+
+    window.openSplitTransactionModal = function(txId) {
+      const tx = window.currentTransactions.find(t => t.id === txId);
+      if (!tx) return;
+      window.selectedTransactionToSplit = tx;
+
+      const invoice = window.currentInvoices.find(i => i.id === tx.invoice_id);
+      const bankName = invoice ? invoice.bank_name : 'Santander';
+
+      document.getElementById('splitTxDesc').textContent = tx.description;
+      document.getElementById('splitTxDate').innerHTML = `<i class="ph-bold ph-calendar"></i> ${tx.date}`;
+      document.getElementById('splitTxBank').innerHTML = `<i class="ph-bold ph-bank"></i> ${bankName}`;
+      document.getElementById('splitTxCategory').innerHTML = `<i class="ph-bold ph-tag"></i> ${tx.category || 'Outros'}`;
+      document.getElementById('splitTxTotal').textContent = `R$ ${Number(tx.amount).toFixed(2)}`;
+
+      const sel1 = document.getElementById('splitMember1');
+      const sel2 = document.getElementById('splitMember2');
+      sel1.innerHTML = '';
+      sel2.innerHTML = '';
+
+      if (window.currentMembers.length === 0) {
+        return alert('Cadastre primeiro membros na aba "Membros" para poder dividir transações.');
+      }
+
+      window.currentMembers.forEach((m) => {
+        const o1 = document.createElement('option');
+        o1.value = m.id;
+        o1.textContent = m.name;
+        sel1.appendChild(o1);
+
+        const o2 = document.createElement('option');
+        o2.value = m.id;
+        o2.textContent = m.name;
+        sel2.appendChild(o2);
+      });
+
+      if (tx.member_id) {
+        sel1.value = tx.member_id;
+      }
+      if (window.currentMembers.length > 1) {
+        sel2.selectedIndex = sel1.selectedIndex === 0 ? 1 : 0;
+      }
+
+      document.getElementById('splitSlider').value = 50;
+      document.getElementById('splitNumberInput').value = 50;
+      recalculateSplit();
+
+      document.getElementById('modalSplitTransaction').classList.remove('hidden');
+    };
+
+    window.closeSplitModal = function() {
+      document.getElementById('modalSplitTransaction').classList.add('hidden');
+      window.selectedTransactionToSplit = null;
+    };
+
+    window.onSplitSliderChange = function(val) {
+      document.getElementById('splitNumberInput').value = val;
+      recalculateSplit();
+    };
+
+    window.onSplitInputChange = function(val) {
+      let v = parseInt(val) || 0;
+      if (v < 0) v = 0;
+      if (v > 100) v = 100;
+      document.getElementById('splitSlider').value = v;
+      recalculateSplit();
+    };
+
+    function recalculateSplit() {
+      if (!window.selectedTransactionToSplit) return;
+      const total = Number(window.selectedTransactionToSplit.amount);
+      const p1 = parseInt(document.getElementById('splitSlider').value) || 0;
+      const p2 = 100 - p1;
+
+      const sel1 = document.getElementById('splitMember1');
+      const sel2 = document.getElementById('splitMember2');
+      const name1 = sel1.options[sel1.selectedIndex]?.textContent || 'Usuário 1';
+      const name2 = sel2.options[sel2.selectedIndex]?.textContent || 'Usuário 2';
+
+      const v1 = (total * (p1 / 100));
+      const v2 = total - v1;
+
+      document.getElementById('cardMember1Label').textContent = name1;
+      document.getElementById('cardMember1Amount').textContent = `R$ ${v1.toFixed(2)}`;
+      document.getElementById('cardMember1Percent').textContent = `${p1}%`;
+
+      document.getElementById('cardMember2Label').textContent = name2;
+      document.getElementById('cardMember2Amount').textContent = `R$ ${v2.toFixed(2)}`;
+      document.getElementById('cardMember2Percent').textContent = `${p2}%`;
+    }
+
+    window.executeSplitTransaction = async function() {
+      if (!window.selectedTransactionToSplit || !window.supabaseClient) return;
+
+      const m1 = document.getElementById('splitMember1').value;
+      const m2 = document.getElementById('splitMember2').value;
+      const p1 = parseInt(document.getElementById('splitSlider').value) || 0;
+
+      if (!m1 || !m2) return alert('Selecione ambos os membros.');
+      if (m1 === m2) return alert('Selecione membros diferentes para realizar a divisão.');
+
+      const total = Number(window.selectedTransactionToSplit.amount);
+      const val1 = Number((total * (p1 / 100)).toFixed(2));
+      const val2 = Number((total - val1).toFixed(2));
+
+      try {
+        const { error: updErr } = await window.supabaseClient
+          .from('transactions')
+          .update({
+            amount: val1,
+            member_id: m1,
+            installment_info: window.selectedTransactionToSplit.installment_info ? `${window.selectedTransactionToSplit.installment_info} (Rateio)` : '(Rateio)'
+          })
+          .eq('id', window.selectedTransactionToSplit.id);
+
+        if (updErr) throw updErr;
+
+        const { error: insErr } = await window.supabaseClient
+          .from('transactions')
+          .insert([{
+            user_id: window.currentUser.id,
+            invoice_id: window.selectedTransactionToSplit.invoice_id,
+            member_id: m2,
+            description: window.selectedTransactionToSplit.description,
+            amount: val2,
+            date: window.selectedTransactionToSplit.date,
+            category: window.selectedTransactionToSplit.category,
+            installment_info: window.selectedTransactionToSplit.installment_info ? `${window.selectedTransactionToSplit.installment_info} (Rateio)` : '(Rateio)',
+            installment_total: window.selectedTransactionToSplit.installment_total || null,
+            type: 'expense'
+          }]);
+
+        if (insErr) throw insErr;
+
+        addLog(`Transação dividida: ${window.selectedTransactionToSplit.description} (R$ ${val1.toFixed(2)} / R$ ${val2.toFixed(2)})`);
+        window.closeSplitModal();
+        alert('Transação dividida com sucesso!');
+        window.loadAllData();
+      } catch (err) {
+        alert('Erro ao dividir transação: ' + err.message);
+      }
+    };
+
+    window.openGenerateMemberPdfModal = function() {
+      const select = document.getElementById('selectPdfMember');
+      select.innerHTML = '';
+      window.currentMembers.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.id;
+        opt.textContent = m.name;
+        select.appendChild(opt);
+      });
+
+      if (window.currentMembers.length === 0) {
+        return alert('Cadastre primeiro os membros na aba Membros para gerar o PDF individual.');
+      }
+
+      document.getElementById('modalMemberPdf').classList.remove('hidden');
+      generateMemberReportPreview();
+    };
+
+    window.closeMemberPdfModal = function() {
+      document.getElementById('modalMemberPdf').classList.add('hidden');
+    };
+
+    function generateMemberReportPreview() {
+      const memberId = document.getElementById('selectPdfMember').value;
+      const member = window.currentMembers.find(m => m.id === memberId);
+      if (!member) return;
+
+      const now = new Date();
+      const monthNames = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+      const currentPeriod = `${monthNames[now.getMonth()]} / ${now.getFullYear()} — Todas as transações`;
+      const currentPeriodRef = `${monthNames[now.getMonth()]}/${now.getFullYear()}`;
+
+      document.getElementById('bannerInvoicePeriod').textContent = currentPeriod;
+      document.getElementById('bannerInvoiceUser').textContent = `Usuário: ${member.name}`;
+
+      document.getElementById('reportPeriodRef').textContent = currentPeriodRef;
+      document.getElementById('reportMemberName').textContent = member.name;
+      document.getElementById('reportDate').textContent = now.toLocaleDateString('pt-BR');
+
+      const memberTxs = window.currentTransactions.filter(t => t.member_id === memberId);
+      document.getElementById('reportCount').textContent = `${memberTxs.length} lançamentos`;
+
+      const container = document.getElementById('reportItemsContainer');
+      container.innerHTML = '';
+
+      let total = 0;
+      let countParceladas = 0;
+      let countAVista = 0;
+      const bankMap = {};
+
+      memberTxs.forEach(t => {
+        const val = Number(t.amount);
+        total += val;
+
+        const invoice = window.currentInvoices.find(i => i.id === t.invoice_id);
+        const bankName = invoice ? invoice.bank_name : 'Santander';
+        bankMap[bankName] = (bankMap[bankName] || 0) + val;
+
+        const isParcelada = t.installment_info && t.installment_info !== '-' && !t.installment_info.includes('(Rateio)');
+        if (isParcelada) {
+          countParceladas++;
+        } else {
+          countAVista++;
+        }
+
+        const parcDisplay = t.installment_info ? t.installment_info : '-';
+        const qtdParcDisplay = t.installment_total ? t.installment_total : (t.installment_info && t.installment_info.includes('/') ? t.installment_info.split('/')[1] : '');
+
+        const tr = document.createElement('tr');
+        tr.className = 'border-b border-slate-200 hover:bg-slate-50 transition';
+        tr.innerHTML = `
+          <td class="py-1.5 px-2 font-mono whitespace-nowrap">${t.date}</td>
+          <td class="py-1.5 px-2 font-bold text-slate-800">${t.description}</td>
+          <td class="py-1.5 px-2 text-slate-600">${t.category || 'Outros'}</td>
+          <td class="py-1.5 px-2 text-slate-600">${bankName}</td>
+          <td class="py-1.5 px-2 text-center font-mono font-bold text-slate-700">${parcDisplay}</td>
+          <td class="py-1.5 px-2 text-center font-mono text-slate-700">${qtdParcDisplay || ''}</td>
+          <td class="py-1.5 px-2 text-right font-black text-rose-600 whitespace-nowrap">R$ ${val.toFixed(2)}</td>
+        `;
+        container.appendChild(tr);
+      });
+
+      if (memberTxs.length === 0) {
+        container.innerHTML = '<tr><td colspan="7" class="text-center text-slate-400 py-6">Nenhum lançamento vinculado a este membro.</td></tr>';
+      }
+
+      const bankSummaryStrings = Object.keys(bankMap).map(b => `${b}: R$ ${bankMap[b].toFixed(2)}`);
+      document.getElementById('reportBankSummary').textContent = bankSummaryStrings.length ? bankSummaryStrings.join(' | ') : 'Sem lançamentos';
+
+      document.getElementById('reportCountTypes').textContent = `À vista: ${countAVista} | Parceladas: ${countParceladas}`;
+      document.getElementById('reportTotalAmount').textContent = `R$ ${total.toFixed(2)}`;
+    }
+
+    function buildInvoiceTextSummary(member) {
+      const memberTxs = window.currentTransactions.filter(t => t.member_id === member.id);
+      const total = memberTxs.reduce((a, b) => a + Number(b.amount), 0);
+      const alreadyPaid = window.currentPayments.filter(p => p.member_id === member.id).reduce((a, b) => a + Number(b.amount), 0);
+      const remaining = total - alreadyPaid;
+      const now = new Date();
+      const monthNames = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+
+      let text = `*SET Web - Fatura Individual*\n`;
+      text += `*Titular:* ${member.name}\n`;
+      text += `*Referência:* ${monthNames[now.getMonth()]}/${now.getFullYear()}\n`;
+      text += `*Valor Total:* R$ ${total.toFixed(2)}\n`;
+      if (alreadyPaid > 0) {
+        text += `*Já Pago:* R$ ${alreadyPaid.toFixed(2)}\n`;
+        text += `*Saldo Pendente:* R$ ${remaining.toFixed(2)}\n`;
+      }
+      text += `*Chave PIX:* fp.danado16@gmail.com\n`;
+      text += `*Lançamentos (${memberTxs.length}):*\n`;
+      text += `------------------------------------\n`;
+
+      memberTxs.forEach(t => {
+        const p = t.installment_info ? ` (${t.installment_info})` : '';
+        text += `• ${t.date} - ${t.description}${p}: R$ ${Number(t.amount).toFixed(2)}\n`;
+      });
+
+      text += `------------------------------------\n`;
+      text += `Extrato gerado pelo sistema SET Web.`;
+      return { text, total, count: memberTxs.length };
+    }
+
+    window.sendInvoiceWhatsApp = function() {
+      const memberId = document.getElementById('selectPdfMember').value;
+      const member = window.currentMembers.find(m => m.id === memberId);
+      if (!member) return;
+
+      const { text } = buildInvoiceTextSummary(member);
+      let phoneClean = (member.phone || '').replace(/\D/g, '');
+
+      let waUrl = '';
+      if (phoneClean) {
+        if (!phoneClean.startsWith('55') && phoneClean.length <= 11) phoneClean = '55' + phoneClean;
+        waUrl = `https://api.whatsapp.com/send?phone=${phoneClean}&text=${encodeURIComponent(text)}`;
+      } else {
+        waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+      }
+
+      window.open(waUrl, '_blank');
+    };
+
+    window.sendInvoiceEmail = async function() {
+      const memberId = document.getElementById('selectPdfMember').value;
+      const member = window.currentMembers.find(m => m.id === memberId);
+      if (!member) return;
+      if (!member.email) return alert('Este membro não possui um e-mail cadastrado.');
+
+      const GOOGLE_SCRIPT_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbzB7GoExKRwmaYukAHJFuGG64HgURnJDIUMcrCJligEttcvI32U7Nk_lBud7DCE07mK7w/exec';
+
+      const { text, total } = buildInvoiceTextSummary(member);
+      const memberTxs = window.currentTransactions.filter(t => t.member_id === member.id);
+      
+      const now = new Date();
+      const monthNames = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+      const periodName = `${monthNames[now.getMonth()]}/${now.getFullYear()}`;
+      const periodTitle = `${monthNames[now.getMonth()]} / ${now.getFullYear()}`;
+
+      let countParceladas = 0;
+      let countAVista = 0;
+      const bankMap = {};
+
+      let rowsPdfHtml = '';
+      memberTxs.forEach(t => {
+        const val = Number(t.amount);
+        const invoice = window.currentInvoices.find(i => i.id === t.invoice_id);
+        const bankName = invoice ? invoice.bank_name : 'Santander';
+        bankMap[bankName] = (bankMap[bankName] || 0) + val;
+
+        const isParcelada = t.installment_info && t.installment_info !== '-' && !t.installment_info.includes('(Rateio)');
+        if (isParcelada) {
+          countParceladas++;
+        } else {
+          countAVista++;
+        }
+
+        const parcDisplay = t.installment_info ? t.installment_info : '-';
+        const qtdParcDisplay = t.installment_total ? t.installment_total : (t.installment_info && t.installment_info.includes('/') ? t.installment_info.split('/')[1] : '');
+
+        rowsPdfHtml += `
+          <tr style="border-bottom: 1px solid #cbd5e1;">
+            <td style="padding: 7px 5px; font-size: 11px; white-space: nowrap;">${t.date}</td>
+            <td style="padding: 7px 5px; font-size: 11px; font-weight: bold;">${t.description}</td>
+            <td style="padding: 7px 5px; font-size: 11px; color: #475569;">${t.category || 'Outros'}</td>
+            <td style="padding: 7px 5px; font-size: 11px; color: #475569;">${bankName}</td>
+            <td style="padding: 7px 5px; font-size: 11px; text-align: center; font-weight: bold;">${parcDisplay}</td>
+            <td style="padding: 7px 5px; font-size: 11px; text-align: center;">${qtdParcDisplay || ''}</td>
+            <td style="padding: 7px 5px; font-size: 11px; text-align: right; color: #e11d48; font-weight: bold; white-space: nowrap;">R$ ${val.toFixed(2)}</td>
+          </tr>
+        `;
+      });
+
+      const bankSummaryStrings = Object.keys(bankMap).map(b => `${b}: R$ ${bankMap[b].toFixed(2)}`).join(' | ');
+
+      const pdfHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <style>
+            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #1e293b; padding: 25px; margin: 0; }
+            .header-bar { border-bottom: 2px solid #0f172a; padding-bottom: 8px; margin-bottom: 12px; }
+            .header-bar h1 { margin: 0; font-size: 16px; font-weight: 900; letter-spacing: 1px; color: #0b4f9c; }
+            .header-bar h2 { margin: 3px 0 0 0; font-size: 12px; font-weight: bold; color: #334155; }
+            .meta-grid { margin-top: 8px; font-size: 11px; line-height: 1.5; color: #334155; }
+            table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+            th { background: #f1f5f9; padding: 8px 5px; text-align: left; font-size: 10px; font-weight: bold; text-transform: uppercase; color: #0f172a; border-bottom: 2px solid #94a3b8; }
+            .bank-box { margin-top: 15px; border-top: 2px solid #0f172a; padding-top: 8px; font-size: 11px; font-weight: bold; }
+            .footer { font-size: 9px; color: #64748b; text-align: center; margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 8px; }
+          </style>
+        </head>
+        <body>
+          <div class="header-bar">
+            <h1>SISTEMA DE EMPRÉSTIMO TERCEIRIZADO (SET)</h1>
+            <h2>TRANSAÇÕES INDIVIDUALIZADAS</h2>
+            <div class="meta-grid">
+              <div><strong>Referência:</strong> ${periodTitle} &nbsp;|&nbsp; <strong>Transações:</strong> ${memberTxs.length} lançamentos</div>
+              <div><strong>Usuário:</strong> ${member.name} &nbsp;|&nbsp; <strong>Gerado em:</strong> ${now.toLocaleDateString('pt-BR')}</div>
+              <div><strong>Chave PIX:</strong> fp.danado16@gmail.com</div>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Descrição</th>
+                <th>Categoria</th>
+                <th>Banco</th>
+                <th style="text-align: center;">Parcela</th>
+                <th style="text-align: center;">Qtd. Parc.</th>
+                <th style="text-align: right;">Valor (R$)</th>
+              </tr>
+            </thead>
+            <tbody>${rowsPdfHtml}</tbody>
+          </table>
+
+          <div class="bank-box">
+            <span>RESUMO POR BANCO:</span><br>
+            <span style="color: #475569;">${bankSummaryStrings || 'Santander: R$ ' + total.toFixed(2)}</span>
+          </div>
+
+          <table style="margin-top: 12px; background: #0b4f9c; color: #ffffff; border-radius: 6px; width: 100%;">
+            <tr>
+              <td style="padding: 10px 14px; font-size: 11px;">À vista: ${countAVista} &nbsp;|&nbsp; Parceladas: ${countParceladas}</td>
+              <td style="padding: 10px 14px; font-size: 13px; font-weight: bold; text-align: right; text-transform: uppercase;">
+                TOTAL DOS LANÇAMENTOS: &nbsp; <span style="font-size: 16px;">R$ ${total.toFixed(2)}</span>
+              </td>
+            </tr>
+          </table>
+
+          <div class="footer">
+            Documento gerado pelo Sistema de Empréstimo Terceirizado (SET) em ${now.toLocaleDateString('pt-BR')} | PIX: fp.danado16@gmail.com
+          </div>
+        </body>
+        </html>
+      `;
+
+      const emailHtml = `
+        <div style="background-color: #f1f5f9; padding: 30px 10px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+          <div style="max-width: 560px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.06); border: 1px solid #e2e8f0;">
+            <div style="background-color: #0b5394; padding: 35px 20px 28px 20px; text-align: center; color: #ffffff;">
+              <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; opacity: 0.9; margin-bottom: 8px;">
+                SISTEMA DE EMPRÉSTIMO TERCEIRIZADO
+              </div>
+              <div style="font-size: 32px; font-weight: 900; letter-spacing: 12px; margin: 10px 0 6px 0; text-indent: 12px;">
+                S &nbsp;E &nbsp;T
+              </div>
+              <div style="font-size: 12px; font-weight: 500; opacity: 0.85;">
+                Gestão de Transações Individualizadas
+              </div>
+            </div>
+
+            <div style="padding: 32px 30px; color: #1e293b; font-size: 14px; line-height: 1.6;">
+              <p style="font-size: 16px; margin-top: 0; margin-bottom: 12px; color: #0f172a;">
+                Olá, <strong>${member.name}</strong>
+              </p>
+              <p style="color: #475569; margin-top: 0; margin-bottom: 24px;">
+                Sua fatura de <strong>${periodTitle}</strong> foi gerada e está disponível em anexo neste email e também no Google Drive.
+              </p>
+
+              <div style="margin-bottom: 24px;">
+                <a href="https://set-web-project.vercel.app" target="_blank" style="display: inline-block; background-color: #1565c0; color: #ffffff; padding: 12px 22px; font-size: 13px; font-weight: 700; text-decoration: none; border-radius: 8px; box-shadow: 0 2px 6px rgba(21,101,192,0.3);">
+                  📄 Abrir Fatura no Drive
+                </a>
+              </div>
+
+              <div style="background-color: #e3f2fd; border-left: 4px solid #1976d2; border-radius: 8px; padding: 16px 20px; margin-bottom: 24px;">
+                <div style="font-size: 11px; font-weight: 800; color: #1565c0; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">
+                  💰 CHAVE PIX PARA PAGAMENTO
+                </div>
+                <div style="font-size: 17px; font-weight: 800; color: #0d47a1; text-decoration: underline;">
+                  fp.danado16@gmail.com
+                </div>
+              </div>
+
+              <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; margin-bottom: 28px; background: #ffffff;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                  <tr style="border-bottom: 1px solid #e2e8f0;">
+                    <td style="padding: 14px 16px; width: 50%; vertical-align: top; border-right: 1px solid #e2e8f0;">
+                      <span style="font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; display: block; margin-bottom: 4px;">USUÁRIO</span>
+                      <strong style="color: #0f172a; font-size: 14px;">${member.name}</strong>
+                    </td>
+                    <td style="padding: 14px 16px; width: 50%; vertical-align: top;">
+                      <span style="font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; display: block; margin-bottom: 4px;">PERÍODO DE REFERÊNCIA</span>
+                      <strong style="color: #0f172a; font-size: 14px;">${periodTitle}</strong>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td colspan="2" style="padding: 14px 16px; background-color: #fafafa;">
+                      <span style="font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; display: block; margin-bottom: 4px;">DOCUMENTO</span>
+                      <span style="color: #475569; font-size: 13px;">PDF em anexo — confira todos os lançamentos do período com parcelas detalhadas.</span>
+                    </td>
+                  </tr>
+                </table>
+              </div>
+
+              <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; text-align: center;">
+                <div style="display: inline-block; margin-bottom: 6px;">
+                  <span style="font-size: 18px; font-weight: 900; color: #0b5394; letter-spacing: 2px;">SET</span> 
+                  <span style="font-size: 11px; color: #64748b; font-weight: bold; border-left: 1px solid #cbd5e1; padding-left: 6px; margin-left: 4px;">Sistema de Empréstimo Terceirizado</span>
+                </div>
+                <div style="font-size: 11px; color: #94a3b8;">
+                  Sistema de Empréstimo Terceirizado (<strong>SET</strong>)<br>
+                  Este é um email automático — por favor, não responda diretamente.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const btn = document.getElementById('btnSendEmailDirect');
+      const originalText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = `<i class="ph-bold ph-spinner animate-spin text-base"></i> Enviando...`;
+
+      try {
+        await fetch(GOOGLE_SCRIPT_WEBAPP_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: member.email,
+            subject: `Fatura Individual - ${periodName} [R$ ${total.toFixed(2)}]`,
+            plainText: text,
+            htmlBody: emailHtml,
+            pdfHtml: pdfHtml,
+            pdfFileName: `Fatura_${member.name.replace(/\s+/g, '_')}_${periodName.replace('/', '_')}.pdf`
+          })
+        });
+
+        addLog(`Fatura enviada com PDF em anexo via Gmail do SET para ${member.email}`);
+        alert(`Fatura enviada com sucesso para ${member.email} com o PDF em anexo!`);
+      } catch (err) {
+        alert('Erro ao enviar e-mail pelo Google Apps Script: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+      }
+    };
+
+    window.openPaymentModal = function(memberId) {
+      const member = window.currentMembers.find(m => m.id === memberId);
+      if (!member) return;
+
+      const totalDue = window.currentTransactions
+        .filter(t => t.member_id === memberId)
+        .reduce((a, b) => a + Number(b.amount), 0);
+
+      const alreadyPaid = window.currentPayments
+        .filter(p => p.member_id === memberId)
+        .reduce((a, b) => a + Number(b.amount), 0);
+
+      document.getElementById('payMemberId').value = member.id;
+      document.getElementById('payMemberName').textContent = member.name;
+      document.getElementById('payMemberTotal').textContent = `R$ ${totalDue.toFixed(2)}`;
+      document.getElementById('payMemberAlreadyPaid').textContent = `R$ ${alreadyPaid.toFixed(2)}`;
+      document.getElementById('payAmountInput').value = (totalDue - alreadyPaid > 0 ? (totalDue - alreadyPaid).toFixed(2) : '0.00');
+      document.getElementById('payPromiseDate').value = '';
+
+      document.getElementById('modalPayment').classList.remove('hidden');
+    };
+
+    window.closePaymentModal = function() {
+      document.getElementById('modalPayment').classList.add('hidden');
+    };
+
+    window.savePaymentRecord = async function() {
+      const memberId = document.getElementById('payMemberId').value;
+      const amount = parseFloat(document.getElementById('payAmountInput').value) || 0;
+      const promiseDate = document.getElementById('payPromiseDate').value || null;
+
+      try {
+        const { error } = await window.supabaseClient
+          .from('payments')
+          .insert([{
+            user_id: window.currentUser.id,
+            member_id: memberId,
+            amount: amount,
+            date: new Date().toISOString().split('T')[0],
+            promise_date: promiseDate
+          }]);
+        if (error) throw error;
+
+        addLog(`Pagamento/Promessa registada para o membro ${memberId}`);
+        window.closePaymentModal();
+        alert('Registo guardado com sucesso!');
+        window.loadAllData();
+      } catch (err) {
+        alert('Erro ao registar pagamento: ' + err.message);
+      }
+    };
+
+    window.openEditMemberModal = function(id) {
+      const member = window.currentMembers.find(m => m.id === id);
+      if (!member) return;
+
+      document.getElementById('editMemberId').value = member.id;
+      document.getElementById('editMemberName').value = member.name || '';
+      document.getElementById('editMemberEmail').value = member.email || '';
+      document.getElementById('editMemberPhone').value = member.phone || '';
+
+      document.getElementById('modalEditMember').classList.remove('hidden');
+    };
+
+    window.closeEditMemberModal = function() {
+      document.getElementById('modalEditMember').classList.add('hidden');
+    };
+
+    window.updateMember = async function() {
+      const id = document.getElementById('editMemberId').value;
+      const name = document.getElementById('editMemberName').value.trim();
+      const email = document.getElementById('editMemberEmail').value.trim();
+      const phone = document.getElementById('editMemberPhone').value.trim();
+
+      if (!name) return alert('O nome do membro não pode ficar vazio.');
+
+      try {
+        const { error } = await window.supabaseClient
+          .from('members')
+          .update({ name, email, phone })
+          .eq('id', id);
+
+        if (error) throw error;
+
+        addLog(`Membro atualizado: ${name}`);
+        window.closeEditMemberModal();
+        alert('Cadastro de membro atualizado com sucesso!');
+        window.loadAllData();
+      } catch (err) {
+        alert('Erro ao atualizar membro: ' + err.message);
+      }
+    };
+
+    window.openNewMemberModal = function() { document.getElementById('modalNewMember').classList.remove('hidden'); };
+    window.closeNewMemberModal = function() { document.getElementById('modalNewMember').classList.add('hidden'); };
+
+    window.saveNewMember = async function() {
+      const name = document.getElementById('inputMemberName').value.trim();
+      const email = document.getElementById('inputMemberEmail').value.trim();
+      const phone = document.getElementById('inputMemberPhone').value.trim();
+      if (!name) return alert('Informe o nome do membro.');
+
+      await window.supabaseClient.from('members').insert([{ user_id: window.currentUser.id, name, email, phone }]);
+      addLog(`Membro adicionado: ${name}`);
+      document.getElementById('inputMemberName').value = '';
+      document.getElementById('inputMemberEmail').value = '';
+      document.getElementById('inputMemberPhone').value = '';
+      window.closeNewMemberModal();
+      window.loadAllData();
+    };
+
+    window.openNewBankModal = function() { document.getElementById('modalNewBank').classList.remove('hidden'); };
+    window.closeNewBankModal = function() { document.getElementById('modalNewBank').classList.add('hidden'); };
+
+    window.saveNewBank = async function() {
+      const name = document.getElementById('inputBankName').value.trim();
+      if (!name) return alert('Informe o nome do banco.');
+
+      await window.supabaseClient.from('banks').insert([{ user_id: window.currentUser.id, name }]);
+      addLog(`Banco adicionado: ${name}`);
+      document.getElementById('inputBankName').value = '';
+      window.closeNewBankModal();
+      window.loadAllData();
+    };
+
+    window.openLogsModal = function() {
+      const logs = JSON.parse(localStorage.getItem('set_logs') || '[]');
+      const container = document.getElementById('appLogsConsole');
+      if (container) container.innerHTML = logs.length ? logs.map(l => `<div>${l}</div>`).join('') : '<div>Nenhum log gravado.</div>';
+      document.getElementById('modalLogs').classList.remove('hidden');
+    };
+
+    window.closeLogsModal = function() { document.getElementById('modalLogs').classList.add('hidden'); };
+
+    window.clearAppLogs = function() {
+      localStorage.removeItem('set_logs');
+      const container = document.getElementById('appLogsConsole');
+      if (container) container.innerHTML = '<div>Logs limpos com sucesso.</div>';
+    };
+
+    window.openResetInvoicesModal = function() {
+      if (window.currentInvoices.length === 0) return alert('Não há faturas para zerar.');
+      document.getElementById('modalResetInvoices').classList.remove('hidden');
+    };
+
+    window.closeResetInvoicesModal = function() {
+      document.getElementById('modalResetInvoices').classList.add('hidden');
+    };
+
+    window.executeResetAllInvoices = async function() {
+      if (!window.supabaseClient || !window.currentUser) return;
+      try {
+        await window.supabaseClient.from('transactions').delete().eq('user_id', window.currentUser.id).not('invoice_id', 'is', null);
+        await window.supabaseClient.from('invoices').delete().eq('user_id', window.currentUser.id);
+
+        addLog('Reset total de faturas e compras executado.');
+        window.closeResetInvoicesModal();
+        alert('Todas as faturas foram zeradas com sucesso!');
+        window.loadAllData();
+      } catch (err) {
+        alert('Erro ao zerar faturas: ' + err.message);
+      }
+    };
+
+    window.deleteSingleInvoice = async function(invoiceId) {
+      if (!confirm('Deseja eliminar esta fatura e todos os seus itens?')) return;
+      if (!window.supabaseClient || !window.currentUser) return;
+
+      try {
+        await window.supabaseClient.from('transactions').delete().eq('invoice_id', invoiceId);
+        await window.supabaseClient.from('invoices').delete().eq('id', invoiceId);
+
+        addLog(`Fatura excluída: ${invoiceId}`);
+        window.loadAllData();
+      } catch (err) {
+        alert('Erro ao eliminar fatura: ' + err.message);
+      }
+    };
+
     window.exportCSV = function() {
       if (window.currentTransactions.length === 0) return alert('Sem lançamentos para exportar.');
       let csv = 'ID;Descricao;Data;Valor;Categoria;Parcela;QtdTotal;Membro\n';
@@ -1207,6 +2086,38 @@ ${pdfText.slice(0, 14000)}`;
       addLog('Chave Gemini configurada pelo utilizador.');
       window.closeConfigModal();
     };
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      initTheme();
+
+      const form = document.getElementById('formAuth');
+      if (form) {
+        form.addEventListener('submit', window.handleAuthSubmit);
+      }
+
+      if (window.supabaseClient) {
+        window.supabaseClient.auth.onAuthStateChange((event, session) => {
+          if (session && session.user) {
+            window.currentUser = session.user;
+            window.showApp();
+            window.loadAllData().catch(err => console.warn('Erro ao carregar dados:', err));
+          } else {
+            window.currentUser = null;
+            window.showAuth();
+          }
+        });
+      } else {
+        window.showAuth();
+      }
+
+      document.addEventListener('click', (e) => {
+        const dd = document.getElementById('setMenuDropdown');
+        const btn = document.getElementById('btnSetMenu');
+        if (dd && btn && !dd.contains(e.target) && !btn.contains(e.target)) {
+          dd.classList.add('hidden');
+        }
+      });
+    });
   </script>
 </body>
 </html>
