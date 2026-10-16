@@ -839,6 +839,157 @@
 
   <!-- 4. LÓGICA DE DADOS, GRÁFICOS & CRIAÇÃO GLOBAL DE FUNÇÕES -->
   <script>
+    // CONFIGURAÇÃO: substitua pelos valores públicos do seu projeto Supabase.
+    // Nunca coloque a service_role key no navegador.
+    window.SET_SUPABASE_URL = window.SET_SUPABASE_URL || 'https://SEU-PROJETO.supabase.co';
+    window.SET_SUPABASE_ANON_KEY = window.SET_SUPABASE_ANON_KEY || 'SUA_CHAVE_ANON_PUBLICA';
+    window.supabaseClient = window.supabaseClient || null;
+
+    window.currentUser = window.currentUser || null;
+    window.currentInvoices = window.currentInvoices || [];
+    window.currentTransactions = window.currentTransactions || [];
+    window.currentMembers = window.currentMembers || [];
+    window.currentBanks = window.currentBanks || [];
+    window.currentPayments = window.currentPayments || [];
+    window.appLogs = window.appLogs || [];
+    window.appCharts = window.appCharts || {};
+    window.authMode = 'login';
+
+    window.escapeHtml = function(value) {
+      return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+    };
+    window.formatBRL = function(value) {
+      return Number(value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    };
+    window.addLog = function(message) {
+      const stamp = new Date().toLocaleTimeString('pt-BR');
+      window.appLogs.push(`[${stamp}] ${message}`);
+      if (window.appLogs.length > 250) window.appLogs.shift();
+      const box = document.getElementById('appLogsConsole');
+      if (box) { box.textContent = window.appLogs.join('\n'); box.scrollTop = box.scrollHeight; }
+    };
+    window.showLoading = function(title, subtext, percent = 0, step = '') {
+      const modal = document.getElementById('modalLoading');
+      if (modal) modal.classList.remove('hidden');
+      const t = document.getElementById('loadingTitle'); if (t) t.textContent = title || 'A processar...';
+      const s = document.getElementById('loadingSubtext'); if (s) s.textContent = subtext || '';
+      window.animateProgressTo(percent, step);
+    };
+    window.animateProgressTo = function(percent, step) {
+      const p = Math.max(0, Math.min(100, Number(percent) || 0));
+      const bar = document.getElementById('loadingProgressBar'); if (bar) bar.style.width = `${p}%`;
+      const label = document.getElementById('loadingPercentLabel'); if (label) label.textContent = `${Math.round(p)}%`;
+      const st = document.getElementById('loadingStepLabel'); if (st && step) st.textContent = step;
+    };
+    window.hideLoading = function() { const el = document.getElementById('modalLoading'); if (el) el.classList.add('hidden'); };
+    window.showAuth = function() {
+      const a = document.getElementById('authScreen'); if (a) a.classList.remove('hidden');
+      const app = document.getElementById('appContainer'); if (app) app.classList.add('hidden');
+    };
+    window.showApp = function() {
+      const a = document.getElementById('authScreen'); if (a) a.classList.add('hidden');
+      const app = document.getElementById('appContainer'); if (app) app.classList.remove('hidden');
+    };
+    window.setAuthMode = function(mode) {
+      window.authMode = mode === 'register' ? 'register' : 'login';
+      const login = document.getElementById('tabAuthLogin'); const register = document.getElementById('tabAuthRegister');
+      if (login) login.className = `flex-1 py-2.5 rounded-lg ${window.authMode === 'login' ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400'} transition`;
+      if (register) register.className = `flex-1 py-2.5 rounded-lg ${window.authMode === 'register' ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400'} transition`;
+      const submit = document.getElementById('btnAuthSubmit'); if (submit) submit.textContent = window.authMode === 'login' ? 'Aceder ao SET' : 'Criar Conta';
+    };
+    window.handleAuthSubmit = async function(event) {
+      event.preventDefault();
+      if (!window.supabaseClient) return alert('Configure SET_SUPABASE_URL e SET_SUPABASE_ANON_KEY no início do JavaScript.');
+      const email = document.getElementById('authEmail').value.trim();
+      const password = document.getElementById('authPassword').value;
+      const button = document.getElementById('btnAuthSubmit');
+      if (button) { button.disabled = true; button.textContent = 'A processar...'; }
+      try {
+        const result = window.authMode === 'register'
+          ? await window.supabaseClient.auth.signUp({ email, password })
+          : await window.supabaseClient.auth.signInWithPassword({ email, password });
+        if (result.error) throw result.error;
+        if (window.authMode === 'register' && !result.data.session) alert('Conta criada. Verifique o e-mail para confirmar o registo e depois entre.');
+      } catch (err) { alert('Falha na autenticação: ' + err.message); }
+      finally { if (button) { button.disabled = false; button.textContent = window.authMode === 'login' ? 'Aceder ao SET' : 'Criar Conta'; } }
+    };
+    window.initTheme = function() {
+      let theme = 'dark'; try { theme = localStorage.getItem('set_theme') || 'dark'; } catch (_) {}
+      document.documentElement.classList.toggle('dark', theme === 'dark');
+      document.body.classList.toggle('bg-slate-950', theme === 'dark');
+    };
+    window.toggleTheme = function() {
+      const dark = !document.documentElement.classList.contains('dark');
+      document.documentElement.classList.toggle('dark', dark);
+      try { localStorage.setItem('set_theme', dark ? 'dark' : 'light'); } catch (_) {}
+    };
+
+    window.loadAllData = async function() {
+      if (!window.supabaseClient || !window.currentUser) return;
+      const uid = window.currentUser.id;
+      const tables = ['invoices', 'transactions', 'members', 'banks', 'payments'];
+      const results = await Promise.all(tables.map(table => window.supabaseClient.from(table).select('*').eq('user_id', uid)));
+      for (let i = 0; i < results.length; i++) {
+        if (results[i].error) throw new Error(`Erro ao carregar ${tables[i]}: ${results[i].error.message}`);
+      }
+      window.currentInvoices = results[0].data || [];
+      window.currentTransactions = results[1].data || [];
+      window.currentMembers = results[2].data || [];
+      window.currentBanks = results[3].data || [];
+      window.currentPayments = results[4].data || [];
+      window.renderDashboard(); window.renderInvoicesList(); window.renderTransactionsList();
+      window.renderMembersList(); window.renderBanksList(); window.renderCharts();
+      const badge = document.getElementById('badgeInvoicesCount'); if (badge) badge.textContent = window.currentInvoices.length;
+      window.addLog('Dados sincronizados com o Supabase.');
+    };
+    window.renderDashboard = function() {
+      const totalOpen = window.currentInvoices.filter(i => i.status !== 'paid' && i.status !== 'quitado').reduce((s, i) => s + Number(i.total_amount || 0), 0);
+      const totalTx = window.currentTransactions.reduce((s, t) => s + Number(t.amount || 0), 0);
+      const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+      setText('cardOpenInvoices', window.formatBRL(totalOpen)); setText('cardOpenCount', `${window.currentInvoices.filter(i => i.status !== 'paid' && i.status !== 'quitado').length} faturas pendentes`);
+      setText('cardTotalTransactions', window.formatBRL(totalTx)); setText('cardTransCount', `${window.currentTransactions.length} itens catalogados`);
+      setText('cardTotalMembers', window.currentMembers.length); setText('cardTotalBanks', window.currentBanks.length);
+    };
+    window.renderInvoicesList = function() {
+      const list = document.getElementById('invoicesList'); const empty = document.getElementById('emptyInvoices'); if (!list) return;
+      list.innerHTML = window.currentInvoices.map(i => `<div class="py-3 flex items-center justify-between gap-3"><div><p class="text-sm font-bold">${window.escapeHtml(i.bank_name || 'Banco')}</p><p class="text-xs text-slate-400">Vencimento: ${window.escapeHtml(i.due_date || '—')} · ${window.escapeHtml(i.status || 'Pendente')}</p></div><div class="text-right"><p class="font-bold">${window.formatBRL(i.total_amount)}</p><button onclick="deleteSingleInvoice('${String(i.id).replace(/'/g, '')}')" class="text-xs text-rose-400">Excluir</button></div></div>`).join('');
+      if (empty) empty.classList.toggle('hidden', window.currentInvoices.length > 0);
+    };
+    window.renderTransactionsList = function() {
+      const list = document.getElementById('transactionsList'); const empty = document.getElementById('emptyTransactions'); if (!list) return;
+      list.innerHTML = window.currentTransactions.map(t => {
+        const opts = `<option value="">Sem membro</option>` + window.currentMembers.map(m => `<option value="${window.escapeHtml(m.id)}" ${t.member_id === m.id ? 'selected' : ''}>${window.escapeHtml(m.name)}</option>`).join('');
+        return `<div class="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2"><div class="min-w-0"><p class="text-sm font-bold">${window.escapeHtml(t.description)}</p><p class="text-xs text-slate-400">${window.escapeHtml(t.date || '—')} · ${window.escapeHtml(t.category || 'Outros')} · ${window.formatBRL(t.amount)}</p></div><div class="flex gap-2 items-center"><select class="text-xs bg-slate-800 border border-slate-700 rounded-lg p-2" onchange="assignSingleMember('${String(t.id).replace(/'/g, '')}', this.value)">${opts}</select><button onclick="openSplitTransactionModal('${String(t.id).replace(/'/g, '')}')" class="text-xs rounded-lg bg-slate-800 px-3 py-2">Dividir</button></div></div>`;
+      }).join(''); if (empty) empty.classList.toggle('hidden', window.currentTransactions.length > 0);
+    };
+    window.renderMembersList = function() {
+      const list = document.getElementById('membersList'); const empty = document.getElementById('emptyMembers'); if (!list) return;
+      list.innerHTML = window.currentMembers.map(m => {
+        const due = window.currentTransactions.filter(t => t.member_id === m.id).reduce((s,t) => s + Number(t.amount || 0), 0);
+        const paid = window.currentPayments.filter(p => p.member_id === m.id).reduce((s,p) => s + Number(p.amount || 0), 0);
+        const status = paid >= due && due > 0 ? 'Quitado' : paid > 0 ? 'Parcial' : 'Pendente';
+        const nextPromise = window.currentPayments.filter(p => p.member_id === m.id && p.promise_date).sort((a,b) => String(b.promise_date).localeCompare(String(a.promise_date)))[0];
+        return `<div class="p-4 rounded-xl bg-slate-800/60 border border-slate-700"><div class="flex justify-between gap-2"><h4 class="font-bold text-sm">${window.escapeHtml(m.name)}</h4><span class="text-[10px] ${status === 'Quitado' ? 'text-emerald-400' : status === 'Parcial' ? 'text-amber-400' : 'text-rose-400'}">${status}</span></div><p class="text-xs text-slate-400 mt-1">${window.escapeHtml(m.email || '')}</p><p class="text-xs mt-2">Devido: ${window.formatBRL(due)} · Pago: ${window.formatBRL(paid)}</p><p class="text-[11px] text-amber-300 mt-1">Promessa: ${window.escapeHtml(nextPromise?.promise_date || 'Não agendada')}</p><div class="flex gap-2 mt-3"><button onclick="openPaymentModal('${String(m.id).replace(/'/g, '')}')" class="text-xs bg-emerald-700 rounded-lg px-3 py-2">Pagamento</button><button onclick="openEditMemberModal('${String(m.id).replace(/'/g, '')}')" class="text-xs bg-slate-700 rounded-lg px-3 py-2">Editar</button></div></div>`;
+      }).join(''); if (empty) empty.classList.toggle('hidden', window.currentMembers.length > 0);
+    };
+    window.renderBanksList = function() {
+      const list = document.getElementById('banksList'); const empty = document.getElementById('emptyBanks'); if (!list) return;
+      list.innerHTML = window.currentBanks.map(b => `<div class="p-4 rounded-xl bg-slate-800/60 border border-slate-700"><p class="font-bold text-sm">${window.escapeHtml(b.name)}</p></div>`).join(''); if (empty) empty.classList.toggle('hidden', window.currentBanks.length > 0);
+    };
+    window.renderCharts = function() {
+      if (!window.Chart) return;
+      const bankTotals = {}; window.currentTransactions.forEach(t => { const inv = window.currentInvoices.find(i => i.id === t.invoice_id); const name = inv?.bank_name || 'Sem banco'; bankTotals[name] = (bankTotals[name] || 0) + Number(t.amount || 0); });
+      const memberTotals = {}; window.currentTransactions.forEach(t => { const m = window.currentMembers.find(x => x.id === t.member_id); const name = m?.name || 'Sem rateio'; memberTotals[name] = (memberTotals[name] || 0) + Number(t.amount || 0); });
+      const create = (id, key, type, labels, values) => { const canvas = document.getElementById(id); if (!canvas) return; if (window.appCharts[key]) window.appCharts[key].destroy(); window.appCharts[key] = new Chart(canvas, { type, data: { labels, datasets: [{ data: values, backgroundColor: ['#10b981','#3b82f6','#f43f5e','#f59e0b','#8b5cf6','#14b8a6'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#cbd5e1' } } } } }); };
+      create('chartInvoices', 'invoices', 'bar', Object.keys(bankTotals), Object.values(bankTotals));
+      create('chartSplit', 'split', 'doughnut', Object.keys(memberTotals), Object.values(memberTotals));
+    };
+
+    // Cria o cliente antes do listener de autenticação; a chave anon é própria para uso no browser.
+    if (!window.supabaseClient && window.supabase && window.SET_SUPABASE_URL.startsWith('https://') && !window.SET_SUPABASE_URL.includes('SEU-PROJETO') && window.SET_SUPABASE_ANON_KEY !== 'SUA_CHAVE_ANON_PUBLICA') {
+      window.supabaseClient = window.supabase.createClient(window.SET_SUPABASE_URL, window.SET_SUPABASE_ANON_KEY);
+    }
+
     window.switchTab = function(tab) {
       ['dashboard', 'invoices', 'transactions', 'members', 'banks'].forEach(t => {
         const view = document.getElementById('view' + t.charAt(0).toUpperCase() + t.slice(1));
@@ -1205,7 +1356,7 @@ ${pdfText.slice(0, 14000)}`;
       recalculateSplit();
     };
 
-    function recalculateSplit() {
+    window.recalculateSplit = function() {
       if (!window.selectedTransactionToSplit) return;
       const total = Number(window.selectedTransactionToSplit.amount);
       const p1 = parseInt(document.getElementById('splitSlider').value) || 0;
@@ -1302,7 +1453,7 @@ ${pdfText.slice(0, 14000)}`;
       document.getElementById('modalMemberPdf').classList.add('hidden');
     };
 
-    function generateMemberReportPreview() {
+    window.generateMemberReportPreview = function() {
       const memberId = document.getElementById('selectPdfMember').value;
       const member = window.currentMembers.find(m => m.id === memberId);
       if (!member) return;
@@ -1854,6 +2005,9 @@ ${pdfText.slice(0, 14000)}`;
         });
       } else {
         window.showAuth();
+        if (window.supabase && (!window.SET_SUPABASE_URL || window.SET_SUPABASE_URL.includes('SEU-PROJETO') || window.SET_SUPABASE_ANON_KEY === 'SUA_CHAVE_ANON_PUBLICA')) {
+          console.warn('SET Web: configure SET_SUPABASE_URL e SET_SUPABASE_ANON_KEY antes de usar a autenticação.');
+        }
       }
 
       document.addEventListener('click', (e) => {
