@@ -861,6 +861,15 @@
       });
     }
 
+    function normalizeIsoDate(rawDate, fallbackDate) {
+      if (!rawDate || typeof rawDate !== 'string') return fallbackDate;
+      const s = rawDate.trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+      const br = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+      if (br) return `${br[3]}-${br[2]}-${br[1]}`;
+      return fallbackDate;
+    }
+
     function renderTransactionsList() {
       const c = document.getElementById('transactionsList');
       const emp = document.getElementById('emptyTransactions');
@@ -874,10 +883,10 @@
         const badge = (t.installment_info && t.installment_info !== '-') ? `<span class="ml-1 text-[9px] px-1.5 py-0.2 bg-slate-800 rounded text-amber-300 font-bold font-mono">Parc: ${t.installment_info}</span>` : '';
         let opts = '<option value="">Sem rateio (Geral)</option>';
         window.currentMembers.forEach(m => {
-          opts += `<option value="${m.id}" ${t.member_id === m.id ? 'selected' : ''}>${m.name}</option>`;
+          opts += `<option value="${m.id}" ${String(t.member_id) === String(m.id) ? 'selected' : ''}>${m.name}</option>`;
         });
         d.innerHTML = `
-          <div class="flex-1 min-w-[200px]"><p class="font-bold text-slate-100">${t.description} ${badge}</p><p class="text-[10px] text-slate-400">${t.date} • ${t.category}</p></div>
+          <div class="flex-1 min-w-[200px]"><p class="font-bold text-slate-100">${t.description} ${badge}</p><p class="text-[10px] text-slate-400">${t.date} • ${t.category || 'Outros'}</p></div>
           <div class="flex items-center gap-2">
             <select onchange="assignSingleMember('${t.id}', this.value)" class="bg-slate-800 border border-slate-700 text-slate-200 text-[11px] font-semibold rounded-lg px-2 py-1.5">${opts}</select>
             <button type="button" onclick="openSplitTransactionModal('${t.id}')" class="p-1.5 rounded-lg border border-slate-700 bg-slate-800 text-amber-400 hover:bg-slate-700"><i class="ph-bold ph-scissors text-sm"></i></button>
@@ -895,10 +904,10 @@
       if (window.currentMembers.length === 0) { emp?.classList.remove('hidden'); return; }
       emp?.classList.add('hidden');
       window.currentMembers.forEach(m => {
-        const due = window.currentTransactions.filter(t => t.member_id === m.id).reduce((a, b) => a + Number(b.amount), 0);
-        const paid = window.currentPayments.filter(p => p.member_id === m.id).reduce((a, b) => a + Number(b.amount), 0);
+        const due = window.currentTransactions.filter(t => String(t.member_id) === String(m.id)).reduce((a, b) => a + Number(b.amount), 0);
+        const paid = window.currentPayments.filter(p => String(p.member_id) === String(m.id)).reduce((a, b) => a + Number(b.amount), 0);
         const rem = due - paid;
-        const promise = window.currentPayments.filter(p => p.member_id === m.id && p.promise_date).sort((a, b) => new Date(b.promise_date) - new Date(a.promise_date))[0]?.promise_date;
+        const promise = window.currentPayments.filter(p => String(p.member_id) === String(m.id) && p.promise_date).sort((a, b) => new Date(b.promise_date) - new Date(a.promise_date))[0]?.promise_date;
 
         let badge = `<span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-bold">Sem débitos</span>`;
         if (due > 0) {
@@ -913,7 +922,7 @@
         d.innerHTML = `
           <div class="flex items-start justify-between gap-2">
             <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-full bg-indigo-950 text-indigo-300 flex items-center justify-center font-bold text-xs">${m.name.slice(0, 2).toUpperCase()}</div>
+              <div class="w-9 h-9 rounded-full bg-indigo-950 text-indigo-300 flex items-center justify-center font-bold text-xs">${(m.name || 'US').slice(0, 2).toUpperCase()}</div>
               <div><h5 class="text-xs font-bold text-white">${m.name}</h5><span class="text-[10px] text-slate-400 block">${m.email || 'Sem e-mail'}</span></div>
             </div>
             <div class="flex items-center gap-1">
@@ -961,7 +970,7 @@
         }
         const memberMap = {};
         window.currentMembers.forEach(m => {
-          const s = window.currentTransactions.filter(t => t.member_id === m.id).reduce((a, b) => a + Number(b.amount), 0);
+          const s = window.currentTransactions.filter(t => String(t.member_id) === String(m.id)).reduce((a, b) => a + Number(b.amount), 0);
           if (s > 0) memberMap[m.name] = s;
         });
         const c2 = document.getElementById('chartSplit');
@@ -982,24 +991,33 @@
       const apiKey = localStorage.getItem('set_gemini_key') || '';
       if (!apiKey) { window.openConfigModal(); alert('Configure a chave Gemini API primeiro.'); e.target.value = ''; return; }
 
-      showLoading('A ler ficheiro PDF...', 'A extrair texto das páginas', 20, 'A ler PDF');
+      showLoading('A ler ficheiro...', 'A extrair texto da fatura', 20, 'A ler ficheiro');
       try {
-        const arrayBuffer = await file.arrayBuffer();
-        const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         let textContent = '';
-        for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i);
-          const content = await page.getTextContent();
-          textContent += ' ' + content.items.map(item => item.str).join(' ');
+        if (file.name.toLowerCase().endsWith('.pdf')) {
+          const arrayBuffer = await file.arrayBuffer();
+          const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+          for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const content = await page.getTextContent();
+            textContent += ' ' + content.items.map(item => item.str).join(' ');
+          }
+        } else {
+          textContent = await file.text();
+        }
+        if (!textContent.trim()) {
+          throw new Error('Não foi possível extrair texto do arquivo (verifique se o PDF não é apenas imagem digitalizada).');
         }
         animateProgressTo(60, 'A analisar com Gemini IA');
         const parsed = await window.parseInvoiceWithAI(textContent, apiKey);
         window.pendingParsedInvoice = parsed;
         animateProgressTo(100, 'Concluído');
+        addLog(`Fatura processada (${(parsed.items || []).length} itens)`);
         setTimeout(() => { hideLoading(); window.showInvoiceAIModal(parsed); }, 300);
       } catch (err) {
         hideLoading();
-        alert('Erro ao processar PDF: ' + err.message);
+        addLog('Erro ao processar fatura: ' + err.message);
+        alert('Erro ao processar fatura: ' + err.message);
       } finally {
         e.target.value = '';
       }
@@ -1008,20 +1026,30 @@
     window.parseInvoiceWithAI = async function(pdfText, apiKey) {
       const prompt = `Analise o texto da fatura bancária e retorne APENAS um JSON válido no formato:
 {"bank_name":"string","due_date":"YYYY-MM-DD","total_amount":0.00,"items":[{"description":"string","date":"YYYY-MM-DD","amount":0.00,"category":"string","installment_total":null,"installment_display":"-"}]}
-TEXTO: ${pdfText.slice(0, 14000)}`;
+TEXTO: ${pdfText.slice(0, 30000)}`;
 
-      const models = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash'];
+      const models = ['gemini-2.5-flash', 'gemini-2.0-flash'];
       let lastErr = null;
       for (const m of models) {
         try {
           const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${apiKey}`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.1 } })
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { temperature: 0.1, responseMimeType: 'application/json' }
+            })
           });
-          if (!resp.ok) continue;
+          if (!resp.ok) {
+            const errBody = await resp.json().catch(() => ({}));
+            lastErr = new Error(errBody?.error?.message || `HTTP ${resp.status} ao consultar ${m}`);
+            continue;
+          }
           const data = await resp.json();
           let raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
           raw = raw.replace(/```json/gi, '').replace(/```/g, '').trim();
+          const jsonMatch = raw.match(/\{[\s\S]*\}/);
+          if (jsonMatch) raw = jsonMatch[0];
           return JSON.parse(raw);
         } catch (e) { lastErr = e; }
       }
@@ -1029,8 +1057,9 @@ TEXTO: ${pdfText.slice(0, 14000)}`;
     };
 
     window.showInvoiceAIModal = function(data) {
+      const todayIso = new Date().toISOString().split('T')[0];
       document.getElementById('aiBankName').value = data.bank_name || 'Cartão';
-      document.getElementById('aiDueDate').value = data.due_date || new Date().toISOString().split('T')[0];
+      document.getElementById('aiDueDate').value = normalizeIsoDate(data.due_date, todayIso);
       document.getElementById('aiTotalAmount').value = Number(data.total_amount || 0).toFixed(2);
       document.getElementById('aiItemsCount').textContent = (data.items || []).length;
       const c = document.getElementById('aiItemsContainer');
@@ -1038,7 +1067,7 @@ TEXTO: ${pdfText.slice(0, 14000)}`;
       (data.items || []).forEach(item => {
         const d = document.createElement('div');
         d.className = 'py-2 flex items-center justify-between';
-        d.innerHTML = `<div><p class="font-bold text-slate-100">${item.description}</p><p class="text-[10px] text-slate-400">${item.date}</p></div><span class="font-bold text-rose-400">R$ ${Number(item.amount).toFixed(2)}</span>`;
+        d.innerHTML = `<div><p class="font-bold text-slate-100">${item.description}</p><p class="text-[10px] text-slate-400">${item.date || todayIso}</p></div><span class="font-bold text-rose-400">R$ ${Number(item.amount || 0).toFixed(2)}</span>`;
         c.appendChild(d);
       });
       document.getElementById('modalInvoiceAI').classList.remove('hidden');
@@ -1051,46 +1080,61 @@ TEXTO: ${pdfText.slice(0, 14000)}`;
       window.closeInvoiceAIModal();
       showLoading('A guardar...', 'A gravar no Supabase', 50, 'A gravar');
       try {
+        const fallbackDate = normalizeIsoDate(document.getElementById('aiDueDate').value, new Date().toISOString().split('T')[0]);
         const invData = {
           user_id: window.currentUser.id,
-          bank_name: document.getElementById('aiBankName').value,
-          due_date: document.getElementById('aiDueDate').value,
-          total_amount: parseFloat(document.getElementById('aiTotalAmount').value),
+          bank_name: document.getElementById('aiBankName').value.trim() || 'Cartão',
+          due_date: fallbackDate,
+          total_amount: parseFloat(document.getElementById('aiTotalAmount').value) || 0,
           status: 'open'
         };
         const { data: invRes, error: invErr } = await window.supabaseClient.from('invoices').insert([invData]).select();
         if (invErr) throw invErr;
         const invId = invRes[0].id;
         const rows = (window.pendingParsedInvoice.items || []).map(item => ({
-          user_id: window.currentUser.id, invoice_id: invId, description: item.description,
-          amount: item.amount, date: item.date || invData.due_date, category: item.category || 'Outros',
-          installment_info: (item.installment_display && item.installment_display !== '-') ? item.installment_display : null,
-          installment_total: item.installment_total || null, type: 'expense'
+          user_id: window.currentUser.id,
+          invoice_id: invId,
+          description: item.description || 'Lançamento',
+          amount: Number(item.amount) || 0,
+          date: normalizeIsoDate(item.date, fallbackDate),
+          category: item.category || 'Outros',
+          installment_info: (item.installment_display && item.installment_display !== '-') ? String(item.installment_display) : null,
+          installment_total: item.installment_total ? Number(item.installment_total) : null,
+          type: 'expense'
         }));
-        if (rows.length > 0) await window.supabaseClient.from('transactions').insert(rows);
+        if (rows.length > 0) {
+          const { error: txErr } = await window.supabaseClient.from('transactions').insert(rows);
+          if (txErr) throw txErr;
+        }
+        addLog(`Fatura ${invData.bank_name} guardada com sucesso`);
         hideLoading();
         await window.loadAllData();
       } catch (e) {
         hideLoading();
+        addLog('Erro ao guardar fatura: ' + e.message);
         alert('Erro ao guardar: ' + e.message);
       }
     };
 
     window.assignSingleMember = async function(txId, memberId) {
       const mId = memberId || null;
-      await window.supabaseClient.from('transactions').update({ member_id: mId }).eq('id', txId);
-      const tx = window.currentTransactions.find(t => t.id === txId);
+      const { error } = await window.supabaseClient.from('transactions').update({ member_id: mId }).eq('id', txId);
+      if (error) return alert('Erro ao atribuir membro: ' + error.message);
+      const tx = window.currentTransactions.find(t => String(t.id) === String(txId));
       if (tx) tx.member_id = mId;
       renderDashboard(); renderMembersList(); renderCharts();
     };
 
     window.openSplitTransactionModal = function(txId) {
-      const tx = window.currentTransactions.find(t => t.id === txId);
+      const tx = window.currentTransactions.find(t => String(t.id) === String(txId));
       if (!tx) return;
       if (window.currentMembers.length < 2) return alert('Cadastre pelo menos 2 membros para dividir.');
       window.selectedTransactionToSplit = tx;
+      const inv = window.currentInvoices.find(i => String(i.id) === String(tx.invoice_id));
       document.getElementById('splitTxDesc').textContent = tx.description;
-      document.getElementById('splitTxDate').textContent = tx.date;
+      document.getElementById('splitTxDate').textContent = tx.date || '---';
+      document.getElementById('splitTxBank').textContent = inv ? inv.bank_name : 'Cartão';
+      document.getElementById('splitTxCategory').textContent = tx.category || 'Outros';
       document.getElementById('splitTxTotal').textContent = `R$ ${Number(tx.amount).toFixed(2)}`;
       const s1 = document.getElementById('splitMember1');
       const s2 = document.getElementById('splitMember2');
@@ -1108,14 +1152,24 @@ TEXTO: ${pdfText.slice(0, 14000)}`;
 
     window.closeSplitModal = function() { document.getElementById('modalSplitTransaction').classList.add('hidden'); };
     window.onSplitSliderChange = function(v) { document.getElementById('splitNumberInput').value = v; window.recalculateSplit(); };
-    window.onSplitInputChange = function(v) { document.getElementById('splitSlider').value = v; window.recalculateSplit(); };
+    window.onSplitInputChange = function(v) {
+      const clamped = Math.min(100, Math.max(0, parseInt(v) || 0));
+      document.getElementById('splitSlider').value = clamped;
+      window.recalculateSplit();
+    };
 
     window.recalculateSplit = function() {
       if (!window.selectedTransactionToSplit) return;
       const total = Number(window.selectedTransactionToSplit.amount);
-      const p1 = parseInt(document.getElementById('splitSlider').value) || 0;
+      const p1 = Math.min(100, Math.max(0, parseInt(document.getElementById('splitSlider').value) || 0));
       const v1 = total * (p1 / 100);
       const v2 = total - v1;
+      const s1 = document.getElementById('splitMember1');
+      const s2 = document.getElementById('splitMember2');
+      const m1Name = s1?.options[s1.selectedIndex]?.text || 'Usuário 1';
+      const m2Name = s2?.options[s2.selectedIndex]?.text || 'Usuário 2';
+      document.getElementById('cardMember1Label').textContent = m1Name;
+      document.getElementById('cardMember2Label').textContent = m2Name;
       document.getElementById('cardMember1Amount').textContent = `R$ ${v1.toFixed(2)}`;
       document.getElementById('cardMember1Percent').textContent = `${p1}%`;
       document.getElementById('cardMember2Amount').textContent = `R$ ${v2.toFixed(2)}`;
@@ -1124,18 +1178,31 @@ TEXTO: ${pdfText.slice(0, 14000)}`;
 
     window.executeSplitTransaction = async function() {
       const tx = window.selectedTransactionToSplit;
+      if (!tx) return;
       const m1 = document.getElementById('splitMember1').value;
       const m2 = document.getElementById('splitMember2').value;
-      if (m1 === m2) return alert('Selecione membros diferentes.');
-      const p1 = parseInt(document.getElementById('splitSlider').value) || 0;
+      if (String(m1) === String(m2)) return alert('Selecione membros diferentes.');
+      const p1 = Math.min(100, Math.max(0, parseInt(document.getElementById('splitSlider').value) || 0));
       const v1 = Number((Number(tx.amount) * (p1 / 100)).toFixed(2));
       const v2 = Number((Number(tx.amount) - v1).toFixed(2));
 
-      await window.supabaseClient.from('transactions').update({ amount: v1, member_id: m1 }).eq('id', tx.id);
-      await window.supabaseClient.from('transactions').insert([{
-        user_id: window.currentUser.id, invoice_id: tx.invoice_id, member_id: m2,
-        description: tx.description, amount: v2, date: tx.date, category: tx.category, type: 'expense'
+      const { error: err1 } = await window.supabaseClient.from('transactions').update({ amount: v1, member_id: m1 }).eq('id', tx.id);
+      if (err1) return alert('Erro ao atualizar transação: ' + err1.message);
+
+      const { error: err2 } = await window.supabaseClient.from('transactions').insert([{
+        user_id: window.currentUser.id,
+        invoice_id: tx.invoice_id,
+        member_id: m2,
+        description: tx.description,
+        amount: v2,
+        date: tx.date,
+        category: tx.category || 'Outros',
+        installment_info: tx.installment_info || null,
+        installment_total: tx.installment_total || null,
+        type: 'expense'
       }]);
+      if (err2) return alert('Erro ao criar divisão: ' + err2.message);
+
       window.closeSplitModal();
       await window.loadAllData();
     };
@@ -1153,52 +1220,83 @@ TEXTO: ${pdfText.slice(0, 14000)}`;
 
     window.generateMemberReportPreview = function() {
       const mId = document.getElementById('selectPdfMember').value;
-      const m = window.currentMembers.find(x => x.id === mId);
+      const m = window.currentMembers.find(x => String(x.id) === String(mId));
       if (!m) return;
-      const txs = window.currentTransactions.filter(t => t.member_id === mId);
+      const txs = window.currentTransactions.filter(t => String(t.member_id) === String(mId));
+      const now = new Date();
+      const periodStr = now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+      const formattedPeriod = periodStr.charAt(0).toUpperCase() + periodStr.slice(1);
+
+      document.getElementById('bannerInvoicePeriod').textContent = formattedPeriod;
+      document.getElementById('reportPeriodRef').textContent = formattedPeriod;
       document.getElementById('bannerInvoiceUser').textContent = `Usuário: ${m.name}`;
       document.getElementById('reportMemberName').textContent = m.name;
       document.getElementById('reportCount').textContent = `${txs.length} lançamentos`;
-      document.getElementById('reportDate').textContent = new Date().toLocaleDateString('pt-BR');
+      document.getElementById('reportDate').textContent = now.toLocaleDateString('pt-BR');
+
       const c = document.getElementById('reportItemsContainer');
       c.innerHTML = '';
       let total = 0;
+      let countInstallments = 0;
+      let countCash = 0;
+      const bankTotals = {};
+
       txs.forEach(t => {
-        total += Number(t.amount);
-        c.innerHTML += `<tr class="border-b border-slate-200"><td class="py-1.5 px-2">${t.date}</td><td class="py-1.5 px-2 font-bold">${t.description}</td><td class="py-1.5 px-2">${t.category || 'Outros'}</td><td class="py-1.5 px-2">Cartão</td><td class="py-1.5 px-2 text-center">${t.installment_info || '-'}</td><td class="py-1.5 px-2 text-center">${t.installment_total || ''}</td><td class="py-1.5 px-2 text-right font-black text-rose-600">R$ ${Number(t.amount).toFixed(2)}</td></tr>`;
+        const amt = Number(t.amount) || 0;
+        total += amt;
+        const inv = window.currentInvoices.find(i => String(i.id) === String(t.invoice_id));
+        const bankName = inv ? inv.bank_name : 'Cartão';
+        bankTotals[bankName] = (bankTotals[bankName] || 0) + amt;
+
+        const hasInst = t.installment_info && t.installment_info !== '-';
+        if (hasInst) countInstallments++; else countCash++;
+
+        c.innerHTML += `<tr class="border-b border-slate-200"><td class="py-1.5 px-2">${t.date || '-'}</td><td class="py-1.5 px-2 font-bold">${t.description}</td><td class="py-1.5 px-2">${t.category || 'Outros'}</td><td class="py-1.5 px-2">${bankName}</td><td class="py-1.5 px-2 text-center">${t.installment_info || '-'}</td><td class="py-1.5 px-2 text-center">${t.installment_total || '-'}</td><td class="py-1.5 px-2 text-right font-black text-rose-600">R$ ${amt.toFixed(2)}</td></tr>`;
       });
+
+      const bankSummaryText = Object.keys(bankTotals).length
+        ? Object.entries(bankTotals).map(([b, v]) => `${b}: R$ ${v.toFixed(2)}`).join(' | ')
+        : 'Nenhum lançamento';
+      document.getElementById('reportBankSummary').textContent = bankSummaryText;
+      document.getElementById('reportCountTypes').textContent = `À vista: ${countCash} | Parceladas: ${countInstallments}`;
       document.getElementById('reportTotalAmount').textContent = `R$ ${total.toFixed(2)}`;
     };
 
     window.sendInvoiceWhatsApp = function() {
       const mId = document.getElementById('selectPdfMember').value;
-      const m = window.currentMembers.find(x => x.id === mId);
+      const m = window.currentMembers.find(x => String(x.id) === String(mId));
       if (!m) return;
-      const txs = window.currentTransactions.filter(t => t.member_id === mId);
+      const txs = window.currentTransactions.filter(t => String(t.member_id) === String(mId));
       const total = txs.reduce((a, b) => a + Number(b.amount), 0);
       let txt = `*SET Web - Fatura Individual*\n*Titular:* ${m.name}\n*Total:* R$ ${total.toFixed(2)}\n*PIX:* fp.danado16@gmail.com`;
-      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(txt)}`, '_blank');
+      const phoneClean = (m.phone || '').replace(/\D/g, '');
+      const phoneParam = phoneClean ? `phone=${phoneClean.startsWith('55') ? phoneClean : '55' + phoneClean}&` : '';
+      window.open(`https://api.whatsapp.com/send?${phoneParam}text=${encodeURIComponent(txt)}`, '_blank');
     };
 
     window.sendInvoiceEmail = async function() {
       const mId = document.getElementById('selectPdfMember').value;
-      const m = window.currentMembers.find(x => x.id === mId);
+      const m = window.currentMembers.find(x => String(x.id) === String(mId));
       if (!m || !m.email) return alert('Membro sem e-mail cadastrado.');
       const url = 'https://script.google.com/macros/s/AKfycbzB7GoExKRwmaYukAHJFuGG64HgURnJDIUMcrCJligEttcvI32U7Nk_lBud7DCE07mK7w/exec';
-      const txs = window.currentTransactions.filter(t => t.member_id === mId);
+      const txs = window.currentTransactions.filter(t => String(t.member_id) === String(mId));
       const total = txs.reduce((a, b) => a + Number(b.amount), 0);
-      await fetch(url, {
-        method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to: m.email, subject: `Fatura SET Web [R$ ${total.toFixed(2)}]`, plainText: `Olá ${m.name}, total: R$ ${total.toFixed(2)}`, htmlBody: document.getElementById('printArea').innerHTML })
-      });
-      alert('E-mail enviado para ' + m.email);
+      try {
+        await fetch(url, {
+          method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ to: m.email, subject: `Fatura SET Web [R$ ${total.toFixed(2)}]`, plainText: `Olá ${m.name}, total: R$ ${total.toFixed(2)}`, htmlBody: document.getElementById('printArea').innerHTML })
+        });
+        alert('E-mail enviado para ' + m.email);
+      } catch (e) {
+        alert('Erro ao enviar e-mail: ' + e.message);
+      }
     };
 
     window.openPaymentModal = function(mId) {
-      const m = window.currentMembers.find(x => x.id === mId);
+      const m = window.currentMembers.find(x => String(x.id) === String(mId));
       if (!m) return;
-      const due = window.currentTransactions.filter(t => t.member_id === mId).reduce((a, b) => a + Number(b.amount), 0);
-      const paid = window.currentPayments.filter(p => p.member_id === mId).reduce((a, b) => a + Number(b.amount), 0);
+      const due = window.currentTransactions.filter(t => String(t.member_id) === String(mId)).reduce((a, b) => a + Number(b.amount), 0);
+      const paid = window.currentPayments.filter(p => String(p.member_id) === String(mId)).reduce((a, b) => a + Number(b.amount), 0);
       document.getElementById('payMemberId').value = m.id;
       document.getElementById('payMemberName').textContent = m.name;
       document.getElementById('payMemberTotal').textContent = `R$ ${due.toFixed(2)}`;
@@ -1223,20 +1321,26 @@ TEXTO: ${pdfText.slice(0, 14000)}`;
       await window.loadAllData();
     };
 
-    window.openNewMemberModal = function() { document.getElementById('modalNewMember').classList.remove('hidden'); };
+    window.openNewMemberModal = function() {
+      document.getElementById('inputMemberName').value = '';
+      document.getElementById('inputMemberEmail').value = '';
+      document.getElementById('inputMemberPhone').value = '';
+      document.getElementById('modalNewMember').classList.remove('hidden');
+    };
     window.closeNewMemberModal = function() { document.getElementById('modalNewMember').classList.add('hidden'); };
     window.saveNewMember = async function() {
       const name = document.getElementById('inputMemberName').value.trim();
       const email = document.getElementById('inputMemberEmail').value.trim();
       const phone = document.getElementById('inputMemberPhone').value.trim();
-      if (!name) return;
-      await window.supabaseClient.from('members').insert([{ user_id: window.currentUser.id, name, email, phone }]);
+      if (!name) return alert('Informe o nome do membro.');
+      const { error } = await window.supabaseClient.from('members').insert([{ user_id: window.currentUser.id, name, email, phone }]);
+      if (error) return alert('Erro ao salvar membro: ' + error.message);
       window.closeNewMemberModal();
       await window.loadAllData();
     };
 
     window.openEditMemberModal = function(id) {
-      const m = window.currentMembers.find(x => x.id === id);
+      const m = window.currentMembers.find(x => String(x.id) === String(id));
       if (!m) return;
       document.getElementById('editMemberId').value = m.id;
       document.getElementById('editMemberName').value = m.name || '';
@@ -1250,17 +1354,23 @@ TEXTO: ${pdfText.slice(0, 14000)}`;
       const name = document.getElementById('editMemberName').value.trim();
       const email = document.getElementById('editMemberEmail').value.trim();
       const phone = document.getElementById('editMemberPhone').value.trim();
-      await window.supabaseClient.from('members').update({ name, email, phone }).eq('id', id);
+      if (!name) return alert('Informe o nome do membro.');
+      const { error } = await window.supabaseClient.from('members').update({ name, email, phone }).eq('id', id);
+      if (error) return alert('Erro ao atualizar membro: ' + error.message);
       window.closeEditMemberModal();
       await window.loadAllData();
     };
 
-    window.openNewBankModal = function() { document.getElementById('modalNewBank').classList.remove('hidden'); };
+    window.openNewBankModal = function() {
+      document.getElementById('inputBankName').value = '';
+      document.getElementById('modalNewBank').classList.remove('hidden');
+    };
     window.closeNewBankModal = function() { document.getElementById('modalNewBank').classList.add('hidden'); };
     window.saveNewBank = async function() {
       const name = document.getElementById('inputBankName').value.trim();
-      if (!name) return;
-      await window.supabaseClient.from('banks').insert([{ user_id: window.currentUser.id, name }]);
+      if (!name) return alert('Informe o nome do banco ou cartão.');
+      const { error } = await window.supabaseClient.from('banks').insert([{ user_id: window.currentUser.id, name }]);
+      if (error) return alert('Erro ao salvar banco: ' + error.message);
       window.closeNewBankModal();
       await window.loadAllData();
     };
@@ -1276,16 +1386,20 @@ TEXTO: ${pdfText.slice(0, 14000)}`;
     window.openResetInvoicesModal = function() { document.getElementById('modalResetInvoices').classList.remove('hidden'); };
     window.closeResetInvoicesModal = function() { document.getElementById('modalResetInvoices').classList.add('hidden'); };
     window.executeResetAllInvoices = async function() {
-      await window.supabaseClient.from('transactions').delete().eq('user_id', window.currentUser.id);
-      await window.supabaseClient.from('invoices').delete().eq('user_id', window.currentUser.id);
+      const { error: e1 } = await window.supabaseClient.from('transactions').delete().eq('user_id', window.currentUser.id);
+      if (e1) return alert('Erro ao apagar transações: ' + e1.message);
+      const { error: e2 } = await window.supabaseClient.from('invoices').delete().eq('user_id', window.currentUser.id);
+      if (e2) return alert('Erro ao apagar faturas: ' + e2.message);
       window.closeResetInvoicesModal();
       await window.loadAllData();
     };
 
     window.deleteSingleInvoice = async function(invId) {
       if (!confirm('Eliminar fatura?')) return;
-      await window.supabaseClient.from('transactions').delete().eq('invoice_id', invId);
-      await window.supabaseClient.from('invoices').delete().eq('id', invId);
+      const { error: e1 } = await window.supabaseClient.from('transactions').delete().eq('invoice_id', invId);
+      if (e1) return alert('Erro ao eliminar lançamentos da fatura: ' + e1.message);
+      const { error: e2 } = await window.supabaseClient.from('invoices').delete().eq('id', invId);
+      if (e2) return alert('Erro ao eliminar fatura: ' + e2.message);
       await window.loadAllData();
     };
 
