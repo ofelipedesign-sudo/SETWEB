@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>SET Web - Sistema de Faturas & Rateio</title>
   
-  <!-- CDNs Essenciais -->
+  <!-- CDNs -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -79,145 +79,6 @@
       #printArea { position: absolute; left: 0; top: 0; width: 100%; }
     }
   </style>
-
-  <!-- ESCOPO GLOBAL E STUBS ANTES DE QUALQUER CARREGAMENTO -->
-  <script>
-    window.currentAuthMode = 'login';
-    window.currentUser = null;
-    window.currentInvoices = [];
-    window.currentTransactions = [];
-    window.currentMembers = [];
-    window.currentBanks = [];
-    window.currentPayments = [];
-    window.pendingParsedInvoice = null;
-    window.selectedTransactionToSplit = null;
-
-    // Stub seguro: previne quebras caso o Supabase recupere a sessão instantaneamente
-    window.loadAllData = async function() { return true; };
-
-    window.initTheme = function() {
-      try {
-        const savedTheme = localStorage.getItem('set_theme');
-        const isDark = savedTheme ? savedTheme === 'dark' : true;
-        document.documentElement.classList.toggle('dark', isDark);
-      } catch (e) {}
-    };
-
-    window.toggleTheme = function() {
-      const isDark = document.documentElement.classList.toggle('dark');
-      try {
-        localStorage.setItem('set_theme', isDark ? 'dark' : 'light');
-      } catch (e) {}
-    };
-
-    window.showAuth = function() {
-      const a = document.getElementById('authScreen');
-      const c = document.getElementById('appContainer');
-      if (a) a.classList.remove('hidden');
-      if (c) c.classList.add('hidden');
-    };
-
-    window.showApp = function() {
-      const a = document.getElementById('authScreen');
-      const c = document.getElementById('appContainer');
-      if (a) a.classList.add('hidden');
-      if (c) c.classList.remove('hidden');
-    };
-
-    const SUPABASE_PROJECT_URL = 'https://opfgooigsgypgzcaehrf.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9wZmdvb2lnc2d5cGd6Y2FlaHJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE5MTQ3MjksImV4cCI6MjEwNzQ5MDcyOX0.3NRYTFNzSa7KcGdB00bGm2wBUgoK9-EMloaCT00b-K4';
-
-    try {
-      window.supabaseClient = window.supabase.createClient(SUPABASE_PROJECT_URL, SUPABASE_ANON_KEY, {
-        auth: {
-          persistSession: true,
-          autoRefreshToken: true,
-          detectSessionInUrl: true
-        }
-      });
-    } catch (e) {
-      console.error('Falha ao inicializar o Supabase:', e);
-    }
-
-    window.setAuthMode = function(mode) {
-      window.currentAuthMode = mode;
-      const tabLog = document.getElementById('tabAuthLogin');
-      const tabReg = document.getElementById('tabAuthRegister');
-      const btn = document.getElementById('btnAuthSubmit');
-      if (!tabLog || !tabReg || !btn) return;
-
-      if (mode === 'login') {
-        tabLog.className = "flex-1 py-2.5 rounded-lg bg-slate-700 text-white shadow-sm transition";
-        tabReg.className = "flex-1 py-2.5 rounded-lg text-slate-400 transition";
-        btn.textContent = "Aceder ao SET";
-      } else {
-        tabReg.className = "flex-1 py-2.5 rounded-lg bg-slate-700 text-white shadow-sm transition";
-        tabLog.className = "flex-1 py-2.5 rounded-lg text-slate-400 transition";
-        btn.textContent = "Criar Minha Conta";
-      }
-    };
-
-    window.handleAuthSubmit = async function(e) {
-      if (e) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-
-      if (!window.supabaseClient) {
-        alert('Cliente Supabase não inicializado.');
-        return false;
-      }
-
-      const emailInput = document.getElementById('authEmail');
-      const passInput = document.getElementById('authPassword');
-      const btn = document.getElementById('btnAuthSubmit');
-
-      if (!emailInput || !passInput) return false;
-
-      const email = emailInput.value.trim();
-      const password = passInput.value;
-
-      if (btn) {
-        btn.disabled = true;
-        btn.textContent = 'Processando...';
-      }
-
-      try {
-        if (window.currentAuthMode === 'register') {
-          const { data, error } = await window.supabaseClient.auth.signUp({ email, password });
-          if (error) throw error;
-          
-          if (data && data.session && data.user) {
-            window.currentUser = data.user;
-            window.showApp();
-            if (typeof window.realLoadAllData === 'function') {
-              window.realLoadAllData().catch(err => console.warn(err));
-            }
-          } else {
-            alert('Conta criada com sucesso! Pode agora iniciar sessão.');
-            window.setAuthMode('login');
-          }
-        } else {
-          const { data, error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
-          if (error) throw error;
-          
-          window.currentUser = data.user;
-          window.showApp();
-          if (typeof window.realLoadAllData === 'function') {
-            window.realLoadAllData().catch(err => console.warn(err));
-          }
-        }
-      } catch (err) {
-        alert('Erro ao autenticar: ' + (err.message || 'Credenciais inválidas.'));
-      } finally {
-        if (btn) {
-          btn.disabled = false;
-          btn.textContent = window.currentAuthMode === 'login' ? 'Aceder ao SET' : 'Criar Minha Conta';
-        }
-      }
-      return false;
-    };
-  </script>
 </head>
 <body class="bg-slate-950 text-slate-100 antialiased min-h-screen transition-colors duration-200 select-none">
 
@@ -264,7 +125,7 @@
     </div>
   </div>
 
-  <!-- 2. APLICAÇÃO PRINCIPAL (appContainer GARANTIDO NO DOM) -->
+  <!-- 2. APLICAÇÃO PRINCIPAL -->
   <div id="appContainer" class="hidden min-h-screen flex flex-col">
 
     <header class="app-header-safe bg-slate-900 border-b border-slate-800 sticky top-0 z-30 transition-colors duration-200">
@@ -642,7 +503,7 @@
       </div>
     </div>
 
-    <!-- MODAL: DIVIDIR TRANSAÇÃO (RATEIO ENTRE 2 PESSOAS) -->
+    <!-- MODAL: DIVIDIR TRANSAÇÃO -->
     <div id="modalSplitTransaction" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
       <div class="app-modal-sheet bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-6 shadow-2xl border-t sm:border border-slate-800 flex flex-col gap-4">
         
@@ -976,382 +837,789 @@
 
   </div>
 
-  <!-- 3. IMPLEMENTAÇÃO FINAL DAS FUNÇÕES E CARREGAMENTO -->
+  <!-- 4. LÓGICA DE DADOS, GRÁFICOS & CRIAÇÃO GLOBAL DE FUNÇÕES -->
   <script>
-    window.realLoadAllData = async function() {
-      if (!window.supabaseClient || !window.currentUser) return;
+    window.switchTab = function(tab) {
+      ['dashboard', 'invoices', 'transactions', 'members', 'banks'].forEach(t => {
+        const view = document.getElementById('view' + t.charAt(0).toUpperCase() + t.slice(1));
+        if (view) view.classList.add('hidden');
+      });
 
-      try {
-        const [invRes, transRes, membRes, bankRes, payRes] = await Promise.allSettled([
-          window.supabaseClient.from('invoices').select('*').eq('user_id', window.currentUser.id).order('created_at', { ascending: false }),
-          window.supabaseClient.from('transactions').select('*').eq('user_id', window.currentUser.id).order('date', { ascending: false }),
-          window.supabaseClient.from('members').select('*').eq('user_id', window.currentUser.id),
-          window.supabaseClient.from('banks').select('*').eq('user_id', window.currentUser.id),
-          window.supabaseClient.from('payments').select('*').eq('user_id', window.currentUser.id)
-        ]);
+      const selected = document.getElementById('view' + tab.charAt(0).toUpperCase() + tab.slice(1));
+      if (selected) selected.classList.remove('hidden');
 
-        window.currentInvoices = invRes.status === 'fulfilled' && !invRes.value.error ? (invRes.value.data || []) : [];
-        window.currentTransactions = transRes.status === 'fulfilled' && !transRes.value.error ? (transRes.value.data || []) : [];
-        window.currentMembers = membRes.status === 'fulfilled' && !membRes.value.error ? (membRes.value.data || []) : [];
-        window.currentBanks = bankRes.status === 'fulfilled' && !bankRes.value.error ? (bankRes.value.data || []) : [];
-        window.currentPayments = payRes.status === 'fulfilled' && !payRes.value.error ? (payRes.value.data || []) : [];
+      ['Dash', 'Invoices', 'Trans', 'Members', 'Banks'].forEach(t => {
+        const btn = document.getElementById('tabNav' + t);
+        if (btn) {
+          btn.className = "px-4 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800 flex items-center gap-2";
+        }
+      });
+      const activeBtn = document.getElementById('tabNav' + tab.charAt(0).toUpperCase() + tab.slice(1));
+      if (activeBtn) {
+        activeBtn.className = "px-4 py-2 rounded-lg text-sm font-semibold transition bg-emerald-950/40 text-emerald-300 border border-emerald-800 flex items-center gap-2";
+      }
 
-        renderDashboard();
-        renderInvoicesList();
-        renderTransactionsList();
-        renderMembersList();
-        renderBanksList();
+      if (tab === 'dashboard') {
         renderCharts();
-      } catch (err) {
-        console.warn('Erro ao atualizar dados:', err);
       }
     };
 
-    window.loadAllData = window.realLoadAllData;
+    window.toggleSetMenuDropdown = function() {
+      const dd = document.getElementById('setMenuDropdown');
+      if (dd) dd.classList.toggle('hidden');
+    };
 
-    function renderDashboard() {
-      const openTotal = window.currentInvoices.filter(i => i.status === 'open').reduce((a, b) => a + Number(b.total_amount), 0);
-      const openEl = document.getElementById('cardOpenInvoices');
-      const countEl = document.getElementById('cardOpenCount');
-      if (openEl) openEl.textContent = 'R$ ' + openTotal.toFixed(2);
-      if (countEl) countEl.textContent = `${window.currentInvoices.filter(i => i.status === 'open').length} faturas pendentes`;
+    window.closeSetMenuDropdown = function() {
+      const dd = document.getElementById('setMenuDropdown');
+      if (dd) dd.classList.add('hidden');
+    };
 
-      const transTotal = window.currentTransactions.reduce((a, b) => a + Number(b.amount), 0);
-      const transEl = document.getElementById('cardTotalTransactions');
-      const transCountEl = document.getElementById('cardTransCount');
-      if (transEl) transEl.textContent = 'R$ ' + transTotal.toFixed(2);
-      if (transCountEl) transCountEl.textContent = `${window.currentTransactions.length} itens catalogados`;
+    window.signOut = async function() {
+      if (window.supabaseClient) await window.supabaseClient.auth.signOut();
+      window.currentUser = null;
+      window.showAuth();
+    };
 
-      const memEl = document.getElementById('cardTotalMembers');
-      const bankEl = document.getElementById('cardTotalBanks');
-      const badgeEl = document.getElementById('badgeInvoicesCount');
-      if (memEl) memEl.textContent = window.currentMembers.length;
-      if (bankEl) bankEl.textContent = window.currentBanks.length;
-      if (badgeEl) badgeEl.textContent = window.currentInvoices.length;
-    }
+    window.triggerInvoiceUpload = function() {
+      const input = document.getElementById('pdfFileInput');
+      if (input) input.click();
+    };
 
-    function renderInvoicesList() {
-      const container = document.getElementById('invoicesList');
-      const emptyState = document.getElementById('emptyInvoices');
-      if (!container) return;
-      container.innerHTML = '';
+    window.handleFileSelected = async function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
 
-      if (window.currentInvoices.length === 0) {
-        if (emptyState) emptyState.classList.remove('hidden');
+      let apiKey = '';
+      try {
+        apiKey = localStorage.getItem('set_gemini_key') || '';
+      } catch (err) {}
+
+      if (!apiKey) {
+        window.openConfigModal();
+        alert('Por favor, configure a chave Gemini API no menu de configurações antes de processar faturas.');
+        e.target.value = '';
         return;
       }
-      if (emptyState) emptyState.classList.add('hidden');
 
-      window.currentInvoices.forEach(inv => {
-        const div = document.createElement('div');
-        div.className = 'py-3 flex items-center justify-between gap-2';
-        div.innerHTML = `
-          <div class="flex items-center gap-3">
-            <div class="w-9 h-9 rounded-xl bg-rose-950/60 text-rose-400 flex items-center justify-center font-bold text-sm">
-              <i class="ph-bold ph-credit-card"></i>
-            </div>
-            <div>
-              <p class="text-xs font-bold text-white">${inv.bank_name}</p>
-              <p class="text-[10px] text-slate-400">Vencimento: ${inv.due_date} • ${inv.status === 'open' ? 'Em aberto' : 'Pago'}</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-3">
-            <span class="text-xs font-black text-rose-400">R$ ${Number(inv.total_amount).toFixed(2)}</span>
-            <button onclick="deleteSingleInvoice('${inv.id}')" class="p-1.5 text-slate-400 hover:text-rose-400 transition" title="Eliminar fatura">
-              <i class="ph-bold ph-trash text-sm"></i>
-            </button>
-          </div>
-        `;
-        container.appendChild(div);
-      });
-    }
+      showLoading('A ler ficheiro PDF...', 'A extrair páginas e conteúdo textual', 15, 'A ler PDF');
 
-    function renderTransactionsList() {
-      const container = document.getElementById('transactionsList');
-      const emptyState = document.getElementById('emptyTransactions');
-      if (!container) return;
-      container.innerHTML = '';
+      try {
+        addLog(`A processar ficheiro PDF: ${file.name}`);
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        let textContent = '';
 
-      if (window.currentTransactions.length === 0) {
-        if (emptyState) emptyState.classList.remove('hidden');
-        return;
-      }
-      if (emptyState) emptyState.classList.add('hidden');
-
-      window.currentTransactions.forEach(t => {
-        const div = document.createElement('div');
-        div.className = 'py-2.5 flex items-center justify-between gap-2 text-xs flex-wrap sm:flex-nowrap';
-        
-        let parcelBadge = '';
-        if (t.installment_info && t.installment_info !== '-') {
-          const totalInfo = t.installment_total ? ` de ${t.installment_total}` : '';
-          parcelBadge = `<span class="ml-1 text-[9px] px-1.5 py-0.2 bg-slate-800 rounded text-amber-300 font-bold font-mono">Parc: ${t.installment_info}${totalInfo}</span>`;
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          textContent += ' ' + content.items.map(item => item.str).join(' ');
+          const pagePct = Math.round(15 + (i / pdf.numPages) * 20);
+          animateProgressTo(pagePct, `A ler página ${i}/${pdf.numPages}`);
         }
 
-        let memberOptions = '<option value="">Sem rateio (Geral)</option>';
-        window.currentMembers.forEach(m => {
-          const selected = t.member_id === m.id ? 'selected' : '';
-          memberOptions += `<option value="${m.id}" ${selected}>${m.name}</option>`;
-        });
+        const titleEl = document.getElementById('loadingTitle');
+        const subEl = document.getElementById('loadingSubtext');
+        if (titleEl) titleEl.textContent = 'IA a Analisar Fatura...';
+        if (subEl) subEl.textContent = 'O Gemini está a estruturar valores, vencimento e compras';
+        animateProgressTo(50, 'A contactar Gemini IA');
 
+        await window.processPdfWithGemini(textContent, apiKey);
+      } catch (err) {
+        hideLoading();
+        alert('Erro ao ler PDF: ' + err.message);
+      } finally {
+        e.target.value = '';
+      }
+    };
+
+    window.parseInvoiceWithAI = async function(pdfText, apiKey) {
+      const prompt = `Você é um motor contábil especialista em conciliação de faturas de cartões de crédito e extratos bancários.
+Analise o texto extraído da fatura e retorne as informações em JSON estruturado estrito.
+
+REGRAS:
+1. "bank_name": Identifique o banco emissor (ex: "Bradesco", "Santander", "Nubank", "Itaú", "Inter", "C6").
+2. "due_date": Data de vencimento no formato YYYY-MM-DD.
+3. "total_amount": O valor total final da fatura a pagar (número decimal, ex: 1394.47). IGNORE opções de parcelamento fácil, crédito rotativo ou limites futuros.
+4. "items": Lista contendo cada transação ou lançamento individual presente na fatura:
+   - "description": Nome limpo do estabelecimento ou detalhe.
+   - "date": Data da compra (YYYY-MM-DD ou aproximada para o mês/ano do documento).
+   - "amount": Valor decimal positivo referente ao lançamento cobrado no mês.
+   - "category": Categoria (Alimentação, Compras Online, Saúde, Lazer, Tecnologia, Transporte, Outros).
+   - "installment_current": Número inteiro da parcela cobrada nesta fatura (ex: se for 07/12, informe 7). Se for compra à vista, retorne null.
+   - "installment_total": Número inteiro da quantidade total de parcelas contratadas (ex: se for 07/12, informe 12). Se for compra à vista, retorne null.
+   - "installment_display": String no formato "X/Y" (ex: "7/12", "2/2"). Se à vista, retorne "-".
+
+Retorne EXCLUSIVAMENTE o JSON no formato:
+{
+  "bank_name": "string",
+  "due_date": "YYYY-MM-DD",
+  "total_amount": 0.00,
+  "items": [
+    {
+      "description": "string",
+      "date": "YYYY-MM-DD",
+      "amount": 0.00,
+      "category": "string",
+      "installment_current": null,
+      "installment_total": null,
+      "installment_display": "-"
+    }
+  ]
+}
+
+TEXTO DA FATURA:
+${pdfText.slice(0, 14000)}`;
+
+      let candidateEndpoints = [
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
+      ];
+
+      let lastError = null;
+      for (const endpoint of candidateEndpoints) {
+        try {
+          animateProgressTo(75, 'A interpretar compras e parcelas');
+          const response = await fetch(`${endpoint}?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { temperature: 0.1 }
+            })
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            lastError = new Error(errorData.error?.message || `HTTP ${response.status}`);
+            continue;
+          }
+
+          animateProgressTo(90, 'A estruturar lançamentos');
+          const data = await response.json();
+          let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (!rawText) throw new Error('Sem resposta textual da IA.');
+
+          rawText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
+          return JSON.parse(rawText);
+        } catch (err) {
+          lastError = err;
+        }
+      }
+      throw lastError || new Error('Não foi possível estabelecer conexão com o Gemini.');
+    };
+
+    window.processPdfWithGemini = async function(textContent, apiKey) {
+      try {
+        const parsed = await window.parseInvoiceWithAI(textContent, apiKey);
+        window.pendingParsedInvoice = parsed;
+        addLog(`Fatura interpretada: ${parsed.bank_name} (R$ ${parsed.total_amount})`);
+
+        animateProgressTo(100, 'Concluído com sucesso');
+        setTimeout(() => {
+          hideLoading();
+          window.showInvoiceAIModal(parsed);
+        }, 400);
+      } catch (err) {
+        hideLoading();
+        alert('Erro ao interpretar com IA: ' + err.message + '\n\nVerifique se a chave Gemini no menu Funções > Configurações está válida e com cota.');
+      }
+    };
+
+    window.showInvoiceAIModal = function(data) {
+      document.getElementById('aiBankName').value = data.bank_name || 'Cartão';
+      document.getElementById('aiDueDate').value = data.due_date || new Date().toISOString().split('T')[0];
+      document.getElementById('aiTotalAmount').value = Number(data.total_amount).toFixed(2);
+      document.getElementById('aiItemsCount').textContent = (data.items || []).length;
+
+      const container = document.getElementById('aiItemsContainer');
+      container.innerHTML = '';
+      (data.items || []).forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'py-2 flex items-center justify-between';
+        const instBadge = (item.installment_display && item.installment_display !== '-') ? 
+          `<span class="ml-1 text-[9px] px-1.5 py-0.2 bg-slate-800 rounded text-slate-400 font-bold font-mono">Parc: ${item.installment_display} (Total: ${item.installment_total || '-'})</span>` : '';
         div.innerHTML = `
-          <div class="flex-1 min-w-[200px]">
-            <p class="font-bold text-slate-100">${t.description} ${parcelBadge}</p>
-            <p class="text-[10px] text-slate-400">${t.date} • ${t.category}</p>
+          <div>
+            <p class="font-bold text-slate-100">${item.description} ${instBadge}</p>
+            <p class="text-[10px] text-slate-400">${item.date} • ${item.category || 'Geral'}</p>
           </div>
-          
-          <div class="flex items-center gap-2">
-            <select onchange="assignSingleMember('${t.id}', this.value)" 
-                    class="bg-slate-800 border border-slate-700 text-slate-200 text-[11px] font-semibold rounded-lg px-2 py-1.5 focus:outline-none focus:border-brand-500 transition">
-              ${memberOptions}
-            </select>
-
-            <button onclick="openSplitTransactionModal('${t.id}')" 
-                    class="p-1.5 rounded-lg border border-slate-700 bg-slate-800 text-amber-400 hover:bg-slate-700 hover:border-amber-500/50 transition flex items-center gap-1" 
-                    title="Dividir / Ratear transação entre 2 pessoas">
-              <i class="ph-bold ph-scissors text-sm"></i>
-            </button>
-
-            <span class="font-black text-rose-400 min-w-[75px] text-right">R$ ${Number(t.amount).toFixed(2)}</span>
-          </div>
+          <span class="font-bold text-rose-400">R$ ${Number(item.amount).toFixed(2)}</span>
         `;
         container.appendChild(div);
       });
-    }
 
-    function renderMembersList() {
-      const container = document.getElementById('membersList');
-      const emptyState = document.getElementById('emptyMembers');
-      if (!container) return;
-      container.innerHTML = '';
+      document.getElementById('modalInvoiceAI').classList.remove('hidden');
+    };
+
+    window.closeInvoiceAIModal = function() {
+      document.getElementById('modalInvoiceAI').classList.add('hidden');
+    };
+
+    window.confirmSaveInvoice = async function() {
+      if (!window.pendingParsedInvoice || !window.supabaseClient) return;
+
+      window.closeInvoiceAIModal();
+      showLoading('A gravar na Base de Dados...', 'A sincronizar fatura e transações no Supabase', 20, 'A preparar dados');
+
+      try {
+        const invoiceData = {
+          user_id: window.currentUser.id,
+          bank_name: document.getElementById('aiBankName').value,
+          due_date: document.getElementById('aiDueDate').value,
+          total_amount: parseFloat(document.getElementById('aiTotalAmount').value),
+          status: 'open'
+        };
+
+        animateProgressTo(50, 'A gravar fatura principal');
+        const { data: invResult, error: invErr } = await window.supabaseClient
+          .from('invoices')
+          .insert([invoiceData])
+          .select();
+
+        if (invErr) throw invErr;
+        const invoiceId = invResult[0].id;
+
+        const transRows = (window.pendingParsedInvoice.items || []).map(item => ({
+          user_id: window.currentUser.id,
+          invoice_id: invoiceId,
+          description: item.description,
+          amount: item.amount,
+          date: item.date || invoiceData.due_date,
+          category: item.category || 'Outros',
+          installment_info: (item.installment_display && item.installment_display !== '-') ? item.installment_display : null,
+          installment_total: item.installment_total || null,
+          type: 'expense'
+        }));
+
+        if (transRows.length > 0) {
+          animateProgressTo(80, 'A gravar lançamentos individuais');
+          await window.supabaseClient.from('transactions').insert(transRows);
+        }
+
+        animateProgressTo(100, 'Gravação concluída');
+        addLog(`Fatura guardada com ${transRows.length} itens.`);
+
+        setTimeout(() => {
+          hideLoading();
+          alert('Fatura e itens guardados com sucesso!');
+          window.loadAllData();
+        }, 400);
+      } catch (e) {
+        hideLoading();
+        alert('Erro ao guardar fatura: ' + e.message);
+      }
+    };
+
+    window.assignSingleMember = async function(txId, memberId) {
+      if (!window.supabaseClient) return;
+      const mId = memberId ? memberId : null;
+
+      try {
+        const { error } = await window.supabaseClient
+          .from('transactions')
+          .update({ member_id: mId })
+          .eq('id', txId);
+
+        if (error) throw error;
+
+        const tx = window.currentTransactions.find(t => t.id === txId);
+        if (tx) tx.member_id = mId;
+
+        renderDashboard();
+        renderMembersList();
+        renderCharts();
+
+        const memberObj = window.currentMembers.find(m => m.id === mId);
+        addLog(`Transação atribuída para: ${memberObj ? memberObj.name : 'Geral'}`);
+      } catch (err) {
+        alert('Erro ao vincular membro: ' + err.message);
+        window.loadAllData();
+      }
+    };
+
+    window.openSplitTransactionModal = function(txId) {
+      const tx = window.currentTransactions.find(t => t.id === txId);
+      if (!tx) return;
+      window.selectedTransactionToSplit = tx;
+
+      const invoice = window.currentInvoices.find(i => i.id === tx.invoice_id);
+      const bankName = invoice ? invoice.bank_name : 'Santander';
+
+      document.getElementById('splitTxDesc').textContent = tx.description;
+      document.getElementById('splitTxDate').innerHTML = `<i class="ph-bold ph-calendar"></i> ${tx.date}`;
+      document.getElementById('splitTxBank').innerHTML = `<i class="ph-bold ph-bank"></i> ${bankName}`;
+      document.getElementById('splitTxCategory').innerHTML = `<i class="ph-bold ph-tag"></i> ${tx.category || 'Outros'}`;
+      document.getElementById('splitTxTotal').textContent = `R$ ${Number(tx.amount).toFixed(2)}`;
+
+      const sel1 = document.getElementById('splitMember1');
+      const sel2 = document.getElementById('splitMember2');
+      sel1.innerHTML = '';
+      sel2.innerHTML = '';
 
       if (window.currentMembers.length === 0) {
-        if (emptyState) emptyState.classList.remove('hidden');
-        return;
+        return alert('Cadastre primeiro membros na aba "Membros" para poder dividir transações.');
       }
-      if (emptyState) emptyState.classList.add('hidden');
 
-      window.currentMembers.forEach(m => {
-        const totalDue = window.currentTransactions.filter(t => t.member_id === m.id).reduce((a, b) => a + Number(b.amount), 0);
-        const alreadyPaid = window.currentPayments.filter(p => p.member_id === m.id).reduce((a, b) => a + Number(b.amount), 0);
-        const remaining = totalDue - alreadyPaid;
-        
-        const latestPromise = window.currentPayments
-          .filter(p => p.member_id === m.id && p.promise_date)
-          .sort((a, b) => new Date(b.promise_date) - new Date(a.promise_date))[0]?.promise_date;
+      window.currentMembers.forEach((m) => {
+        const o1 = document.createElement('option');
+        o1.value = m.id;
+        o1.textContent = m.name;
+        sel1.appendChild(o1);
 
-        let statusBadge = '';
-        if (totalDue === 0) {
-          statusBadge = `<span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-bold">Sem débitos</span>`;
-        } else if (remaining <= 0.01) {
-          statusBadge = `<span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold flex items-center gap-1"><i class="ph-bold ph-check-circle"></i> Quitado</span>`;
-        } else if (alreadyPaid > 0) {
-          statusBadge = `<span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-800 font-bold flex items-center gap-1"><i class="ph-bold ph-warning"></i> Parcial (Falta R$ ${remaining.toFixed(2)})</span>`;
-        } else {
-          statusBadge = `<span class="text-[10px] px-2 py-0.5 rounded-full bg-rose-950 text-rose-300 border border-rose-800 font-bold flex items-center gap-1"><i class="ph-bold ph-warning-octagon"></i> Pendente</span>`;
-        }
-
-        const promiseInfo = latestPromise ? `<div class="text-[10px] text-amber-400 font-semibold mt-1 flex items-center gap-1"><i class="ph-bold ph-calendar-blank"></i> Promessa: ${new Date(latestPromise + 'T00:00:00').toLocaleDateString('pt-BR')}</div>` : '';
-
-        const div = document.createElement('div');
-        div.className = 'p-4 rounded-xl border border-slate-800 bg-slate-900/60 flex flex-col justify-between relative group hover:border-slate-700 transition gap-2.5';
-        div.innerHTML = `
-          <div class="flex items-start justify-between gap-2">
-            <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-full bg-indigo-950 text-indigo-300 flex items-center justify-center font-bold text-xs shrink-0">
-                ${m.name.slice(0, 2).toUpperCase()}
-              </div>
-              <div class="overflow-hidden">
-                <h5 class="text-xs font-bold text-white truncate">${m.name}</h5>
-                <span class="text-[10px] text-slate-400 block truncate">${m.email || 'Sem e-mail'} • ${m.phone || 'Sem WhatsApp'}</span>
-              </div>
-            </div>
-            <div class="flex items-center gap-1">
-              <button onclick="openPaymentModal('${m.id}')" class="p-1.5 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-lg transition" title="Registar pagamento ou promessa">
-                <i class="ph-bold ph-money text-sm"></i>
-              </button>
-              <button onclick="openEditMemberModal('${m.id}')" class="p-1.5 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-lg transition" title="Editar dados do membro">
-                <i class="ph-bold ph-pencil-simple text-sm"></i>
-              </button>
-            </div>
-          </div>
-
-          <div class="flex flex-col">
-            ${statusBadge}
-            ${promiseInfo}
-          </div>
-
-          <div class="pt-2 border-t border-slate-800 flex flex-col gap-1 text-xs">
-            <div class="flex items-baseline justify-between text-slate-400">
-              <span>Total Devido:</span>
-              <span class="font-bold text-white">R$ ${totalDue.toFixed(2)}</span>
-            </div>
-            <div class="flex items-baseline justify-between text-slate-400">
-              <span>Pago:</span>
-              <span class="font-bold text-emerald-400">R$ ${alreadyPaid.toFixed(2)}</span>
-            </div>
-            <div class="flex items-baseline justify-between font-bold pt-1 border-t border-slate-800/60">
-              <span class="text-slate-300">Restante:</span>
-              <span class="text-rose-400 text-sm">R$ ${remaining > 0 ? remaining.toFixed(2) : '0,00'}</span>
-            </div>
-          </div>
-        `;
-        container.appendChild(div);
+        const o2 = document.createElement('option');
+        o2.value = m.id;
+        o2.textContent = m.name;
+        sel2.appendChild(o2);
       });
+
+      if (tx.member_id) {
+        sel1.value = tx.member_id;
+      }
+      if (window.currentMembers.length > 1) {
+        sel2.selectedIndex = sel1.selectedIndex === 0 ? 1 : 0;
+      }
+
+      document.getElementById('splitSlider').value = 50;
+      document.getElementById('splitNumberInput').value = 50;
+      recalculateSplit();
+
+      document.getElementById('modalSplitTransaction').classList.remove('hidden');
+    };
+
+    window.closeSplitModal = function() {
+      document.getElementById('modalSplitTransaction').classList.add('hidden');
+      window.selectedTransactionToSplit = null;
+    };
+
+    window.onSplitSliderChange = function(val) {
+      document.getElementById('splitNumberInput').value = val;
+      recalculateSplit();
+    };
+
+    window.onSplitInputChange = function(val) {
+      let v = parseInt(val) || 0;
+      if (v < 0) v = 0;
+      if (v > 100) v = 100;
+      document.getElementById('splitSlider').value = v;
+      recalculateSplit();
+    };
+
+    function recalculateSplit() {
+      if (!window.selectedTransactionToSplit) return;
+      const total = Number(window.selectedTransactionToSplit.amount);
+      const p1 = parseInt(document.getElementById('splitSlider').value) || 0;
+      const p2 = 100 - p1;
+
+      const sel1 = document.getElementById('splitMember1');
+      const sel2 = document.getElementById('splitMember2');
+      const name1 = sel1.options[sel1.selectedIndex]?.textContent || 'Usuário 1';
+      const name2 = sel2.options[sel2.selectedIndex]?.textContent || 'Usuário 2';
+
+      const v1 = (total * (p1 / 100));
+      const v2 = total - v1;
+
+      document.getElementById('cardMember1Label').textContent = name1;
+      document.getElementById('cardMember1Amount').textContent = `R$ ${v1.toFixed(2)}`;
+      document.getElementById('cardMember1Percent').textContent = `${p1}%`;
+
+      document.getElementById('cardMember2Label').textContent = name2;
+      document.getElementById('cardMember2Amount').textContent = `R$ ${v2.toFixed(2)}`;
+      document.getElementById('cardMember2Percent').textContent = `${p2}%`;
     }
 
-    function renderBanksList() {
-      const container = document.getElementById('banksList');
-      const emptyState = document.getElementById('emptyBanks');
-      if (!container) return;
+    window.executeSplitTransaction = async function() {
+      if (!window.selectedTransactionToSplit || !window.supabaseClient) return;
+
+      const m1 = document.getElementById('splitMember1').value;
+      const m2 = document.getElementById('splitMember2').value;
+      const p1 = parseInt(document.getElementById('splitSlider').value) || 0;
+
+      if (!m1 || !m2) return alert('Selecione ambos os membros.');
+      if (m1 === m2) return alert('Selecione membros diferentes para realizar a divisão.');
+
+      const total = Number(window.selectedTransactionToSplit.amount);
+      const val1 = Number((total * (p1 / 100)).toFixed(2));
+      const val2 = Number((total - val1).toFixed(2));
+
+      try {
+        const { error: updErr } = await window.supabaseClient
+          .from('transactions')
+          .update({
+            amount: val1,
+            member_id: m1,
+            installment_info: window.selectedTransactionToSplit.installment_info ? `${window.selectedTransactionToSplit.installment_info} (Rateio)` : '(Rateio)'
+          })
+          .eq('id', window.selectedTransactionToSplit.id);
+
+        if (updErr) throw updErr;
+
+        const { error: insErr } = await window.supabaseClient
+          .from('transactions')
+          .insert([{
+            user_id: window.currentUser.id,
+            invoice_id: window.selectedTransactionToSplit.invoice_id,
+            member_id: m2,
+            description: window.selectedTransactionToSplit.description,
+            amount: val2,
+            date: window.selectedTransactionToSplit.date,
+            category: window.selectedTransactionToSplit.category,
+            installment_info: window.selectedTransactionToSplit.installment_info ? `${window.selectedTransactionToSplit.installment_info} (Rateio)` : '(Rateio)',
+            installment_total: window.selectedTransactionToSplit.installment_total || null,
+            type: 'expense'
+          }]);
+
+        if (insErr) throw insErr;
+
+        addLog(`Transação dividida: ${window.selectedTransactionToSplit.description}`);
+        window.closeSplitModal();
+        alert('Transação dividida com sucesso!');
+        window.loadAllData();
+      } catch (err) {
+        alert('Erro ao dividir transação: ' + err.message);
+      }
+    };
+
+    window.openGenerateMemberPdfModal = function() {
+      const select = document.getElementById('selectPdfMember');
+      select.innerHTML = '';
+      window.currentMembers.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.id;
+        opt.textContent = m.name;
+        select.appendChild(opt);
+      });
+
+      if (window.currentMembers.length === 0) {
+        return alert('Cadastre primeiro os membros na aba Membros para gerar o PDF individual.');
+      }
+
+      document.getElementById('modalMemberPdf').classList.remove('hidden');
+      generateMemberReportPreview();
+    };
+
+    window.closeMemberPdfModal = function() {
+      document.getElementById('modalMemberPdf').classList.add('hidden');
+    };
+
+    function generateMemberReportPreview() {
+      const memberId = document.getElementById('selectPdfMember').value;
+      const member = window.currentMembers.find(m => m.id === memberId);
+      if (!member) return;
+
+      const now = new Date();
+      const monthNames = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+      const currentPeriod = `${monthNames[now.getMonth()]} / ${now.getFullYear()} — Todas as transações`;
+      const currentPeriodRef = `${monthNames[now.getMonth()]}/${now.getFullYear()}`;
+
+      document.getElementById('bannerInvoicePeriod').textContent = currentPeriod;
+      document.getElementById('bannerInvoiceUser').textContent = `Usuário: ${member.name}`;
+
+      document.getElementById('reportPeriodRef').textContent = currentPeriodRef;
+      document.getElementById('reportMemberName').textContent = member.name;
+      document.getElementById('reportDate').textContent = now.toLocaleDateString('pt-BR');
+
+      const memberTxs = window.currentTransactions.filter(t => t.member_id === memberId);
+      document.getElementById('reportCount').textContent = `${memberTxs.length} lançamentos`;
+
+      const container = document.getElementById('reportItemsContainer');
       container.innerHTML = '';
 
-      if (window.currentBanks.length === 0) {
-        if (emptyState) emptyState.classList.remove('hidden');
-        return;
-      }
-      if (emptyState) emptyState.classList.add('hidden');
+      let total = 0;
+      let countParceladas = 0;
+      let countAVista = 0;
+      const bankMap = {};
 
-      window.currentBanks.forEach(b => {
-        const div = document.createElement('div');
-        div.className = 'p-3.5 rounded-xl border border-slate-800 bg-slate-900/60 flex items-center gap-3';
-        div.innerHTML = `
-          <div class="w-8 h-8 rounded-lg bg-emerald-950 text-emerald-400 flex items-center justify-center text-sm font-bold">
-            <i class="ph-bold ph-bank"></i>
-          </div>
-          <div>
-            <h5 class="text-xs font-bold text-white">${b.name}</h5>
-            <span class="text-[10px] text-slate-400">Cartão / Conta ativa</span>
-          </div>
-        `;
-        container.appendChild(div);
-      });
-    }
+      memberTxs.forEach(t => {
+        const val = Number(t.amount);
+        total += val;
 
-    function renderCharts() {
-      try {
-        const textColor = '#94a3b8';
-        const gridColor = '#1e293b';
+        const invoice = window.currentInvoices.find(i => i.id === t.invoice_id);
+        const bankName = invoice ? invoice.bank_name : 'Santander';
+        bankMap[bankName] = (bankMap[bankName] || 0) + val;
 
-        const bankMap = {};
-        window.currentInvoices.forEach(i => { bankMap[i.bank_name] = (bankMap[i.bank_name] || 0) + Number(i.total_amount); });
-
-        const canvas1 = document.getElementById('chartInvoices');
-        if (canvas1) {
-          const ctx1 = canvas1.getContext('2d');
-          if (chartInvoices) {
-            chartInvoices.destroy();
-            chartInvoices = null;
-          }
-          chartInvoices = new Chart(ctx1, {
-            type: 'bar',
-            data: {
-              labels: Object.keys(bankMap).length ? Object.keys(bankMap) : ['Sem dados'],
-              datasets: [{
-                data: Object.values(bankMap).length ? Object.values(bankMap) : [0],
-                backgroundColor: '#10b981',
-                borderRadius: 8,
-                borderSkipped: false,
-                maxBarThickness: 48,
-                barPercentage: 0.6
-              }]
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: { 
-                legend: { display: false },
-                tooltip: {
-                  backgroundColor: '#0f172a',
-                  titleColor: '#f8fafc',
-                  bodyColor: '#34d399',
-                  borderColor: '#334155',
-                  borderWidth: 1,
-                  padding: 10,
-                  callbacks: {
-                    label: function(context) {
-                      return ` Total: R$ ${Number(context.parsed.y).toFixed(2)}`;
-                    }
-                  }
-                }
-              },
-              scales: {
-                y: { 
-                  grid: { color: gridColor }, 
-                  ticks: { 
-                    color: textColor, 
-                    font: { size: 10, family: 'Plus Jakarta Sans' },
-                    callback: function(value) { return 'R$ ' + value; }
-                  } 
-                },
-                x: { 
-                  grid: { display: false }, 
-                  ticks: { color: textColor, font: { size: 11, weight: 'bold', family: 'Plus Jakarta Sans' } } 
-                }
-              }
-            }
-          });
+        const isParcelada = t.installment_info && t.installment_info !== '-' && !t.installment_info.includes('(Rateio)');
+        if (isParcelada) {
+          countParceladas++;
+        } else {
+          countAVista++;
         }
 
-        const memberMap = {};
-        window.currentMembers.forEach(m => {
-          const sum = window.currentTransactions.filter(t => t.member_id === m.id).reduce((a, b) => a + Number(b.amount), 0);
-          if (sum > 0) memberMap[m.name] = sum;
+        const parcDisplay = t.installment_info ? t.installment_info : '-';
+        const qtdParcDisplay = t.installment_total ? t.installment_total : (t.installment_info && t.installment_info.includes('/') ? t.installment_info.split('/')[1] : '');
+
+        const tr = document.createElement('tr');
+        tr.className = 'border-b border-slate-200 hover:bg-slate-50 transition';
+        tr.innerHTML = `
+          <td class="py-1.5 px-2 font-mono whitespace-nowrap">${t.date}</td>
+          <td class="py-1.5 px-2 font-bold text-slate-800">${t.description}</td>
+          <td class="py-1.5 px-2 text-slate-600">${t.category || 'Outros'}</td>
+          <td class="py-1.5 px-2 text-slate-600">${bankName}</td>
+          <td class="py-1.5 px-2 text-center font-mono font-bold text-slate-700">${parcDisplay}</td>
+          <td class="py-1.5 px-2 text-center font-mono text-slate-700">${qtdParcDisplay || ''}</td>
+          <td class="py-1.5 px-2 text-right font-black text-rose-600 whitespace-nowrap">R$ ${val.toFixed(2)}</td>
+        `;
+        container.appendChild(tr);
+      });
+
+      if (memberTxs.length === 0) {
+        container.innerHTML = '<tr><td colspan="7" class="text-center text-slate-400 py-6">Nenhum lançamento vinculado a este membro.</td></tr>';
+      }
+
+      const bankSummaryStrings = Object.keys(bankMap).map(b => `${b}: R$ ${bankMap[b].toFixed(2)}`);
+      document.getElementById('reportBankSummary').textContent = bankSummaryStrings.length ? bankSummaryStrings.join(' | ') : 'Sem lançamentos';
+
+      document.getElementById('reportCountTypes').textContent = `À vista: ${countAVista} | Parceladas: ${countParceladas}`;
+      document.getElementById('reportTotalAmount').textContent = `R$ ${total.toFixed(2)}`;
+    }
+
+    function buildInvoiceTextSummary(member) {
+      const memberTxs = window.currentTransactions.filter(t => t.member_id === member.id);
+      const total = memberTxs.reduce((a, b) => a + Number(b.amount), 0);
+      const alreadyPaid = window.currentPayments.filter(p => p.member_id === member.id).reduce((a, b) => a + Number(b.amount), 0);
+      const remaining = total - alreadyPaid;
+      const now = new Date();
+      const monthNames = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+
+      let text = `*SET Web - Fatura Individual*\n`;
+      text += `*Titular:* ${member.name}\n`;
+      text += `*Referência:* ${monthNames[now.getMonth()]}/${now.getFullYear()}\n`;
+      text += `*Valor Total:* R$ ${total.toFixed(2)}\n`;
+      if (alreadyPaid > 0) {
+        text += `*Já Pago:* R$ ${alreadyPaid.toFixed(2)}\n`;
+        text += `*Saldo Pendente:* R$ ${remaining.toFixed(2)}\n`;
+      }
+      text += `*Chave PIX:* fp.danado16@gmail.com\n`;
+      text += `*Lançamentos (${memberTxs.length}):*\n`;
+      text += `------------------------------------\n`;
+
+      memberTxs.forEach(t => {
+        const p = t.installment_info ? ` (${t.installment_info})` : '';
+        text += `• ${t.date} - ${t.description}${p}: R$ ${Number(t.amount).toFixed(2)}\n`;
+      });
+
+      text += `------------------------------------\n`;
+      text += `Extrato gerado pelo sistema SET Web.`;
+      return { text, total, count: memberTxs.length };
+    }
+
+    window.sendInvoiceWhatsApp = function() {
+      const memberId = document.getElementById('selectPdfMember').value;
+      const member = window.currentMembers.find(m => m.id === memberId);
+      if (!member) return;
+
+      const { text } = buildInvoiceTextSummary(member);
+      let phoneClean = (member.phone || '').replace(/\D/g, '');
+
+      let waUrl = '';
+      if (phoneClean) {
+        if (!phoneClean.startsWith('55') && phoneClean.length <= 11) phoneClean = '55' + phoneClean;
+        waUrl = `https://api.whatsapp.com/send?phone=${phoneClean}&text=${encodeURIComponent(text)}`;
+      } else {
+        waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+      }
+
+      window.open(waUrl, '_blank');
+    };
+
+    window.sendInvoiceEmail = async function() {
+      const memberId = document.getElementById('selectPdfMember').value;
+      const member = window.currentMembers.find(m => m.id === memberId);
+      if (!member) return;
+      if (!member.email) return alert('Este membro não possui um e-mail cadastrado.');
+
+      const GOOGLE_SCRIPT_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbzB7GoExKRwmaYukAHJFuGG64HgURnJDIUMcrCJligEttcvI32U7Nk_lBud7DCE07mK7w/exec';
+
+      const { text, total } = buildInvoiceTextSummary(member);
+      const memberTxs = window.currentTransactions.filter(t => t.member_id === member.id);
+      
+      const now = new Date();
+      const monthNames = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+      const periodName = `${monthNames[now.getMonth()]}/${now.getFullYear()}`;
+      const periodTitle = `${monthNames[now.getMonth()]} / ${now.getFullYear()}`;
+
+      let countParceladas = 0;
+      let countAVista = 0;
+      const bankMap = {};
+
+      let rowsPdfHtml = '';
+      memberTxs.forEach(t => {
+        const val = Number(t.amount);
+        const invoice = window.currentInvoices.find(i => i.id === t.invoice_id);
+        const bankName = invoice ? invoice.bank_name : 'Santander';
+        bankMap[bankName] = (bankMap[bankName] || 0) + val;
+
+        const isParcelada = t.installment_info && t.installment_info !== '-' && !t.installment_info.includes('(Rateio)');
+        if (isParcelada) {
+          countParceladas++;
+        } else {
+          countAVista++;
+        }
+
+        const parcDisplay = t.installment_info ? t.installment_info : '-';
+        const qtdParcDisplay = t.installment_total ? t.installment_total : (t.installment_info && t.installment_info.includes('/') ? t.installment_info.split('/')[1] : '');
+
+        rowsPdfHtml += `
+          <tr style="border-bottom: 1px solid #cbd5e1;">
+            <td style="padding: 7px 5px; font-size: 11px; white-space: nowrap;">${t.date}</td>
+            <td style="padding: 7px 5px; font-size: 11px; font-weight: bold;">${t.description}</td>
+            <td style="padding: 7px 5px; font-size: 11px; color: #475569;">${t.category || 'Outros'}</td>
+            <td style="padding: 7px 5px; font-size: 11px; color: #475569;">${bankName}</td>
+            <td style="padding: 7px 5px; font-size: 11px; text-align: center; font-weight: bold;">${parcDisplay}</td>
+            <td style="padding: 7px 5px; font-size: 11px; text-align: center;">${qtdParcDisplay || ''}</td>
+            <td style="padding: 7px 5px; font-size: 11px; text-align: right; color: #e11d48; font-weight: bold; white-space: nowrap;">R$ ${val.toFixed(2)}</td>
+          </tr>
+        `;
+      });
+
+      const bankSummaryStrings = Object.keys(bankMap).map(b => `${b}: R$ ${bankMap[b].toFixed(2)}`).join(' | ');
+
+      const pdfHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <style>
+            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #1e293b; padding: 25px; margin: 0; }
+            .header-bar { border-bottom: 2px solid #0f172a; padding-bottom: 8px; margin-bottom: 12px; }
+            .header-bar h1 { margin: 0; font-size: 16px; font-weight: 900; letter-spacing: 1px; color: #0b4f9c; }
+            .header-bar h2 { margin: 3px 0 0 0; font-size: 12px; font-weight: bold; color: #334155; }
+            .meta-grid { margin-top: 8px; font-size: 11px; line-height: 1.5; color: #334155; }
+            table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+            th { background: #f1f5f9; padding: 8px 5px; text-align: left; font-size: 10px; font-weight: bold; text-transform: uppercase; color: #0f172a; border-bottom: 2px solid #94a3b8; }
+            .bank-box { margin-top: 15px; border-top: 2px solid #0f172a; padding-top: 8px; font-size: 11px; font-weight: bold; }
+            .footer { font-size: 9px; color: #64748b; text-align: center; margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 8px; }
+          </style>
+        </head>
+        <body>
+          <div class="header-bar">
+            <h1>SISTEMA DE EMPRÉSTIMO TERCEIRIZADO (SET)</h1>
+            <h2>TRANSAÇÕES INDIVIDUALIZADAS</h2>
+            <div class="meta-grid">
+              <div><strong>Referência:</strong> ${periodTitle} &nbsp;|&nbsp; <strong>Transações:</strong> ${memberTxs.length} lançamentos</div>
+              <div><strong>Usuário:</strong> ${member.name} &nbsp;|&nbsp; <strong>Gerado em:</strong> ${now.toLocaleDateString('pt-BR')}</div>
+              <div><strong>Chave PIX:</strong> fp.danado16@gmail.com</div>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Descrição</th>
+                <th>Categoria</th>
+                <th>Banco</th>
+                <th style="text-align: center;">Parcela</th>
+                <th style="text-align: center;">Qtd. Parc.</th>
+                <th style="text-align: right;">Valor (R$)</th>
+              </tr>
+            </thead>
+            <tbody>${rowsPdfHtml}</tbody>
+          </table>
+
+          <div class="bank-box">
+            <span>RESUMO POR BANCO:</span><br>
+            <span style="color: #475569;">${bankSummaryStrings || 'Santander: R$ ' + total.toFixed(2)}</span>
+          </div>
+
+          <table style="margin-top: 12px; background: #0b4f9c; color: #ffffff; border-radius: 6px; width: 100%;">
+            <tr>
+              <td style="padding: 10px 14px; font-size: 11px;">À vista: ${countAVista} &nbsp;|&nbsp; Parceladas: ${countParceladas}</td>
+              <td style="padding: 10px 14px; font-size: 13px; font-weight: bold; text-align: right; text-transform: uppercase;">
+                TOTAL DOS LANÇAMENTOS: &nbsp; <span style="font-size: 16px;">R$ ${total.toFixed(2)}</span>
+              </td>
+            </tr>
+          </table>
+
+          <div class="footer">
+            Documento gerado pelo Sistema de Empréstimo Terceirizado (SET) em ${now.toLocaleDateString('pt-BR')} | PIX: fp.danado16@gmail.com
+          </div>
+        </body>
+        </html>
+      `;
+
+      const emailHtml = `
+        <div style="background-color: #f1f5f9; padding: 30px 10px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+          <div style="max-width: 560px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.06); border: 1px solid #e2e8f0;">
+            <div style="background-color: #0b5394; padding: 35px 20px 28px 20px; text-align: center; color: #ffffff;">
+              <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; opacity: 0.9; margin-bottom: 8px;">
+                SISTEMA DE EMPRÉSTIMO TERCEIRIZADO
+              </div>
+              <div style="font-size: 32px; font-weight: 900; letter-spacing: 12px; margin: 10px 0 6px 0; text-indent: 12px;">
+                S &nbsp;E &nbsp;T
+              </div>
+              <div style="font-size: 12px; font-weight: 500; opacity: 0.85;">
+                Gestão de Transações Individualizadas
+              </div>
+            </div>
+
+            <div style="padding: 32px 30px; color: #1e293b; font-size: 14px; line-height: 1.6;">
+              <p style="font-size: 16px; margin-top: 0; margin-bottom: 12px; color: #0f172a;">
+                Olá, <strong>${member.name}</strong>
+              </p>
+              <p style="color: #475569; margin-top: 0; margin-bottom: 24px;">
+                Sua fatura de <strong>${periodTitle}</strong> foi gerada e está disponível em anexo neste email e também no Google Drive.
+              </p>
+
+              <div style="margin-bottom: 24px;">
+                <a href="https://set-web-project.vercel.app" target="_blank" style="display: inline-block; background-color: #1565c0; color: #ffffff; padding: 12px 22px; font-size: 13px; font-weight: 700; text-decoration: none; border-radius: 8px; box-shadow: 0 2px 6px rgba(21,101,192,0.3);">
+                  📄 Abrir Fatura no Drive
+                </a>
+              </div>
+
+              <div style="background-color: #e3f2fd; border-left: 4px solid #1976d2; border-radius: 8px; padding: 16px 20px; margin-bottom: 24px;">
+                <div style="font-size: 11px; font-weight: 800; color: #1565c0; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">
+                  💰 CHAVE PIX PARA PAGAMENTO
+                </div>
+                <div style="font-size: 17px; font-weight: 800; color: #0d47a1; text-decoration: underline;">
+                  fp.danado16@gmail.com
+                </div>
+              </div>
+
+              <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; text-align: center;">
+                <div style="display: inline-block; margin-bottom: 6px;">
+                  <span style="font-size: 18px; font-weight: 900; color: #0b5394; letter-spacing: 2px;">SET</span> 
+                  <span style="font-size: 11px; color: #64748b; font-weight: bold; border-left: 1px solid #cbd5e1; padding-left: 6px; margin-left: 4px;">Sistema de Empréstimo Terceirizado</span>
+                </div>
+                <div style="font-size: 11px; color: #94a3b8;">
+                  Sistema de Empréstimo Terceirizado (<strong>SET</strong>)<br>
+                  Este é um email automático — por favor, não responda diretamente.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const btn = document.getElementById('btnSendEmailDirect');
+      const originalText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = `<i class="ph-bold ph-spinner animate-spin text-base"></i> Enviando...`;
+
+      try {
+        await fetch(GOOGLE_SCRIPT_WEBAPP_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: member.email,
+            subject: `Fatura Individual - ${periodName} [R$ ${total.toFixed(2)}]`,
+            plainText: text,
+            htmlBody: emailHtml,
+            pdfHtml: pdfHtml,
+            pdfFileName: `Fatura_${member.name.replace(/\s+/g, '_')}_${periodName.replace('/', '_')}.pdf`
+          })
         });
 
-        const canvas2 = document.getElementById('chartSplit');
-        if (canvas2) {
-          const ctx2 = canvas2.getContext('2d');
-          if (chartSplit) {
-            chartSplit.destroy();
-            chartSplit = null;
-          }
-          chartSplit = new Chart(ctx2, {
-            type: 'doughnut',
-            data: {
-              labels: Object.keys(memberMap).length ? Object.keys(memberMap) : ['Sem rateio'],
-              datasets: [{
-                data: Object.values(memberMap).length ? Object.values(memberMap) : [1],
-                backgroundColor: ['#10b981', '#6366f1', '#f59e0b', '#ec4899', '#06b6d4', '#8b5cf6'],
-                borderWidth: 0,
-                hoverOffset: 6
-              }]
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: { 
-                legend: { 
-                  position: 'bottom', 
-                  labels: { 
-                    boxWidth: 10, 
-                    font: { size: 11, family: 'Plus Jakarta Sans' }, 
-                    color: textColor,
-                    padding: 14
-                  } 
-                },
-                tooltip: {
-                  backgroundColor: '#0f172a',
-                  titleColor: '#f8fafc',
-                  bodyColor: '#e2e8f0',
-                  borderColor: '#334155',
-                  borderWidth: 1,
-                  padding: 10,
-                  callbacks: {
-                    label: function(context) {
-                      return ` R$ ${Number(context.parsed).toFixed(2)}`;
-                    }
-                  }
-                }
-              },
-              cutout: '72%'
-            }
-          });
-        }
+        addLog(`Fatura enviada com PDF em anexo via Gmail do SET para ${member.email}`);
+        alert(`Fatura enviada com sucesso para ${member.email} com o PDF em anexo!`);
       } catch (err) {
-        console.warn('Erro ao atualizar gráficos:', err);
+        alert('Erro ao enviar e-mail pelo Google Apps Script: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
       }
-    }
+    };
 
     window.openPaymentModal = function(memberId) {
       const member = window.currentMembers.find(m => m.id === memberId);
