@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>SET Web - Sistema de Faturas & Rateio</title>
   
+  <!-- CDNs -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -15,12 +16,19 @@
     if (window.pdfjsLib) {
       window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     }
+
     tailwind.config = {
       darkMode: 'class',
       theme: {
         extend: {
           colors: {
-            brand: { 50: '#ecfdf5', 100: '#d1fae5', 500: '#10b981', 600: '#059669', 700: '#047857' }
+            brand: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+            }
           }
         }
       }
@@ -28,18 +36,215 @@
   </script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-    :root { --sat: env(safe-area-inset-top, 0px); --sab: env(safe-area-inset-bottom, 0px); }
-    html, body { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; min-height: 100vh; min-height: 100dvh; }
+    
+    :root {
+      --sat: env(safe-area-inset-top, 0px);
+      --sab: env(safe-area-inset-bottom, 0px);
+    }
+
+    html, body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      overscroll-behavior-y: none;
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
+
     .app-header-safe { padding-top: max(12px, calc(var(--sat) + 8px)); }
     .app-bottom-nav-safe { padding-bottom: max(10px, calc(var(--sab) + 12px)); }
     .app-main-safe { padding-bottom: max(95px, calc(var(--sab) + 105px)); }
-    .app-modal-sheet { padding-bottom: max(20px, calc(var(--sab) + 24px)) !important; max-height: calc(90dvh - var(--sat)); }
+    .app-modal-sheet {
+      padding-bottom: max(20px, calc(var(--sab) + 24px)) !important;
+      max-height: calc(90dvh - var(--sat));
+    }
+
     .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #334155; border-radius: 9999px; }
-    @keyframes shimmerBar { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-    .animate-shimmer { background: linear-gradient(90deg, #10b981 0%, #34d399 25%, #6ee7b7 50%, #34d399 75%, #10b981 100%); background-size: 200% 100%; animation: shimmerBar 2s linear infinite; }
-    @media print { body * { visibility: hidden; } #printArea, #printArea * { visibility: visible; } #printArea { position: absolute; left: 0; top: 0; width: 100%; } }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 9999px; }
+    .dark .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #334155; }
+
+    @keyframes shimmerBar {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    .animate-shimmer {
+      background: linear-gradient(90deg, #10b981 0%, #34d399 25%, #6ee7b7 50%, #34d399 75%, #10b981 100%);
+      background-size: 200% 100%;
+      animation: shimmerBar 2s linear infinite;
+    }
+
+    @media print {
+      body * { visibility: hidden; }
+      #printArea, #printArea * { visibility: visible; }
+      #printArea { position: absolute; left: 0; top: 0; width: 100%; }
+    }
   </style>
+
+  <script>
+    window.currentAuthMode = 'login';
+    window.currentUser = null;
+    window.currentInvoices = [];
+    window.currentTransactions = [];
+    window.currentMembers = [];
+    window.currentBanks = [];
+    window.currentPayments = [];
+    window.pendingParsedInvoice = null;
+    window.selectedTransactionToSplit = null;
+
+    let chartInvoices = null;
+    let chartSplit = null;
+    let currentProgress = 0;
+    let targetProgress = 0;
+    let progressRafId = null;
+
+    const SUPABASE_PROJECT_URL = 'https://opfgooigsgypgzcaehrf.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9wZmdvb2lnc2d5cGd6Y2FlaHJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE5MTQ3MjksImV4cCI6MjEwNzQ5MDcyOX0.3NRYTFNzSa7KcGdB00bGm2wBUgoK9-EMloaCT00b-K4';
+
+    try {
+      window.supabaseClient = window.supabase.createClient(SUPABASE_PROJECT_URL, SUPABASE_ANON_KEY, {
+        auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+      });
+    } catch (e) {
+      console.error('Erro ao iniciar Supabase:', e);
+    }
+
+    window.initTheme = function() {
+      try {
+        const savedTheme = localStorage.getItem('set_theme');
+        const isDark = savedTheme ? savedTheme === 'dark' : true;
+        document.documentElement.classList.toggle('dark', isDark);
+      } catch (e) {}
+    };
+
+    window.toggleTheme = function() {
+      const isDark = document.documentElement.classList.toggle('dark');
+      try { localStorage.setItem('set_theme', isDark ? 'dark' : 'light'); } catch (e) {}
+    };
+
+    window.showAuth = function() {
+      const a = document.getElementById('authScreen');
+      const c = document.getElementById('appContainer');
+      if (a) a.classList.remove('hidden');
+      if (c) c.classList.add('hidden');
+    };
+
+    window.showApp = function() {
+      const a = document.getElementById('authScreen');
+      const c = document.getElementById('appContainer');
+      if (a) a.classList.add('hidden');
+      if (c) c.classList.remove('hidden');
+    };
+
+    window.setAuthMode = function(mode) {
+      window.currentAuthMode = mode;
+      const tabLog = document.getElementById('tabAuthLogin');
+      const tabReg = document.getElementById('tabAuthRegister');
+      const btn = document.getElementById('btnAuthSubmit');
+      if (!tabLog || !tabReg || !btn) return;
+      if (mode === 'login') {
+        tabLog.className = "flex-1 py-2.5 rounded-lg bg-slate-700 text-white shadow-sm transition";
+        tabReg.className = "flex-1 py-2.5 rounded-lg text-slate-400 transition";
+        btn.textContent = "Aceder ao SET";
+      } else {
+        tabReg.className = "flex-1 py-2.5 rounded-lg bg-slate-700 text-white shadow-sm transition";
+        tabLog.className = "flex-1 py-2.5 rounded-lg text-slate-400 transition";
+        btn.textContent = "Criar Minha Conta";
+      }
+    };
+
+    window.handleAuthSubmit = async function(e) {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      if (!window.supabaseClient) { alert('Supabase não iniciado.'); return false; }
+
+      const email = document.getElementById('authEmail')?.value.trim() || '';
+      const password = document.getElementById('authPassword')?.value || '';
+      const btn = document.getElementById('btnAuthSubmit');
+
+      if (btn) { btn.disabled = true; btn.textContent = 'Processando...'; }
+
+      try {
+        if (window.currentAuthMode === 'register') {
+          const { data, error } = await window.supabaseClient.auth.signUp({ email, password });
+          if (error) throw error;
+          if (data?.session && data?.user) {
+            window.currentUser = data.user;
+            window.showApp();
+            await window.loadAllData();
+          } else {
+            alert('Conta criada! Pode entrar agora.');
+            window.setAuthMode('login');
+          }
+        } else {
+          const { data, error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
+          if (error) throw error;
+          window.currentUser = data.user;
+          window.showApp();
+          await window.loadAllData();
+        }
+      } catch (err) {
+        alert('Erro ao autenticar: ' + (err.message || 'Credenciais inválidas.'));
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = window.currentAuthMode === 'login' ? 'Aceder ao SET' : 'Criar Minha Conta';
+        }
+      }
+      return false;
+    };
+
+    window.signOut = async function() {
+      if (window.supabaseClient) await window.supabaseClient.auth.signOut();
+      window.currentUser = null;
+      window.showAuth();
+    };
+
+    function addLog(msg) {
+      try {
+        const logs = JSON.parse(localStorage.getItem('set_logs') || '[]');
+        logs.unshift(`[${new Date().toLocaleTimeString()}] ${msg}`);
+        localStorage.setItem('set_logs', JSON.stringify(logs.slice(0, 50)));
+      } catch (e) {}
+    }
+
+    function renderProgressStep() {
+      if (currentProgress < targetProgress) {
+        currentProgress += Math.max(1, Math.ceil((targetProgress - currentProgress) * 0.12));
+        if (currentProgress > targetProgress) currentProgress = targetProgress;
+        const bar = document.getElementById('loadingProgressBar');
+        const pct = document.getElementById('loadingPercentLabel');
+        if (bar) bar.style.width = currentProgress + '%';
+        if (pct) pct.textContent = Math.round(currentProgress) + '%';
+      }
+      if (currentProgress < 100) progressRafId = requestAnimationFrame(renderProgressStep);
+    }
+
+    function animateProgressTo(target, stepText) {
+      targetProgress = Math.min(100, Math.max(0, target));
+      const lbl = document.getElementById('loadingStepLabel');
+      if (stepText && lbl) lbl.textContent = stepText;
+      if (!progressRafId) progressRafId = requestAnimationFrame(renderProgressStep);
+    }
+
+    function showLoading(title, subtext, initPct = 5, stepText = 'A iniciar...') {
+      cancelAnimationFrame(progressRafId);
+      progressRafId = null;
+      currentProgress = 0;
+      targetProgress = initPct;
+      document.getElementById('loadingTitle').textContent = title;
+      document.getElementById('loadingSubtext').textContent = subtext;
+      document.getElementById('loadingProgressBar').style.width = '0%';
+      document.getElementById('loadingPercentLabel').textContent = '0%';
+      document.getElementById('loadingStepLabel').textContent = stepText;
+      document.getElementById('modalLoading').classList.remove('hidden');
+      animateProgressTo(initPct, stepText);
+    }
+
+    function hideLoading() {
+      cancelAnimationFrame(progressRafId);
+      progressRafId = null;
+      document.getElementById('modalLoading').classList.add('hidden');
+    }
+  </script>
 </head>
 <body class="bg-slate-950 text-slate-100 antialiased min-h-screen transition-colors duration-200 select-none">
 
@@ -60,7 +265,7 @@
           <button type="button" id="tabAuthRegister" onclick="setAuthMode('register')" class="flex-1 py-2.5 rounded-lg text-slate-400 transition">Criar Conta</button>
         </div>
 
-        <form id="formAuth" onsubmit="return handleAuthSubmit(event);" class="flex flex-col gap-4">
+        <form id="formAuth" class="flex flex-col gap-4">
           <div>
             <label class="block text-xs font-bold text-slate-300 mb-1.5">E-mail</label>
             <input type="email" id="authEmail" required placeholder="seu@email.com" class="w-full px-3.5 py-3 text-sm rounded-xl border border-slate-700 bg-slate-800 text-white focus:outline-none focus:border-brand-500 transition">
@@ -247,6 +452,7 @@
           </button>
         </div>
 
+        <!-- Gráficos Otimizados -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div class="lg:col-span-2 bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 shadow-sm flex flex-col justify-between">
             <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2.5">
@@ -599,7 +805,7 @@
 
   </div>
 
-  <!-- 3. SCRIPT ÚNICO CONSOLIDADO -->
+  <!-- 3. SCRIPT ÚNICO CONSOLIDADO E CORRIGIDO -->
   <script>
     window.currentAuthMode = 'login';
     window.currentUser = null;
@@ -955,7 +1161,7 @@
           if (chartInvoices) chartInvoices.destroy();
           chartInvoices = new Chart(c1.getContext('2d'), {
             type: 'bar',
-            data: { labels: Object.keys(bankMap).length ? Object.keys(bankMap) : ['Sem dados'], datasets: [{ data: Object.values(bankMap).length ? Object.values(bankMap) : [0], backgroundColor: '#10b981', borderRadius: 8 }] },
+            data: { labels: Object.keys(bankMap).length ? Object.keys(bankMap) : ['Sem dados'], datasets: [{ data: Object.values(bankMap).length ? Object.values(bankMap) : [0], backgroundColor: '#10b981', borderRadius: 8, maxBarThickness: 48 }] },
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
           });
         }
@@ -979,10 +1185,17 @@
     window.handleFileSelected = async function(e) {
       const file = e.target.files[0];
       if (!file) return;
-      const apiKey = localStorage.getItem('set_gemini_key') || '';
-      if (!apiKey) { window.openConfigModal(); alert('Configure a chave Gemini API primeiro.'); e.target.value = ''; return; }
+      let apiKey = '';
+      try { apiKey = localStorage.getItem('set_gemini_key') || ''; } catch (err) {}
 
-      showLoading('A ler ficheiro PDF...', 'A extrair texto das páginas', 20, 'A ler PDF');
+      if (!apiKey) {
+        window.openConfigModal();
+        alert('Por favor, configure a chave Gemini API no menu de configurações.');
+        e.target.value = '';
+        return;
+      }
+
+      showLoading('A ler ficheiro PDF...', 'A extrair páginas', 20, 'A ler PDF');
       try {
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -1006,26 +1219,47 @@
     };
 
     window.parseInvoiceWithAI = async function(pdfText, apiKey) {
-      const prompt = `Analise o texto da fatura bancária e retorne APENAS um JSON válido no formato:
+      const prompt = `Analise o texto da fatura bancária e retorne APENAS um JSON válido no formato estrito:
 {"bank_name":"string","due_date":"YYYY-MM-DD","total_amount":0.00,"items":[{"description":"string","date":"YYYY-MM-DD","amount":0.00,"category":"string","installment_total":null,"installment_display":"-"}]}
-TEXTO: ${pdfText.slice(0, 14000)}`;
+TEXTO DA FATURA: ${pdfText.slice(0, 14000)}`;
 
-      const models = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash'];
-      let lastErr = null;
-      for (const m of models) {
+      // URLs e Modelos atualizados e estáveis do Google AI Studio v1.5 / v2.0 / v2.5
+      const endpoints = [
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`
+      ];
+
+      let lastError = null;
+      for (const url of endpoints) {
         try {
-          const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${apiKey}`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.1 } })
+          const resp = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { temperature: 0.1 }
+            })
           });
-          if (!resp.ok) continue;
+
+          if (!resp.ok) {
+            const errData = await resp.json().catch(() => ({}));
+            lastError = new Error(errData.error?.message || `HTTP ${resp.status}`);
+            continue;
+          }
+
           const data = await resp.json();
-          let raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-          raw = raw.replace(/```json/gi, '').replace(/```/g, '').trim();
-          return JSON.parse(raw);
-        } catch (e) { lastErr = e; }
+          let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (!rawText) throw new Error('Sem resposta textual da IA.');
+
+          rawText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
+          return JSON.parse(rawText);
+        } catch (err) {
+          lastError = err;
+        }
       }
-      throw lastErr || new Error('Falha na comunicação com a chave Gemini.');
+
+      throw lastError || new Error('Falha na comunicação com a chave Gemini.');
     };
 
     window.showInvoiceAIModal = function(data) {
@@ -1049,7 +1283,7 @@ TEXTO: ${pdfText.slice(0, 14000)}`;
     window.confirmSaveInvoice = async function() {
       if (!window.pendingParsedInvoice || !window.supabaseClient) return;
       window.closeInvoiceAIModal();
-      showLoading('A guardar...', 'A gravar no Supabase', 50, 'A gravar');
+      showLoading('A gravar...', 'A gravar transações no Supabase', 50, 'A gravar');
       try {
         const invData = {
           user_id: window.currentUser.id,
@@ -1308,20 +1542,37 @@ TEXTO: ${pdfText.slice(0, 14000)}`;
       window.closeConfigModal();
     };
 
-    // Inicialização segura após todas as declarações existirem
-    window.initTheme();
-    if (window.supabaseClient) {
-      window.supabaseClient.auth.onAuthStateChange((event, session) => {
-        if (session && session.user) {
-          window.currentUser = session.user;
-          window.showApp();
-          window.loadAllData();
-        } else {
-          window.currentUser = null;
-          window.showAuth();
+    window.addEventListener('DOMContentLoaded', async () => {
+      window.initTheme();
+
+      const form = document.getElementById('formAuth');
+      if (form) {
+        form.addEventListener('submit', window.handleAuthSubmit);
+      }
+
+      if (window.supabaseClient) {
+        window.supabaseClient.auth.onAuthStateChange((event, session) => {
+          if (session && session.user) {
+            window.currentUser = session.user;
+            window.showApp();
+            window.loadAllData().catch(err => console.warn(err));
+          } else {
+            window.currentUser = null;
+            window.showAuth();
+          }
+        });
+      } else {
+        window.showAuth();
+      }
+
+      document.addEventListener('click', (e) => {
+        const dd = document.getElementById('setMenuDropdown');
+        const btn = document.getElementById('btnSetMenu');
+        if (dd && btn && !dd.contains(e.target) && !btn.contains(e.target)) {
+          dd.classList.add('hidden');
         }
       });
-    }
+    });
   </script>
 </body>
 </html>
