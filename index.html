@@ -84,7 +84,7 @@
     }
   </style>
 
-  <!-- INICIALIZAÇÃO DE BASE & FUNÇÕES DE AUTENTICAÇÃO NO TOPO -->
+  <!-- INICIALIZAÇÃO E ESCOPO GLOBAL NO HEAD -->
   <script>
     window.currentAuthMode = 'login';
     window.currentUser = null;
@@ -959,740 +959,219 @@
 
   </div>
 
-  <!-- 3. LÓGICA JAVASCRIPT INTEGRADA -->
+  <!-- 4. MOTOR JAVASCRIPT DE PROCESSAMENTO GEMINI & INTERPRETAÇÃO IA -->
   <script>
-    let chartInvoices = null;
-    let chartSplit = null;
+    window.parseInvoiceWithAI = async function(pdfText, apiKey) {
+      const prompt = `Você é um motor contábil especialista em conciliação de faturas de cartões de crédito e extratos bancários.
+Analise o texto extraído da fatura e retorne as informações em JSON estruturado estrito.
 
-    let currentProgress = 0;
-    let targetProgress = 0;
-    let progressRafId = null;
+REGRAS:
+1. "bank_name": Identifique o banco emissor (ex: "Bradesco", "Santander", "Nubank", "Itaú", "Inter", "C6").
+2. "due_date": Data de vencimento no formato YYYY-MM-DD.
+3. "total_amount": O valor total final da fatura a pagar (número decimal, ex: 1394.47). IGNORE opções de parcelamento fácil, crédito rotativo ou limites futuros.
+4. "items": Lista contendo cada transação ou lançamento individual presente na fatura:
+   - "description": Nome limpo do estabelecimento ou detalhe.
+   - "date": Data da compra (YYYY-MM-DD ou aproximada para o mês/ano do documento).
+   - "amount": Valor decimal positivo referente ao lançamento cobrado no mês.
+   - "category": Categoria (Alimentação, Compras Online, Saúde, Lazer, Tecnologia, Transporte, Outros).
+   - "installment_current": Número inteiro da parcela cobrada nesta fatura (ex: se for 07/12, informe 7). Se for compra à vista, retorne null.
+   - "installment_total": Número inteiro da quantidade total de parcelas contratadas (ex: se for 07/12, informe 12). Se for compra à vista, retorne null.
+   - "installment_display": String no formato "X/Y" (ex: "7/12", "2/2"). Se à vista, retorne "-".
 
-    function renderProgressStep() {
-      if (currentProgress < targetProgress) {
-        currentProgress += Math.max(1, Math.ceil((targetProgress - currentProgress) * 0.12));
-        if (currentProgress > targetProgress) currentProgress = targetProgress;
-
-        const bar = document.getElementById('loadingProgressBar');
-        const pctLabel = document.getElementById('loadingPercentLabel');
-        if (bar) bar.style.width = currentProgress + '%';
-        if (pctLabel) pctLabel.textContent = Math.round(currentProgress) + '%';
-      }
-
-      if (currentProgress < 100) {
-        progressRafId = requestAnimationFrame(renderProgressStep);
-      }
+Retorne EXCLUSIVAMENTE o JSON no formato:
+{
+  "bank_name": "string",
+  "due_date": "YYYY-MM-DD",
+  "total_amount": 0.00,
+  "items": [
+    {
+      "description": "string",
+      "date": "YYYY-MM-DD",
+      "amount": 0.00,
+      "category": "string",
+      "installment_current": null,
+      "installment_total": null,
+      "installment_display": "-"
     }
+  ]
+}
 
-    function animateProgressTo(target, stepLabelText) {
-      targetProgress = Math.min(100, Math.max(0, target));
-      if (stepLabelText) {
-        const lbl = document.getElementById('loadingStepLabel');
-        if (lbl) lbl.textContent = stepLabelText;
-      }
-      if (!progressRafId) {
-        progressRafId = requestAnimationFrame(renderProgressStep);
-      }
-    }
+TEXTO DA FATURA:
+${pdfText.slice(0, 14000)}`;
 
-    function showLoading(title, subtext, initialProgress = 1, stepText = 'A iniciar...') {
-      cancelAnimationFrame(progressRafId);
-      progressRafId = null;
-      currentProgress = 0;
-      targetProgress = initialProgress;
+      let candidateEndpoints = [];
 
-      document.getElementById('loadingTitle').textContent = title || 'Processando com IA...';
-      document.getElementById('loadingSubtext').textContent = subtext || 'A analisar os dados da fatura';
-      
-      const bar = document.getElementById('loadingProgressBar');
-      const pctLabel = document.getElementById('loadingPercentLabel');
-      const stepLabel = document.getElementById('loadingStepLabel');
-      if (bar) bar.style.width = '0%';
-      if (pctLabel) pctLabel.textContent = '0%';
-      if (stepLabel) stepLabel.textContent = stepText;
-
-      document.getElementById('modalLoading').classList.remove('hidden');
-      animateProgressTo(initialProgress, stepText);
-    }
-
-    function hideLoading() {
-      cancelAnimationFrame(progressRafId);
-      progressRafId = null;
-      document.getElementById('modalLoading').classList.add('hidden');
-    }
-
-    function addLog(msg) {
       try {
-        const logs = JSON.parse(localStorage.getItem('set_logs') || '[]');
-        const timestamp = new Date().toLocaleTimeString();
-        logs.unshift(`[${timestamp}] ${msg}`);
-        localStorage.setItem('set_logs', JSON.stringify(logs.slice(0, 50)));
-      } catch (e) {}
-    }
+        animateProgressTo(60, 'Descobrindo modelos disponíveis');
+        const listResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+        if (listResp.ok) {
+          const listData = await listResp.json();
+          const validModels = (listData.models || [])
+            .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
+            .map(m => m.name.replace('models/', ''));
 
-    function initTheme() {
-      try {
-        const savedTheme = localStorage.getItem('set_theme');
-        const isDark = savedTheme ? savedTheme === 'dark' : true;
-        document.documentElement.classList.toggle('dark', isDark);
-      } catch (e) {}
-    }
+          const flashModels = validModels.filter(m => m.includes('flash'));
+          const otherModels = validModels.filter(m => !m.includes('flash'));
+          const ordered = [...flashModels, ...otherModels];
 
-    function toggleTheme() {
-      const isDark = document.documentElement.classList.toggle('dark');
-      try {
-        localStorage.setItem('set_theme', isDark ? 'dark' : 'light');
-      } catch (e) {}
-    }
-
-    window.addEventListener('DOMContentLoaded', async () => {
-      initTheme();
-
-      const form = document.getElementById('formAuth');
-      if (form) {
-        form.addEventListener('submit', window.handleAuthSubmit);
+          ordered.forEach(m => {
+            candidateEndpoints.push(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`);
+          });
+        }
+      } catch (errList) {
+        console.warn('Fallback da lista de modelos:', errList);
       }
 
-      if (window.supabaseClient) {
-        window.supabaseClient.auth.onAuthStateChange((event, session) => {
-          if (session && session.user) {
-            window.currentUser = session.user;
-            window.showApp();
-            window.loadAllData().catch(err => console.warn('Erro ao carregar dados:', err));
-          } else {
-            window.currentUser = null;
-            window.showAuth();
+      if (candidateEndpoints.length === 0) {
+        candidateEndpoints = [
+          'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
+          'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent',
+          'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
+          'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
+        ];
+      }
+
+      let lastError = null;
+
+      for (const endpoint of candidateEndpoints) {
+        try {
+          animateProgressTo(75, 'A interpretar compras e parcelas');
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 25000);
+
+          const response = await fetch(`${endpoint}?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: controller.signal,
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { temperature: 0.1 }
+            })
+          });
+
+          clearTimeout(timeoutId);
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            lastError = new Error(errorData.error?.message || `HTTP ${response.status}`);
+            continue;
           }
-        });
-      } else {
-        window.showAuth();
-      }
 
-      document.addEventListener('click', (e) => {
-        const dd = document.getElementById('setMenuDropdown');
-        const btn = document.getElementById('btnSetMenu');
-        if (dd && btn && !dd.contains(e.target) && !btn.contains(e.target)) {
-          dd.classList.add('hidden');
+          animateProgressTo(90, 'A estruturar lançamentos');
+          const data = await response.json();
+          let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+          if (!rawText) throw new Error('Sem resposta textual da IA.');
+
+          rawText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
+          return JSON.parse(rawText);
+        } catch (err) {
+          lastError = err;
         }
-      });
-    });
-
-    function toggleSetMenuDropdown() {
-      document.getElementById('setMenuDropdown').classList.toggle('hidden');
-    }
-
-    function closeSetMenuDropdown() {
-      document.getElementById('setMenuDropdown').classList.add('hidden');
-    }
-
-    function switchTab(tab) {
-      ['dashboard', 'invoices', 'transactions', 'members', 'banks'].forEach(t => {
-        const view = document.getElementById('view' + t.charAt(0).toUpperCase() + t.slice(1));
-        if (view) view.classList.add('hidden');
-      });
-
-      const selected = document.getElementById('view' + tab.charAt(0).toUpperCase() + tab.slice(1));
-      if (selected) selected.classList.remove('hidden');
-
-      ['Dash', 'Invoices', 'Trans', 'Members', 'Banks'].forEach(t => {
-        const btn = document.getElementById('tabNav' + t);
-        if (btn) {
-          btn.className = "px-4 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800 flex items-center gap-2";
-        }
-      });
-      const activeBtn = document.getElementById('tabNav' + tab.charAt(0).toUpperCase() + tab.slice(1));
-      if (activeBtn) {
-        activeBtn.className = "px-4 py-2 rounded-lg text-sm font-semibold transition bg-emerald-950/40 text-emerald-300 border border-emerald-800 flex items-center gap-2";
       }
 
-      if (tab === 'dashboard') {
-        renderCharts();
-      }
-    }
+      throw lastError || new Error('Não foi possível estabelecer conexão com o Gemini.');
+    };
 
-    function triggerInvoiceUpload() {
-      document.getElementById('pdfFileInput').click();
-    }
-
-    async function handleFileSelected(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      const apiKey = localStorage.getItem('set_gemini_key');
-      if (!apiKey) {
-        openConfigModal();
-        alert('Por favor, configure a chave Gemini API antes de processar faturas.');
-        return;
-      }
-
-      showLoading('A ler ficheiro PDF...', 'A extrair páginas e conteúdo textual', 15, 'A ler PDF');
-
+    window.processPdfWithGemini = async function(textContent, apiKey) {
       try {
-        addLog(`A processar ficheiro PDF: ${file.name}`);
-        const arrayBuffer = await file.arrayBuffer();
-        const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        let textContent = '';
+        const parsed = await window.parseInvoiceWithAI(textContent, apiKey);
+        window.pendingParsedInvoice = parsed;
+        addLog(`Fatura interpretada: ${parsed.bank_name} (R$ ${parsed.total_amount})`);
 
-        for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i);
-          const content = await page.getTextContent();
-          textContent += ' ' + content.items.map(item => item.str).join(' ');
-          const pagePct = Math.round(15 + (i / pdf.numPages) * 20);
-          animateProgressTo(pagePct, `A ler página ${i}/${pdf.numPages}`);
-        }
-
-        document.getElementById('loadingTitle').textContent = 'IA a Analisar Fatura...';
-        document.getElementById('loadingSubtext').textContent = 'O Gemini está a estruturar valores, vencimento e compras';
-        animateProgressTo(50, 'A contactar Gemini IA');
-
-        await processPdfWithGemini(textContent, apiKey);
+        animateProgressTo(100, 'Concluído com sucesso');
+        setTimeout(() => {
+          hideLoading();
+          showInvoiceAIModal(parsed);
+        }, 400);
       } catch (err) {
         hideLoading();
-        alert('Erro ao ler PDF: ' + err.message);
-      } finally {
-        e.target.value = '';
-      }
-    }
-
-    // --- CARREGAMENTO RESILIENTE DE DADOS ---
-    window.loadAllData = async function() {
-      if (!window.supabaseClient || !window.currentUser) return;
-
-      try {
-        const [invRes, transRes, membRes, bankRes, payRes] = await Promise.allSettled([
-          window.supabaseClient.from('invoices').select('*').eq('user_id', window.currentUser.id).order('created_at', { ascending: false }),
-          window.supabaseClient.from('transactions').select('*').eq('user_id', window.currentUser.id).order('date', { ascending: false }),
-          window.supabaseClient.from('members').select('*').eq('user_id', window.currentUser.id),
-          window.supabaseClient.from('banks').select('*').eq('user_id', window.currentUser.id),
-          window.supabaseClient.from('payments').select('*').eq('user_id', window.currentUser.id)
-        ]);
-
-        window.currentInvoices = invRes.status === 'fulfilled' && !invRes.value.error ? (invRes.value.data || []) : [];
-        window.currentTransactions = transRes.status === 'fulfilled' && !transRes.value.error ? (transRes.value.data || []) : [];
-        window.currentMembers = membRes.status === 'fulfilled' && !membRes.value.error ? (membRes.value.data || []) : [];
-        window.currentBanks = bankRes.status === 'fulfilled' && !bankRes.value.error ? (bankRes.value.data || []) : [];
-        window.currentPayments = payRes.status === 'fulfilled' && !payRes.value.error ? (payRes.value.data || []) : [];
-
-        renderDashboard();
-        renderInvoicesList();
-        renderTransactionsList();
-        renderMembersList();
-        renderBanksList();
-        renderCharts();
-      } catch (err) {
-        console.warn('Erro ao atualizar dados em segundo plano:', err);
+        alert('Erro ao interpretar com IA: ' + err.message + '\n\nVerifique se a chave Gemini no menu Funções > Configurações está válida e com cota.');
       }
     };
 
-    function renderDashboard() {
-      const openTotal = window.currentInvoices.filter(i => i.status === 'open').reduce((a, b) => a + Number(b.total_amount), 0);
-      const openEl = document.getElementById('cardOpenInvoices');
-      const countEl = document.getElementById('cardOpenCount');
-      if (openEl) openEl.textContent = 'R$ ' + openTotal.toFixed(2);
-      if (countEl) countEl.textContent = `${window.currentInvoices.filter(i => i.status === 'open').length} faturas pendentes`;
+    window.showInvoiceAIModal = function(data) {
+      document.getElementById('aiBankName').value = data.bank_name || 'Cartão';
+      document.getElementById('aiDueDate').value = data.due_date || new Date().toISOString().split('T')[0];
+      document.getElementById('aiTotalAmount').value = Number(data.total_amount).toFixed(2);
+      document.getElementById('aiItemsCount').textContent = (data.items || []).length;
 
-      const transTotal = window.currentTransactions.reduce((a, b) => a + Number(b.amount), 0);
-      const transEl = document.getElementById('cardTotalTransactions');
-      const transCountEl = document.getElementById('cardTransCount');
-      if (transEl) transEl.textContent = 'R$ ' + transTotal.toFixed(2);
-      if (transCountEl) transCountEl.textContent = `${window.currentTransactions.length} itens catalogados`;
-
-      const memEl = document.getElementById('cardTotalMembers');
-      const bankEl = document.getElementById('cardTotalBanks');
-      const badgeEl = document.getElementById('badgeInvoicesCount');
-      if (memEl) memEl.textContent = window.currentMembers.length;
-      if (bankEl) bankEl.textContent = window.currentBanks.length;
-      if (badgeEl) badgeEl.textContent = window.currentInvoices.length;
-    }
-
-    function renderInvoicesList() {
-      const container = document.getElementById('invoicesList');
-      const emptyState = document.getElementById('emptyInvoices');
-      if (!container) return;
+      const container = document.getElementById('aiItemsContainer');
       container.innerHTML = '';
-
-      if (window.currentInvoices.length === 0) {
-        if (emptyState) emptyState.classList.remove('hidden');
-        return;
-      }
-      if (emptyState) emptyState.classList.add('hidden');
-
-      window.currentInvoices.forEach(inv => {
+      (data.items || []).forEach(item => {
         const div = document.createElement('div');
-        div.className = 'py-3 flex items-center justify-between gap-2';
+        div.className = 'py-2 flex items-center justify-between';
+        const instBadge = (item.installment_display && item.installment_display !== '-') ? 
+          `<span class="ml-1 text-[9px] px-1.5 py-0.2 bg-slate-800 rounded text-slate-400 font-bold font-mono">Parc: ${item.installment_display} (Total: ${item.installment_total || '-'})</span>` : '';
         div.innerHTML = `
-          <div class="flex items-center gap-3">
-            <div class="w-9 h-9 rounded-xl bg-rose-950/60 text-rose-400 flex items-center justify-center font-bold text-sm">
-              <i class="ph-bold ph-credit-card"></i>
-            </div>
-            <div>
-              <p class="text-xs font-bold text-white">${inv.bank_name}</p>
-              <p class="text-[10px] text-slate-400">Vencimento: ${inv.due_date} • ${inv.status === 'open' ? 'Em aberto' : 'Pago'}</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-3">
-            <span class="text-xs font-black text-rose-400">R$ ${Number(inv.total_amount).toFixed(2)}</span>
-            <button onclick="deleteSingleInvoice('${inv.id}')" class="p-1.5 text-slate-400 hover:text-rose-400 transition" title="Eliminar fatura">
-              <i class="ph-bold ph-trash text-sm"></i>
-            </button>
-          </div>
-        `;
-        container.appendChild(div);
-      });
-    }
-
-    function renderTransactionsList() {
-      const container = document.getElementById('transactionsList');
-      const emptyState = document.getElementById('emptyTransactions');
-      if (!container) return;
-      container.innerHTML = '';
-
-      if (window.currentTransactions.length === 0) {
-        if (emptyState) emptyState.classList.remove('hidden');
-        return;
-      }
-      if (emptyState) emptyState.classList.add('hidden');
-
-      window.currentTransactions.forEach(t => {
-        const div = document.createElement('div');
-        div.className = 'py-2.5 flex items-center justify-between gap-2 text-xs flex-wrap sm:flex-nowrap';
-        
-        let parcelBadge = '';
-        if (t.installment_info && t.installment_info !== '-') {
-          const totalInfo = t.installment_total ? ` de ${t.installment_total}` : '';
-          parcelBadge = `<span class="ml-1 text-[9px] px-1.5 py-0.2 bg-slate-800 rounded text-amber-300 font-bold font-mono">Parc: ${t.installment_info}${totalInfo}</span>`;
-        }
-
-        let memberOptions = '<option value="">Sem rateio (Geral)</option>';
-        window.currentMembers.forEach(m => {
-          const selected = t.member_id === m.id ? 'selected' : '';
-          memberOptions += `<option value="${m.id}" ${selected}>${m.name}</option>`;
-        });
-
-        div.innerHTML = `
-          <div class="flex-1 min-w-[200px]">
-            <p class="font-bold text-slate-100">${t.description} ${parcelBadge}</p>
-            <p class="text-[10px] text-slate-400">${t.date} • ${t.category}</p>
-          </div>
-          
-          <div class="flex items-center gap-2">
-            <select onchange="assignSingleMember('${t.id}', this.value)" 
-                    class="bg-slate-800 border border-slate-700 text-slate-200 text-[11px] font-semibold rounded-lg px-2 py-1.5 focus:outline-none focus:border-brand-500 transition">
-              ${memberOptions}
-            </select>
-
-            <button onclick="openSplitTransactionModal('${t.id}')" 
-                    class="p-1.5 rounded-lg border border-slate-700 bg-slate-800 text-amber-400 hover:bg-slate-700 hover:border-amber-500/50 transition flex items-center gap-1" 
-                    title="Dividir / Ratear transação entre 2 pessoas">
-              <i class="ph-bold ph-scissors text-sm"></i>
-            </button>
-
-            <span class="font-black text-rose-400 min-w-[75px] text-right">R$ ${Number(t.amount).toFixed(2)}</span>
-          </div>
-        `;
-        container.appendChild(div);
-      });
-    }
-
-    function renderMembersList() {
-      const container = document.getElementById('membersList');
-      const emptyState = document.getElementById('emptyMembers');
-      if (!container) return;
-      container.innerHTML = '';
-
-      if (window.currentMembers.length === 0) {
-        if (emptyState) emptyState.classList.remove('hidden');
-        return;
-      }
-      if (emptyState) emptyState.classList.add('hidden');
-
-      window.currentMembers.forEach(m => {
-        const totalDue = window.currentTransactions.filter(t => t.member_id === m.id).reduce((a, b) => a + Number(b.amount), 0);
-        const alreadyPaid = window.currentPayments.filter(p => p.member_id === m.id).reduce((a, b) => a + Number(b.amount), 0);
-        const remaining = totalDue - alreadyPaid;
-        
-        const latestPromise = window.currentPayments
-          .filter(p => p.member_id === m.id && p.promise_date)
-          .sort((a, b) => new Date(b.promise_date) - new Date(a.promise_date))[0]?.promise_date;
-
-        let statusBadge = '';
-        if (totalDue === 0) {
-          statusBadge = `<span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-bold">Sem débitos</span>`;
-        } else if (remaining <= 0.01) {
-          statusBadge = `<span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold flex items-center gap-1"><i class="ph-bold ph-check-circle"></i> Quitado</span>`;
-        } else if (alreadyPaid > 0) {
-          statusBadge = `<span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-800 font-bold flex items-center gap-1"><i class="ph-bold ph-warning"></i> Parcial (Falta R$ ${remaining.toFixed(2)})</span>`;
-        } else {
-          statusBadge = `<span class="text-[10px] px-2 py-0.5 rounded-full bg-rose-950 text-rose-300 border border-rose-800 font-bold flex items-center gap-1"><i class="ph-bold ph-warning-octagon"></i> Pendente</span>`;
-        }
-
-        const promiseInfo = latestPromise ? `<div class="text-[10px] text-amber-400 font-semibold mt-1 flex items-center gap-1"><i class="ph-bold ph-calendar-blank"></i> Promessa: ${new Date(latestPromise + 'T00:00:00').toLocaleDateString('pt-BR')}</div>` : '';
-
-        const div = document.createElement('div');
-        div.className = 'p-4 rounded-xl border border-slate-800 bg-slate-900/60 flex flex-col justify-between relative group hover:border-slate-700 transition gap-2.5';
-        div.innerHTML = `
-          <div class="flex items-start justify-between gap-2">
-            <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-full bg-indigo-950 text-indigo-300 flex items-center justify-center font-bold text-xs shrink-0">
-                ${m.name.slice(0, 2).toUpperCase()}
-              </div>
-              <div class="overflow-hidden">
-                <h5 class="text-xs font-bold text-white truncate">${m.name}</h5>
-                <span class="text-[10px] text-slate-400 block truncate">${m.email || 'Sem e-mail'} • ${m.phone || 'Sem WhatsApp'}</span>
-              </div>
-            </div>
-            <div class="flex items-center gap-1">
-              <button onclick="openPaymentModal('${m.id}')" class="p-1.5 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-lg transition" title="Registar pagamento ou promessa">
-                <i class="ph-bold ph-money text-sm"></i>
-              </button>
-              <button onclick="openEditMemberModal('${m.id}')" class="p-1.5 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-lg transition" title="Editar dados do membro">
-                <i class="ph-bold ph-pencil-simple text-sm"></i>
-              </button>
-            </div>
-          </div>
-
-          <div class="flex flex-col">
-            ${statusBadge}
-            ${promiseInfo}
-          </div>
-
-          <div class="pt-2 border-t border-slate-800 flex flex-col gap-1 text-xs">
-            <div class="flex items-baseline justify-between text-slate-400">
-              <span>Total Devido:</span>
-              <span class="font-bold text-white">R$ ${totalDue.toFixed(2)}</span>
-            </div>
-            <div class="flex items-baseline justify-between text-slate-400">
-              <span>Pago:</span>
-              <span class="font-bold text-emerald-400">R$ ${alreadyPaid.toFixed(2)}</span>
-            </div>
-            <div class="flex items-baseline justify-between font-bold pt-1 border-t border-slate-800/60">
-              <span class="text-slate-300">Restante:</span>
-              <span class="text-rose-400 text-sm">R$ ${remaining > 0 ? remaining.toFixed(2) : '0,00'}</span>
-            </div>
-          </div>
-        `;
-        container.appendChild(div);
-      });
-    }
-
-    function renderBanksList() {
-      const container = document.getElementById('banksList');
-      const emptyState = document.getElementById('emptyBanks');
-      if (!container) return;
-      container.innerHTML = '';
-
-      if (window.currentBanks.length === 0) {
-        if (emptyState) emptyState.classList.remove('hidden');
-        return;
-      }
-      if (emptyState) emptyState.classList.add('hidden');
-
-      window.currentBanks.forEach(b => {
-        const div = document.createElement('div');
-        div.className = 'p-3.5 rounded-xl border border-slate-800 bg-slate-900/60 flex items-center gap-3';
-        div.innerHTML = `
-          <div class="w-8 h-8 rounded-lg bg-emerald-950 text-emerald-400 flex items-center justify-center text-sm font-bold">
-            <i class="ph-bold ph-bank"></i>
-          </div>
           <div>
-            <h5 class="text-xs font-bold text-white">${b.name}</h5>
-            <span class="text-[10px] text-slate-400">Cartão / Conta ativa</span>
+            <p class="font-bold text-slate-100">${item.description} ${instBadge}</p>
+            <p class="text-[10px] text-slate-400">${item.date} • ${item.category || 'Geral'}</p>
           </div>
+          <span class="font-bold text-rose-400">R$ ${Number(item.amount).toFixed(2)}</span>
         `;
         container.appendChild(div);
       });
-    }
 
-    function renderCharts() {
-      const textColor = '#94a3b8';
-      const gridColor = '#1e293b';
-
-      const bankMap = {};
-      window.currentInvoices.forEach(i => { bankMap[i.bank_name] = (bankMap[i.bank_name] || 0) + Number(i.total_amount); });
-
-      const ctx1 = document.getElementById('chartInvoices')?.getContext('2d');
-      if (ctx1) {
-        if (chartInvoices) chartInvoices.destroy();
-        chartInvoices = new Chart(ctx1, {
-          type: 'bar',
-          data: {
-            labels: Object.keys(bankMap).length ? Object.keys(bankMap) : ['Sem dados'],
-            datasets: [{
-              data: Object.values(bankMap).length ? Object.values(bankMap) : [0],
-              backgroundColor: '#10b981',
-              borderRadius: 8,
-              borderSkipped: false,
-              maxBarThickness: 48,
-              barPercentage: 0.6
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { 
-              legend: { display: false },
-              tooltip: {
-                backgroundColor: '#0f172a',
-                titleColor: '#f8fafc',
-                bodyColor: '#34d399',
-                borderColor: '#334155',
-                borderWidth: 1,
-                padding: 10,
-                callbacks: {
-                  label: function(context) {
-                    return ` Total: R$ ${Number(context.parsed.y).toFixed(2)}`;
-                  }
-                }
-              }
-            },
-            scales: {
-              y: { 
-                grid: { color: gridColor }, 
-                ticks: { 
-                  color: textColor, 
-                  font: { size: 10, family: 'Plus Jakarta Sans' },
-                  callback: function(value) { return 'R$ ' + value; }
-                } 
-              },
-              x: { 
-                grid: { display: false }, 
-                ticks: { color: textColor, font: { size: 11, weight: 'bold', family: 'Plus Jakarta Sans' } } 
-              }
-            }
-          }
-        });
-      }
-
-      const memberMap = {};
-      window.currentMembers.forEach(m => {
-        const sum = window.currentTransactions.filter(t => t.member_id === m.id).reduce((a, b) => a + Number(b.amount), 0);
-        if (sum > 0) memberMap[m.name] = sum;
-      });
-
-      const ctx2 = document.getElementById('chartSplit')?.getContext('2d');
-      if (ctx2) {
-        if (chartSplit) chartSplit.destroy();
-        chartSplit = new Chart(ctx2, {
-          type: 'doughnut',
-          data: {
-            labels: Object.keys(memberMap).length ? Object.keys(memberMap) : ['Sem rateio'],
-            datasets: [{
-              data: Object.values(memberMap).length ? Object.values(memberMap) : [1],
-              backgroundColor: ['#10b981', '#6366f1', '#f59e0b', '#ec4899', '#06b6d4', '#8b5cf6'],
-              borderWidth: 0,
-              hoverOffset: 6
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { 
-              legend: { 
-                position: 'bottom', 
-                labels: { 
-                  boxWidth: 10, 
-                  font: { size: 11, family: 'Plus Jakarta Sans' }, 
-                  color: textColor,
-                  padding: 14
-                } 
-              },
-              tooltip: {
-                backgroundColor: '#0f172a',
-                titleColor: '#f8fafc',
-                bodyColor: '#e2e8f0',
-                borderColor: '#334155',
-                borderWidth: 1,
-                padding: 10,
-                callbacks: {
-                  label: function(context) {
-                    return ` R$ ${Number(context.parsed).toFixed(2)}`;
-                  }
-                }
-              }
-            },
-            cutout: '72%'
-          }
-        });
-      }
-    }
-
-    // Funções de manipulação do modal
-    window.openPaymentModal = function(memberId) {
-      const member = window.currentMembers.find(m => m.id === memberId);
-      if (!member) return;
-
-      const totalDue = window.currentTransactions
-        .filter(t => t.member_id === memberId)
-        .reduce((a, b) => a + Number(b.amount), 0);
-
-      const alreadyPaid = window.currentPayments
-        .filter(p => p.member_id === memberId)
-        .reduce((a, b) => a + Number(b.amount), 0);
-
-      document.getElementById('payMemberId').value = member.id;
-      document.getElementById('payMemberName').textContent = member.name;
-      document.getElementById('payMemberTotal').textContent = `R$ ${totalDue.toFixed(2)}`;
-      document.getElementById('payMemberAlreadyPaid').textContent = `R$ ${alreadyPaid.toFixed(2)}`;
-      document.getElementById('payAmountInput').value = (totalDue - alreadyPaid > 0 ? (totalDue - alreadyPaid).toFixed(2) : '0.00');
-      document.getElementById('payPromiseDate').value = '';
-
-      document.getElementById('modalPayment').classList.remove('hidden');
+      document.getElementById('modalInvoiceAI').classList.remove('hidden');
     };
 
-    window.closePaymentModal = function() {
-      document.getElementById('modalPayment').classList.add('hidden');
+    window.closeInvoiceAIModal = function() {
+      document.getElementById('modalInvoiceAI').classList.add('hidden');
     };
 
-    window.savePaymentRecord = async function() {
-      const memberId = document.getElementById('payMemberId').value;
-      const amount = parseFloat(document.getElementById('payAmountInput').value) || 0;
-      const promiseDate = document.getElementById('payPromiseDate').value || null;
+    window.confirmSaveInvoice = async function() {
+      if (!window.pendingParsedInvoice || !window.supabaseClient) return;
+
+      window.closeInvoiceAIModal();
+      showLoading('A gravar na Base de Dados...', 'A sincronizar fatura e transações no Supabase', 20, 'A preparar dados');
 
       try {
-        const { error } = await window.supabaseClient
-          .from('payments')
-          .insert([{
-            user_id: window.currentUser.id,
-            member_id: memberId,
-            amount: amount,
-            date: new Date().toISOString().split('T')[0],
-            promise_date: promiseDate
-          }]);
-        if (error) throw error;
+        const invoiceData = {
+          user_id: window.currentUser.id,
+          bank_name: document.getElementById('aiBankName').value,
+          due_date: document.getElementById('aiDueDate').value,
+          total_amount: parseFloat(document.getElementById('aiTotalAmount').value),
+          status: 'open'
+        };
 
-        addLog(`Pagamento/Promessa registada para o membro ${memberId}`);
-        window.closePaymentModal();
-        alert('Registo guardado com sucesso!');
-        window.loadAllData();
-      } catch (err) {
-        alert('Erro ao registar pagamento: ' + err.message);
-      }
-    };
+        animateProgressTo(50, 'A gravar fatura principal');
+        const { data: invResult, error: invErr } = await window.supabaseClient
+          .from('invoices')
+          .insert([invoiceData])
+          .select();
 
-    window.openEditMemberModal = function(id) {
-      const member = window.currentMembers.find(m => m.id === id);
-      if (!member) return;
+        if (invErr) throw invErr;
+        const invoiceId = invResult[0].id;
 
-      document.getElementById('editMemberId').value = member.id;
-      document.getElementById('editMemberName').value = member.name || '';
-      document.getElementById('editMemberEmail').value = member.email || '';
-      document.getElementById('editMemberPhone').value = member.phone || '';
+        const transRows = (window.pendingParsedInvoice.items || []).map(item => ({
+          user_id: window.currentUser.id,
+          invoice_id: invoiceId,
+          description: item.description,
+          amount: item.amount,
+          date: item.date || invoiceData.due_date,
+          category: item.category || 'Outros',
+          installment_info: (item.installment_display && item.installment_display !== '-') ? item.installment_display : null,
+          installment_total: item.installment_total || null,
+          type: 'expense'
+        }));
 
-      document.getElementById('modalEditMember').classList.remove('hidden');
-    };
+        if (transRows.length > 0) {
+          animateProgressTo(80, 'A gravar lançamentos individuais');
+          await window.supabaseClient.from('transactions').insert(transRows);
+        }
 
-    window.closeEditMemberModal = function() {
-      document.getElementById('modalEditMember').classList.add('hidden');
-    };
+        animateProgressTo(100, 'Gravação concluída');
+        addLog(`Fatura guardada na base de dados com ${transRows.length} itens.`);
 
-    window.updateMember = async function() {
-      const id = document.getElementById('editMemberId').value;
-      const name = document.getElementById('editMemberName').value.trim();
-      const email = document.getElementById('editMemberEmail').value.trim();
-      const phone = document.getElementById('editMemberPhone').value.trim();
-
-      if (!name) return alert('O nome do membro não pode ficar vazio.');
-
-      try {
-        const { error } = await window.supabaseClient
-          .from('members')
-          .update({ name, email, phone })
-          .eq('id', id);
-
-        if (error) throw error;
-
-        addLog(`Membro atualizado: ${name}`);
-        window.closeEditMemberModal();
-        alert('Cadastro de membro atualizado com sucesso!');
-        window.loadAllData();
-      } catch (err) {
-        alert('Erro ao atualizar membro: ' + err.message);
-      }
-    };
-
-    window.openNewMemberModal = function() { document.getElementById('modalNewMember').classList.remove('hidden'); };
-    window.closeNewMemberModal = function() { document.getElementById('modalNewMember').classList.add('hidden'); };
-
-    window.saveNewMember = async function() {
-      const name = document.getElementById('inputMemberName').value.trim();
-      const email = document.getElementById('inputMemberEmail').value.trim();
-      const phone = document.getElementById('inputMemberPhone').value.trim();
-      if (!name) return alert('Informe o nome do membro.');
-
-      await window.supabaseClient.from('members').insert([{ user_id: window.currentUser.id, name, email, phone }]);
-      addLog(`Membro adicionado: ${name}`);
-      document.getElementById('inputMemberName').value = '';
-      document.getElementById('inputMemberEmail').value = '';
-      document.getElementById('inputMemberPhone').value = '';
-      window.closeNewMemberModal();
-      window.loadAllData();
-    };
-
-    window.openNewBankModal = function() { document.getElementById('modalNewBank').classList.remove('hidden'); };
-    window.closeNewBankModal = function() { document.getElementById('modalNewBank').classList.add('hidden'); };
-
-    window.saveNewBank = async function() {
-      const name = document.getElementById('inputBankName').value.trim();
-      if (!name) return alert('Informe o nome do banco.');
-
-      await window.supabaseClient.from('banks').insert([{ user_id: window.currentUser.id, name }]);
-      addLog(`Banco adicionado: ${name}`);
-      document.getElementById('inputBankName').value = '';
-      window.closeNewBankModal();
-      window.loadAllData();
-    };
-
-    window.openLogsModal = function() {
-      const logs = JSON.parse(localStorage.getItem('set_logs') || '[]');
-      const container = document.getElementById('appLogsConsole');
-      if (container) container.innerHTML = logs.length ? logs.map(l => `<div>${l}</div>`).join('') : '<div>Nenhum log gravado.</div>';
-      document.getElementById('modalLogs').classList.remove('hidden');
-    };
-
-    window.closeLogsModal = function() { document.getElementById('modalLogs').classList.add('hidden'); };
-
-    window.clearAppLogs = function() {
-      localStorage.removeItem('set_logs');
-      const container = document.getElementById('appLogsConsole');
-      if (container) container.innerHTML = '<div>Logs limpos com sucesso.</div>';
-    };
-
-    window.openResetInvoicesModal = function() {
-      if (window.currentInvoices.length === 0) return alert('Não há faturas para zerar.');
-      document.getElementById('modalResetInvoices').classList.remove('hidden');
-    };
-
-    window.closeResetInvoicesModal = function() {
-      document.getElementById('modalResetInvoices').classList.add('hidden');
-    };
-
-    window.executeResetAllInvoices = async function() {
-      if (!window.supabaseClient || !window.currentUser) return;
-      try {
-        await window.supabaseClient.from('transactions').delete().eq('user_id', window.currentUser.id).not('invoice_id', 'is', null);
-        await window.supabaseClient.from('invoices').delete().eq('user_id', window.currentUser.id);
-
-        addLog('Reset total de faturas e compras executado.');
-        window.closeResetInvoicesModal();
-        alert('Todas as faturas foram zeradas com sucesso!');
-        window.loadAllData();
-      } catch (err) {
-        alert('Erro ao zerar faturas: ' + err.message);
-      }
-    };
-
-    window.deleteSingleInvoice = async function(invoiceId) {
-      if (!confirm('Deseja eliminar esta fatura e todos os seus itens?')) return;
-      if (!window.supabaseClient || !window.currentUser) return;
-
-      try {
-        await window.supabaseClient.from('transactions').delete().eq('invoice_id', invoiceId);
-        await window.supabaseClient.from('invoices').delete().eq('id', invoiceId);
-
-        addLog(`Fatura excluída: ${invoiceId}`);
-        window.loadAllData();
-      } catch (err) {
-        alert('Erro ao eliminar fatura: ' + err.message);
+        setTimeout(() => {
+          hideLoading();
+          alert('Fatura e itens guardados com sucesso!');
+          window.loadAllData();
+        }, 400);
+      } catch (e) {
+        hideLoading();
+        alert('Erro ao guardar fatura: ' + e.message);
       }
     };
 
