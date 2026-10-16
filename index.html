@@ -962,10 +962,70 @@
         const c1 = document.getElementById('chartInvoices');
         if (c1) {
           if (chartInvoices) chartInvoices.destroy();
-          chartInvoices = new Chart(c1.getContext('2d'), {
+          const ctx1 = c1.getContext('2d');
+          const barGradient = ctx1.createLinearGradient(0, 0, 0, 240);
+          barGradient.addColorStop(0, 'rgba(16, 185, 129, 0.95)');
+          barGradient.addColorStop(1, 'rgba(16, 185, 129, 0.18)');
+
+          const hasBanks = Object.keys(bankMap).length > 0;
+          chartInvoices = new Chart(ctx1, {
             type: 'bar',
-            data: { labels: Object.keys(bankMap).length ? Object.keys(bankMap) : ['Sem dados'], datasets: [{ data: Object.values(bankMap).length ? Object.values(bankMap) : [0], backgroundColor: '#10b981', borderRadius: 8 }] },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            data: {
+              labels: hasBanks ? Object.keys(bankMap) : ['Sem dados'],
+              datasets: [{
+                data: hasBanks ? Object.values(bankMap) : [0],
+                backgroundColor: barGradient,
+                hoverBackgroundColor: '#10b981',
+                borderColor: '#34d399',
+                borderWidth: { top: 2, right: 0, bottom: 0, left: 0 },
+                borderRadius: 10,
+                borderSkipped: false,
+                maxBarThickness: 48,
+                barPercentage: 0.55,
+                categoryPercentage: 0.65
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              layout: { padding: { top: 8, right: 8, left: 4, bottom: 0 } },
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  backgroundColor: '#0f172a',
+                  titleColor: '#f8fafc',
+                  bodyColor: '#34d399',
+                  borderColor: '#1e293b',
+                  borderWidth: 1,
+                  padding: 10,
+                  cornerRadius: 10,
+                  displayColors: false,
+                  callbacks: {
+                    label: ctx => 'R$ ' + Number(ctx.parsed.y || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                  }
+                }
+              },
+              scales: {
+                x: {
+                  grid: { display: false },
+                  border: { display: false },
+                  ticks: {
+                    color: '#94a3b8',
+                    font: { family: "'Plus Jakarta Sans', sans-serif", size: 11, weight: '600' }
+                  }
+                },
+                y: {
+                  beginAtZero: true,
+                  border: { display: false, dash: [4, 4] },
+                  grid: { color: 'rgba(148, 163, 184, 0.08)' },
+                  ticks: {
+                    color: '#64748b',
+                    font: { family: "'Plus Jakarta Sans', sans-serif", size: 10, weight: '600' },
+                    callback: val => 'R$ ' + Number(val).toLocaleString('pt-BR')
+                  }
+                }
+              }
+            }
           });
         }
         const memberMap = {};
@@ -976,10 +1036,49 @@
         const c2 = document.getElementById('chartSplit');
         if (c2) {
           if (chartSplit) chartSplit.destroy();
+          const hasSplits = Object.keys(memberMap).length > 0;
           chartSplit = new Chart(c2.getContext('2d'), {
             type: 'doughnut',
-            data: { labels: Object.keys(memberMap).length ? Object.keys(memberMap) : ['Sem rateio'], datasets: [{ data: Object.values(memberMap).length ? Object.values(memberMap) : [1], backgroundColor: ['#10b981', '#6366f1', '#f59e0b', '#ec4899', '#06b6d4'], borderWidth: 0 }] },
-            options: { responsive: true, maintainAspectRatio: false, cutout: '70%' }
+            data: {
+              labels: hasSplits ? Object.keys(memberMap) : ['Sem rateio'],
+              datasets: [{
+                data: hasSplits ? Object.values(memberMap) : [1],
+                backgroundColor: hasSplits ? ['#10b981', '#6366f1', '#f59e0b', '#ec4899', '#06b6d4'] : ['#1e293b'],
+                borderWidth: 0,
+                hoverOffset: 4
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              cutout: '72%',
+              plugins: {
+                legend: {
+                  position: 'top',
+                  labels: {
+                    color: '#94a3b8',
+                    usePointStyle: true,
+                    pointStyle: 'circle',
+                    boxWidth: 8,
+                    padding: 14,
+                    font: { family: "'Plus Jakarta Sans', sans-serif", size: 11, weight: '600' }
+                  }
+                },
+                tooltip: {
+                  enabled: hasSplits,
+                  backgroundColor: '#0f172a',
+                  titleColor: '#f8fafc',
+                  bodyColor: '#e2e8f0',
+                  borderColor: '#1e293b',
+                  borderWidth: 1,
+                  padding: 10,
+                  cornerRadius: 10,
+                  callbacks: {
+                    label: ctx => ` R$ ${Number(ctx.parsed || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                  }
+                }
+              }
+            }
           });
         }
       } catch (e) {}
