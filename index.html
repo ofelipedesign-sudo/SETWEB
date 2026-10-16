@@ -79,6 +79,127 @@
       #printArea { position: absolute; left: 0; top: 0; width: 100%; }
     }
   </style>
+
+  <!-- ESCOPO GLOBAL & INICIALIZAÇÃO DE VARIÁVEIS -->
+  <script>
+    window.currentAuthMode = 'login';
+    window.currentUser = null;
+    window.currentInvoices = [];
+    window.currentTransactions = [];
+    window.currentMembers = [];
+    window.currentBanks = [];
+    window.currentPayments = [];
+    window.pendingParsedInvoice = null;
+    window.selectedTransactionToSplit = null;
+
+    const SUPABASE_PROJECT_URL = 'https://opfgooigsgypgzcaehrf.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9wZmdvb2lnc2d5cGd6Y2FlaHJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE5MTQ3MjksImV4cCI6MjEwNzQ5MDcyOX0.3NRYTFNzSa7KcGdB00bGm2wBUgoK9-EMloaCT00b-K4';
+
+    try {
+      window.supabaseClient = window.supabase.createClient(SUPABASE_PROJECT_URL, SUPABASE_ANON_KEY, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true
+        }
+      });
+    } catch (e) {
+      console.error('Falha ao inicializar o Supabase:', e);
+    }
+
+    window.showAuth = function() {
+      const a = document.getElementById('authScreen');
+      const c = document.getElementById('appContainer');
+      if (a) a.classList.remove('hidden');
+      if (c) c.classList.add('hidden');
+    };
+
+    window.showApp = function() {
+      const a = document.getElementById('authScreen');
+      const c = document.getElementById('appContainer');
+      if (a) a.classList.add('hidden');
+      if (c) c.classList.remove('hidden');
+    };
+
+    window.setAuthMode = function(mode) {
+      window.currentAuthMode = mode;
+      const tabLog = document.getElementById('tabAuthLogin');
+      const tabReg = document.getElementById('tabAuthRegister');
+      const btn = document.getElementById('btnAuthSubmit');
+      if (!tabLog || !tabReg || !btn) return;
+
+      if (mode === 'login') {
+        tabLog.className = "flex-1 py-2.5 rounded-lg bg-slate-700 text-white shadow-sm transition";
+        tabReg.className = "flex-1 py-2.5 rounded-lg text-slate-400 transition";
+        btn.textContent = "Aceder ao SET";
+      } else {
+        tabReg.className = "flex-1 py-2.5 rounded-lg bg-slate-700 text-white shadow-sm transition";
+        tabLog.className = "flex-1 py-2.5 rounded-lg text-slate-400 transition";
+        btn.textContent = "Criar Minha Conta";
+      }
+    };
+
+    window.handleAuthSubmit = async function(e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+
+      if (!window.supabaseClient) {
+        alert('Cliente Supabase não inicializado.');
+        return false;
+      }
+
+      const emailInput = document.getElementById('authEmail');
+      const passInput = document.getElementById('authPassword');
+      const btn = document.getElementById('btnAuthSubmit');
+
+      if (!emailInput || !passInput) return false;
+
+      const email = emailInput.value.trim();
+      const password = passInput.value;
+
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Processando...';
+      }
+
+      try {
+        if (window.currentAuthMode === 'register') {
+          const { data, error } = await window.supabaseClient.auth.signUp({ email, password });
+          if (error) throw error;
+          
+          if (data && data.session && data.user) {
+            window.currentUser = data.user;
+            window.showApp();
+            if (typeof window.loadAllData === 'function') {
+              window.loadAllData().catch(e => console.warn(e));
+            }
+          } else {
+            alert('Conta criada com sucesso! Pode agora iniciar sessão.');
+            window.setAuthMode('login');
+          }
+        } else {
+          const { data, error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
+          if (error) throw error;
+          
+          window.currentUser = data.user;
+          window.showApp();
+          if (typeof window.loadAllData === 'function') {
+            window.loadAllData().catch(e => console.warn(e));
+          }
+        }
+      } catch (err) {
+        alert('Erro ao autenticar: ' + (err.message || 'Credenciais inválidas ou erro de conexão.'));
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = window.currentAuthMode === 'login' ? 'Aceder ao SET' : 'Criar Minha Conta';
+        }
+      }
+      return false;
+    };
+  </script>
 </head>
 <body class="bg-slate-950 text-slate-100 antialiased min-h-screen transition-colors duration-200 select-none">
 
@@ -99,7 +220,8 @@
           <button type="button" id="tabAuthRegister" onclick="setAuthMode('register')" class="flex-1 py-2.5 rounded-lg text-slate-400 transition">Criar Conta</button>
         </div>
 
-        <form id="formAuth" onsubmit="event.preventDefault(); handleAuthSubmit(event);" class="flex flex-col gap-4">
+        <!-- FORMULÁRIO SEM ONSUBMIT INLINE (EVITA CONDIÇÕES DE CORRIDA) -->
+        <form id="formAuth" class="flex flex-col gap-4">
           <div>
             <label class="block text-xs font-bold text-slate-300 mb-1.5">E-mail</label>
             <input type="email" id="authEmail" required placeholder="seu@email.com" class="w-full px-3.5 py-3 text-sm rounded-xl border border-slate-700 bg-slate-800 text-white focus:outline-none focus:border-brand-500 transition">
@@ -837,608 +959,12 @@
 
   </div>
 
-  <!-- 4. LÓGICA DE DADOS, GRÁFICOS & CRIAÇÃO GLOBAL DE FUNÇÕES -->
+  <!-- 5. OUVINTES DE EVENTOS & DISPARO SEGURO -->
   <script>
-    window.switchTab = function(tab) {
-      ['dashboard', 'invoices', 'transactions', 'members', 'banks'].forEach(t => {
-        const view = document.getElementById('view' + t.charAt(0).toUpperCase() + t.slice(1));
-        if (view) view.classList.add('hidden');
-      });
-
-      const selected = document.getElementById('view' + tab.charAt(0).toUpperCase() + tab.slice(1));
-      if (selected) selected.classList.remove('hidden');
-
-      ['Dash', 'Invoices', 'Trans', 'Members', 'Banks'].forEach(t => {
-        const btn = document.getElementById('tabNav' + t);
-        if (btn) {
-          btn.className = "px-4 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800 flex items-center gap-2";
-        }
-      });
-      const activeBtn = document.getElementById('tabNav' + tab.charAt(0).toUpperCase() + tab.slice(1));
-      if (activeBtn) {
-        activeBtn.className = "px-4 py-2 rounded-lg text-sm font-semibold transition bg-emerald-950/40 text-emerald-300 border border-emerald-800 flex items-center gap-2";
-      }
-
-      if (tab === 'dashboard') {
-        renderCharts();
-      }
-    };
-
-    window.toggleSetMenuDropdown = function() {
-      const dd = document.getElementById('setMenuDropdown');
-      if (dd) dd.classList.toggle('hidden');
-    };
-
-    window.closeSetMenuDropdown = function() {
-      const dd = document.getElementById('setMenuDropdown');
-      if (dd) dd.classList.add('hidden');
-    };
-
-    window.signOut = async function() {
-      if (window.supabaseClient) await window.supabaseClient.auth.signOut();
-      window.currentUser = null;
-      window.showAuth();
-    };
-
-    function renderDashboard() {
-      const openTotal = window.currentInvoices.filter(i => i.status === 'open').reduce((a, b) => a + Number(b.total_amount), 0);
-      const openEl = document.getElementById('cardOpenInvoices');
-      const countEl = document.getElementById('cardOpenCount');
-      if (openEl) openEl.textContent = 'R$ ' + openTotal.toFixed(2);
-      if (countEl) countEl.textContent = `${window.currentInvoices.filter(i => i.status === 'open').length} faturas pendentes`;
-
-      const transTotal = window.currentTransactions.reduce((a, b) => a + Number(b.amount), 0);
-      const transEl = document.getElementById('cardTotalTransactions');
-      const transCountEl = document.getElementById('cardTransCount');
-      if (transEl) transEl.textContent = 'R$ ' + transTotal.toFixed(2);
-      if (transCountEl) transCountEl.textContent = `${window.currentTransactions.length} itens catalogados`;
-
-      const memEl = document.getElementById('cardTotalMembers');
-      const bankEl = document.getElementById('cardTotalBanks');
-      const badgeEl = document.getElementById('badgeInvoicesCount');
-      if (memEl) memEl.textContent = window.currentMembers.length;
-      if (bankEl) bankEl.textContent = window.currentBanks.length;
-      if (badgeEl) badgeEl.textContent = window.currentInvoices.length;
-    }
-
-    function renderInvoicesList() {
-      const container = document.getElementById('invoicesList');
-      const emptyState = document.getElementById('emptyInvoices');
-      if (!container) return;
-      container.innerHTML = '';
-
-      if (window.currentInvoices.length === 0) {
-        if (emptyState) emptyState.classList.remove('hidden');
-        return;
-      }
-      if (emptyState) emptyState.classList.add('hidden');
-
-      window.currentInvoices.forEach(inv => {
-        const div = document.createElement('div');
-        div.className = 'py-3 flex items-center justify-between gap-2';
-        div.innerHTML = `
-          <div class="flex items-center gap-3">
-            <div class="w-9 h-9 rounded-xl bg-rose-950/60 text-rose-400 flex items-center justify-center font-bold text-sm">
-              <i class="ph-bold ph-credit-card"></i>
-            </div>
-            <div>
-              <p class="text-xs font-bold text-white">${inv.bank_name}</p>
-              <p class="text-[10px] text-slate-400">Vencimento: ${inv.due_date} • ${inv.status === 'open' ? 'Em aberto' : 'Pago'}</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-3">
-            <span class="text-xs font-black text-rose-400">R$ ${Number(inv.total_amount).toFixed(2)}</span>
-            <button onclick="deleteSingleInvoice('${inv.id}')" class="p-1.5 text-slate-400 hover:text-rose-400 transition" title="Eliminar fatura">
-              <i class="ph-bold ph-trash text-sm"></i>
-            </button>
-          </div>
-        `;
-        container.appendChild(div);
-      });
-    }
-
-    function renderTransactionsList() {
-      const container = document.getElementById('transactionsList');
-      const emptyState = document.getElementById('emptyTransactions');
-      if (!container) return;
-      container.innerHTML = '';
-
-      if (window.currentTransactions.length === 0) {
-        if (emptyState) emptyState.classList.remove('hidden');
-        return;
-      }
-      if (emptyState) emptyState.classList.add('hidden');
-
-      window.currentTransactions.forEach(t => {
-        const div = document.createElement('div');
-        div.className = 'py-2.5 flex items-center justify-between gap-2 text-xs flex-wrap sm:flex-nowrap';
-        
-        let parcelBadge = '';
-        if (t.installment_info && t.installment_info !== '-') {
-          const totalInfo = t.installment_total ? ` de ${t.installment_total}` : '';
-          parcelBadge = `<span class="ml-1 text-[9px] px-1.5 py-0.2 bg-slate-800 rounded text-amber-300 font-bold font-mono">Parc: ${t.installment_info}${totalInfo}</span>`;
-        }
-
-        let memberOptions = '<option value="">Sem rateio (Geral)</option>';
-        window.currentMembers.forEach(m => {
-          const selected = t.member_id === m.id ? 'selected' : '';
-          memberOptions += `<option value="${m.id}" ${selected}>${m.name}</option>`;
-        });
-
-        div.innerHTML = `
-          <div class="flex-1 min-w-[200px]">
-            <p class="font-bold text-slate-100">${t.description} ${parcelBadge}</p>
-            <p class="text-[10px] text-slate-400">${t.date} • ${t.category}</p>
-          </div>
-          
-          <div class="flex items-center gap-2">
-            <select onchange="assignSingleMember('${t.id}', this.value)" 
-                    class="bg-slate-800 border border-slate-700 text-slate-200 text-[11px] font-semibold rounded-lg px-2 py-1.5 focus:outline-none focus:border-brand-500 transition">
-              ${memberOptions}
-            </select>
-
-            <button onclick="openSplitTransactionModal('${t.id}')" 
-                    class="p-1.5 rounded-lg border border-slate-700 bg-slate-800 text-amber-400 hover:bg-slate-700 hover:border-amber-500/50 transition flex items-center gap-1" 
-                    title="Dividir / Ratear transação entre 2 pessoas">
-              <i class="ph-bold ph-scissors text-sm"></i>
-            </button>
-
-            <span class="font-black text-rose-400 min-w-[75px] text-right">R$ ${Number(t.amount).toFixed(2)}</span>
-          </div>
-        `;
-        container.appendChild(div);
-      });
-    }
-
-    function renderMembersList() {
-      const container = document.getElementById('membersList');
-      const emptyState = document.getElementById('emptyMembers');
-      if (!container) return;
-      container.innerHTML = '';
-
-      if (window.currentMembers.length === 0) {
-        if (emptyState) emptyState.classList.remove('hidden');
-        return;
-      }
-      if (emptyState) emptyState.classList.add('hidden');
-
-      window.currentMembers.forEach(m => {
-        const totalDue = window.currentTransactions.filter(t => t.member_id === m.id).reduce((a, b) => a + Number(b.amount), 0);
-        const alreadyPaid = window.currentPayments.filter(p => p.member_id === m.id).reduce((a, b) => a + Number(b.amount), 0);
-        const remaining = totalDue - alreadyPaid;
-        
-        const latestPromise = window.currentPayments
-          .filter(p => p.member_id === m.id && p.promise_date)
-          .sort((a, b) => new Date(b.promise_date) - new Date(a.promise_date))[0]?.promise_date;
-
-        let statusBadge = '';
-        if (totalDue === 0) {
-          statusBadge = `<span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-bold">Sem débitos</span>`;
-        } else if (remaining <= 0.01) {
-          statusBadge = `<span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold flex items-center gap-1"><i class="ph-bold ph-check-circle"></i> Quitado</span>`;
-        } else if (alreadyPaid > 0) {
-          statusBadge = `<span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-800 font-bold flex items-center gap-1"><i class="ph-bold ph-warning"></i> Parcial (Falta R$ ${remaining.toFixed(2)})</span>`;
-        } else {
-          statusBadge = `<span class="text-[10px] px-2 py-0.5 rounded-full bg-rose-950 text-rose-300 border border-rose-800 font-bold flex items-center gap-1"><i class="ph-bold ph-warning-octagon"></i> Pendente</span>`;
-        }
-
-        const promiseInfo = latestPromise ? `<div class="text-[10px] text-amber-400 font-semibold mt-1 flex items-center gap-1"><i class="ph-bold ph-calendar-blank"></i> Promessa: ${new Date(latestPromise + 'T00:00:00').toLocaleDateString('pt-BR')}</div>` : '';
-
-        const div = document.createElement('div');
-        div.className = 'p-4 rounded-xl border border-slate-800 bg-slate-900/60 flex flex-col justify-between relative group hover:border-slate-700 transition gap-2.5';
-        div.innerHTML = `
-          <div class="flex items-start justify-between gap-2">
-            <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-full bg-indigo-950 text-indigo-300 flex items-center justify-center font-bold text-xs shrink-0">
-                ${m.name.slice(0, 2).toUpperCase()}
-              </div>
-              <div class="overflow-hidden">
-                <h5 class="text-xs font-bold text-white truncate">${m.name}</h5>
-                <span class="text-[10px] text-slate-400 block truncate">${m.email || 'Sem e-mail'} • ${m.phone || 'Sem WhatsApp'}</span>
-              </div>
-            </div>
-            <div class="flex items-center gap-1">
-              <button onclick="openPaymentModal('${m.id}')" class="p-1.5 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-lg transition" title="Registar pagamento ou promessa">
-                <i class="ph-bold ph-money text-sm"></i>
-              </button>
-              <button onclick="openEditMemberModal('${m.id}')" class="p-1.5 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-lg transition" title="Editar dados do membro">
-                <i class="ph-bold ph-pencil-simple text-sm"></i>
-              </button>
-            </div>
-          </div>
-
-          <div class="flex flex-col">
-            ${statusBadge}
-            ${promiseInfo}
-          </div>
-
-          <div class="pt-2 border-t border-slate-800 flex flex-col gap-1 text-xs">
-            <div class="flex items-baseline justify-between text-slate-400">
-              <span>Total Devido:</span>
-              <span class="font-bold text-white">R$ ${totalDue.toFixed(2)}</span>
-            </div>
-            <div class="flex items-baseline justify-between text-slate-400">
-              <span>Pago:</span>
-              <span class="font-bold text-emerald-400">R$ ${alreadyPaid.toFixed(2)}</span>
-            </div>
-            <div class="flex items-baseline justify-between font-bold pt-1 border-t border-slate-800/60">
-              <span class="text-slate-300">Restante:</span>
-              <span class="text-rose-400 text-sm">R$ ${remaining > 0 ? remaining.toFixed(2) : '0,00'}</span>
-            </div>
-          </div>
-        `;
-        container.appendChild(div);
-      });
-    }
-
-    function renderBanksList() {
-      const container = document.getElementById('banksList');
-      const emptyState = document.getElementById('emptyBanks');
-      if (!container) return;
-      container.innerHTML = '';
-
-      if (window.currentBanks.length === 0) {
-        if (emptyState) emptyState.classList.remove('hidden');
-        return;
-      }
-      if (emptyState) emptyState.classList.add('hidden');
-
-      window.currentBanks.forEach(b => {
-        const div = document.createElement('div');
-        div.className = 'p-3.5 rounded-xl border border-slate-800 bg-slate-900/60 flex items-center gap-3';
-        div.innerHTML = `
-          <div class="w-8 h-8 rounded-lg bg-emerald-950 text-emerald-400 flex items-center justify-center text-sm font-bold">
-            <i class="ph-bold ph-bank"></i>
-          </div>
-          <div>
-            <h5 class="text-xs font-bold text-white">${b.name}</h5>
-            <span class="text-[10px] text-slate-400">Cartão / Conta ativa</span>
-          </div>
-        `;
-        container.appendChild(div);
-      });
-    }
-
-    function renderCharts() {
-      try {
-        const textColor = '#94a3b8';
-        const gridColor = '#1e293b';
-
-        const bankMap = {};
-        window.currentInvoices.forEach(i => { bankMap[i.bank_name] = (bankMap[i.bank_name] || 0) + Number(i.total_amount); });
-
-        const canvas1 = document.getElementById('chartInvoices');
-        if (canvas1) {
-          const ctx1 = canvas1.getContext('2d');
-          if (chartInvoices) {
-            chartInvoices.destroy();
-            chartInvoices = null;
-          }
-          chartInvoices = new Chart(ctx1, {
-            type: 'bar',
-            data: {
-              labels: Object.keys(bankMap).length ? Object.keys(bankMap) : ['Sem dados'],
-              datasets: [{
-                data: Object.values(bankMap).length ? Object.values(bankMap) : [0],
-                backgroundColor: '#10b981',
-                borderRadius: 8,
-                borderSkipped: false,
-                maxBarThickness: 48,
-                barPercentage: 0.6
-              }]
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: { 
-                legend: { display: false },
-                tooltip: {
-                  backgroundColor: '#0f172a',
-                  titleColor: '#f8fafc',
-                  bodyColor: '#34d399',
-                  borderColor: '#334155',
-                  borderWidth: 1,
-                  padding: 10,
-                  callbacks: {
-                    label: function(context) {
-                      return ` Total: R$ ${Number(context.parsed.y).toFixed(2)}`;
-                    }
-                  }
-                }
-              },
-              scales: {
-                y: { 
-                  grid: { color: gridColor }, 
-                  ticks: { 
-                    color: textColor, 
-                    font: { size: 10, family: 'Plus Jakarta Sans' },
-                    callback: function(value) { return 'R$ ' + value; }
-                  } 
-                },
-                x: { 
-                  grid: { display: false }, 
-                  ticks: { color: textColor, font: { size: 11, weight: 'bold', family: 'Plus Jakarta Sans' } } 
-                }
-              }
-            }
-          });
-        }
-
-        const memberMap = {};
-        window.currentMembers.forEach(m => {
-          const sum = window.currentTransactions.filter(t => t.member_id === m.id).reduce((a, b) => a + Number(b.amount), 0);
-          if (sum > 0) memberMap[m.name] = sum;
-        });
-
-        const canvas2 = document.getElementById('chartSplit');
-        if (canvas2) {
-          const ctx2 = canvas2.getContext('2d');
-          if (chartSplit) {
-            chartSplit.destroy();
-            chartSplit = null;
-          }
-          chartSplit = new Chart(ctx2, {
-            type: 'doughnut',
-            data: {
-              labels: Object.keys(memberMap).length ? Object.keys(memberMap) : ['Sem rateio'],
-              datasets: [{
-                data: Object.values(memberMap).length ? Object.values(memberMap) : [1],
-                backgroundColor: ['#10b981', '#6366f1', '#f59e0b', '#ec4899', '#06b6d4', '#8b5cf6'],
-                borderWidth: 0,
-                hoverOffset: 6
-              }]
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: { 
-                legend: { 
-                  position: 'bottom', 
-                  labels: { 
-                    boxWidth: 10, 
-                    font: { size: 11, family: 'Plus Jakarta Sans' }, 
-                    color: textColor,
-                    padding: 14
-                  } 
-                },
-                tooltip: {
-                  backgroundColor: '#0f172a',
-                  titleColor: '#f8fafc',
-                  bodyColor: '#e2e8f0',
-                  borderColor: '#334155',
-                  borderWidth: 1,
-                  padding: 10,
-                  callbacks: {
-                    label: function(context) {
-                      return ` R$ ${Number(context.parsed).toFixed(2)}`;
-                    }
-                  }
-                }
-              },
-              cutout: '72%'
-            }
-          });
-        }
-      } catch (err) {
-        console.warn('Erro ao atualizar gráficos:', err);
-      }
-    }
-
-    window.openPaymentModal = function(memberId) {
-      const member = window.currentMembers.find(m => m.id === memberId);
-      if (!member) return;
-
-      const totalDue = window.currentTransactions
-        .filter(t => t.member_id === memberId)
-        .reduce((a, b) => a + Number(b.amount), 0);
-
-      const alreadyPaid = window.currentPayments
-        .filter(p => p.member_id === memberId)
-        .reduce((a, b) => a + Number(b.amount), 0);
-
-      document.getElementById('payMemberId').value = member.id;
-      document.getElementById('payMemberName').textContent = member.name;
-      document.getElementById('payMemberTotal').textContent = `R$ ${totalDue.toFixed(2)}`;
-      document.getElementById('payMemberAlreadyPaid').textContent = `R$ ${alreadyPaid.toFixed(2)}`;
-      document.getElementById('payAmountInput').value = (totalDue - alreadyPaid > 0 ? (totalDue - alreadyPaid).toFixed(2) : '0.00');
-      document.getElementById('payPromiseDate').value = '';
-
-      document.getElementById('modalPayment').classList.remove('hidden');
-    };
-
-    window.closePaymentModal = function() {
-      document.getElementById('modalPayment').classList.add('hidden');
-    };
-
-    window.savePaymentRecord = async function() {
-      const memberId = document.getElementById('payMemberId').value;
-      const amount = parseFloat(document.getElementById('payAmountInput').value) || 0;
-      const promiseDate = document.getElementById('payPromiseDate').value || null;
-
-      try {
-        const { error } = await window.supabaseClient
-          .from('payments')
-          .insert([{
-            user_id: window.currentUser.id,
-            member_id: memberId,
-            amount: amount,
-            date: new Date().toISOString().split('T')[0],
-            promise_date: promiseDate
-          }]);
-        if (error) throw error;
-
-        addLog(`Pagamento/Promessa registada para o membro ${memberId}`);
-        window.closePaymentModal();
-        alert('Registo guardado com sucesso!');
-        window.loadAllData();
-      } catch (err) {
-        alert('Erro ao registar pagamento: ' + err.message);
-      }
-    };
-
-    window.openEditMemberModal = function(id) {
-      const member = window.currentMembers.find(m => m.id === id);
-      if (!member) return;
-
-      document.getElementById('editMemberId').value = member.id;
-      document.getElementById('editMemberName').value = member.name || '';
-      document.getElementById('editMemberEmail').value = member.email || '';
-      document.getElementById('editMemberPhone').value = member.phone || '';
-
-      document.getElementById('modalEditMember').classList.remove('hidden');
-    };
-
-    window.closeEditMemberModal = function() {
-      document.getElementById('modalEditMember').classList.add('hidden');
-    };
-
-    window.updateMember = async function() {
-      const id = document.getElementById('editMemberId').value;
-      const name = document.getElementById('editMemberName').value.trim();
-      const email = document.getElementById('editMemberEmail').value.trim();
-      const phone = document.getElementById('editMemberPhone').value.trim();
-
-      if (!name) return alert('O nome do membro não pode ficar vazio.');
-
-      try {
-        const { error } = await window.supabaseClient
-          .from('members')
-          .update({ name, email, phone })
-          .eq('id', id);
-
-        if (error) throw error;
-
-        addLog(`Membro atualizado: ${name}`);
-        window.closeEditMemberModal();
-        alert('Cadastro de membro atualizado com sucesso!');
-        window.loadAllData();
-      } catch (err) {
-        alert('Erro ao atualizar membro: ' + err.message);
-      }
-    };
-
-    window.openNewMemberModal = function() { document.getElementById('modalNewMember').classList.remove('hidden'); };
-    window.closeNewMemberModal = function() { document.getElementById('modalNewMember').classList.add('hidden'); };
-
-    window.saveNewMember = async function() {
-      const name = document.getElementById('inputMemberName').value.trim();
-      const email = document.getElementById('inputMemberEmail').value.trim();
-      const phone = document.getElementById('inputMemberPhone').value.trim();
-      if (!name) return alert('Informe o nome do membro.');
-
-      await window.supabaseClient.from('members').insert([{ user_id: window.currentUser.id, name, email, phone }]);
-      addLog(`Membro adicionado: ${name}`);
-      document.getElementById('inputMemberName').value = '';
-      document.getElementById('inputMemberEmail').value = '';
-      document.getElementById('inputMemberPhone').value = '';
-      window.closeNewMemberModal();
-      window.loadAllData();
-    };
-
-    window.openNewBankModal = function() { document.getElementById('modalNewBank').classList.remove('hidden'); };
-    window.closeNewBankModal = function() { document.getElementById('modalNewBank').classList.add('hidden'); };
-
-    window.saveNewBank = async function() {
-      const name = document.getElementById('inputBankName').value.trim();
-      if (!name) return alert('Informe o nome do banco.');
-
-      await window.supabaseClient.from('banks').insert([{ user_id: window.currentUser.id, name }]);
-      addLog(`Banco adicionado: ${name}`);
-      document.getElementById('inputBankName').value = '';
-      window.closeNewBankModal();
-      window.loadAllData();
-    };
-
-    window.openLogsModal = function() {
-      const logs = JSON.parse(localStorage.getItem('set_logs') || '[]');
-      const container = document.getElementById('appLogsConsole');
-      if (container) container.innerHTML = logs.length ? logs.map(l => `<div>${l}</div>`).join('') : '<div>Nenhum log gravado.</div>';
-      document.getElementById('modalLogs').classList.remove('hidden');
-    };
-
-    window.closeLogsModal = function() { document.getElementById('modalLogs').classList.add('hidden'); };
-
-    window.clearAppLogs = function() {
-      localStorage.removeItem('set_logs');
-      const container = document.getElementById('appLogsConsole');
-      if (container) container.innerHTML = '<div>Logs limpos com sucesso.</div>';
-    };
-
-    window.openResetInvoicesModal = function() {
-      if (window.currentInvoices.length === 0) return alert('Não há faturas para zerar.');
-      document.getElementById('modalResetInvoices').classList.remove('hidden');
-    };
-
-    window.closeResetInvoicesModal = function() {
-      document.getElementById('modalResetInvoices').classList.add('hidden');
-    };
-
-    window.executeResetAllInvoices = async function() {
-      if (!window.supabaseClient || !window.currentUser) return;
-      try {
-        await window.supabaseClient.from('transactions').delete().eq('user_id', window.currentUser.id).not('invoice_id', 'is', null);
-        await window.supabaseClient.from('invoices').delete().eq('user_id', window.currentUser.id);
-
-        addLog('Reset total de faturas e compras executado.');
-        window.closeResetInvoicesModal();
-        alert('Todas as faturas foram zeradas com sucesso!');
-        window.loadAllData();
-      } catch (err) {
-        alert('Erro ao zerar faturas: ' + err.message);
-      }
-    };
-
-    window.deleteSingleInvoice = async function(invoiceId) {
-      if (!confirm('Deseja eliminar esta fatura e todos os seus itens?')) return;
-      if (!window.supabaseClient || !window.currentUser) return;
-
-      try {
-        await window.supabaseClient.from('transactions').delete().eq('invoice_id', invoiceId);
-        await window.supabaseClient.from('invoices').delete().eq('id', invoiceId);
-
-        addLog(`Fatura excluída: ${invoiceId}`);
-        window.loadAllData();
-      } catch (err) {
-        alert('Erro ao eliminar fatura: ' + err.message);
-      }
-    };
-
-    window.exportCSV = function() {
-      if (window.currentTransactions.length === 0) return alert('Sem lançamentos para exportar.');
-      let csv = 'ID;Descricao;Data;Valor;Categoria;Parcela;QtdTotal;Membro\n';
-      window.currentTransactions.forEach(t => {
-        const member = window.currentMembers.find(m => m.id === t.member_id);
-        csv += `"${t.id}";"${t.description}";"${t.date}";"${t.amount}";"${t.category}";"${t.installment_info || ''}";"${t.installment_total || ''}";"${member ? member.name : ''}"\n`;
-      });
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `set_relatorio_${new Date().toISOString().split('T')[0]}.csv`;
-      a.click();
-    };
-
-    window.openConfigModal = function() {
-      try {
-        document.getElementById('inputGeminiKey').value = localStorage.getItem('set_gemini_key') || '';
-      } catch (e) {}
-      document.getElementById('modalConfig').classList.remove('hidden');
-    };
-
-    window.closeConfigModal = function() { document.getElementById('modalConfig').classList.add('hidden'); };
-
-    window.saveGeminiKey = function() {
-      const k = document.getElementById('inputGeminiKey').value.trim();
-      try {
-        localStorage.setItem('set_gemini_key', k);
-      } catch (e) {}
-      addLog('Chave Gemini configurada pelo utilizador.');
-      window.closeConfigModal();
-    };
-
     window.addEventListener('DOMContentLoaded', async () => {
       initTheme();
 
+      // Atrela listener diretamente ao form sem depender do onsubmit inline
       const form = document.getElementById('formAuth');
       if (form) {
         form.addEventListener('submit', window.handleAuthSubmit);
@@ -1449,7 +975,9 @@
           if (session && session.user) {
             window.currentUser = session.user;
             window.showApp();
-            window.loadAllData().catch(err => console.warn('Erro ao carregar dados:', err));
+            if (typeof window.loadAllData === 'function') {
+              window.loadAllData().catch(err => console.warn(err));
+            }
           } else {
             window.currentUser = null;
             window.showAuth();
