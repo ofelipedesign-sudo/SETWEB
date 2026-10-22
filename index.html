@@ -292,7 +292,12 @@
     <div id="modalMemberPdf" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
       <div class="app-modal-sheet bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-4xl w-full p-6 shadow-2xl border border-slate-800 flex flex-col gap-4 overflow-y-auto custom-scrollbar">
         <div class="flex items-center justify-between border-b border-slate-800 pb-3"><div class="flex items-center gap-2"><i class="ph-bold ph-file-pdf text-rose-400 text-lg"></i><h3 class="text-sm font-bold text-white">Gerar Fatura Individual em PDF (Padrão SET)</h3></div><button type="button" onclick="closeMemberPdfModal()" class="p-1 text-slate-400 hover:text-white"><i class="ph-bold ph-x text-lg"></i></button></div>
-        <div class="flex items-center gap-2"><label class="text-xs font-bold text-slate-300">Membro:</label><select id="selectPdfMember" onchange="generateMemberReportPreview()" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-white"></select></div>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="flex flex-col gap-1.5"><label class="text-xs font-bold text-slate-300">Membro:</label><select id="selectPdfMember" onchange="generateMemberReportPreview()" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-white"></select></div>
+          <div class="flex flex-col gap-1.5"><label class="text-xs font-bold text-slate-300">Data de Vencimento:</label><select id="selectDueDate" onchange="generateMemberReportPreview()" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-white"><option value="10">Dia 10</option><option value="23">Dia 23</option></select></div>
+        </div>
+        
         <div class="p-4 bg-emerald-900/60 border border-emerald-500/40 rounded-2xl flex flex-col gap-1 text-white"><span class="text-[10px] font-bold text-emerald-300 uppercase">Resumo da Fatura a Gerar</span><h3 id="bannerInvoicePeriod" class="text-base font-black">Outubro / 2026</h3><p id="bannerInvoiceUser" class="text-xs text-emerald-200 font-semibold">Usuário: ---</p></div>
         <div class="w-full grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           <button type="button" onclick="sendInvoiceEmail()" id="btnSendEmailDirect" class="w-full py-2.5 px-3 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl flex items-center justify-center gap-2"><i class="ph-bold ph-envelope text-base"></i><span>Enviar por Email</span></button>
@@ -933,7 +938,7 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
 
     window.closeMemberPdfModal = function() { $('modalMemberPdf').classList.add('hidden'); };
 
-    function generateEmailHTML(memberName, period, bankSummaryHtml, totalAmount) {
+    function generateEmailHTML(memberName, period, bankSummaryHtml, totalAmount, dueStr) {
       return `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
         <div style="background-color: #0b4f9c; color: white; padding: 30px 20px; text-align: center;">
@@ -963,17 +968,21 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
 
           <table style="width: 100%; border-collapse: collapse; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; font-size: 12px;">
             <tr>
-              <td style="padding: 12px 15px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; width: 50%;">
+              <td style="padding: 12px 15px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; width: 33.33%;">
                 <span style="display: block; font-size: 10px; color: #94a3b8; font-weight: bold; text-transform: uppercase; margin-bottom: 4px;">Usuário</span>
                 <strong style="color: #1e293b; font-size: 14px;">${memberName}</strong>
               </td>
-              <td style="padding: 12px 15px; border-bottom: 1px solid #e2e8f0; width: 50%;">
-                <span style="display: block; font-size: 10px; color: #94a3b8; font-weight: bold; text-transform: uppercase; margin-bottom: 4px;">Período de Referência</span>
+              <td style="padding: 12px 15px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; width: 33.33%;">
+                <span style="display: block; font-size: 10px; color: #94a3b8; font-weight: bold; text-transform: uppercase; margin-bottom: 4px;">Período</span>
                 <strong style="color: #1e293b; font-size: 14px;">${period}</strong>
+              </td>
+              <td style="padding: 12px 15px; border-bottom: 1px solid #e2e8f0; width: 33.33%;">
+                <span style="display: block; font-size: 10px; color: #94a3b8; font-weight: bold; text-transform: uppercase; margin-bottom: 4px;">Vencimento</span>
+                <strong style="color: #e11d48; font-size: 14px;">${dueStr}</strong>
               </td>
             </tr>
             <tr>
-              <td colspan="2" style="padding: 12px 15px;">
+              <td colspan="3" style="padding: 12px 15px;">
                 <span style="display: block; font-size: 10px; color: #94a3b8; font-weight: bold; text-transform: uppercase; margin-bottom: 4px;">Documento</span>
                 <span style="color: #475569;">PDF em anexo - confira todos os lançamentos do período.</span>
               </td>
@@ -997,6 +1006,9 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
       
       const periodStr = now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
       const formattedPeriod = periodStr.charAt(0).toUpperCase() + periodStr.slice(1);
+      
+      const dueDateDay = $('selectDueDate') ? $('selectDueDate').value : '10';
+      const dueStr = `${dueDateDay} de ${formattedPeriod}`;
       
       $('bannerInvoicePeriod').textContent = formattedPeriod;
       $('bannerInvoiceUser').textContent = `Usuário: ${m.name}`;
@@ -1035,6 +1047,7 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
             <p style="font-size: 11px; margin: 0 0 15px 0; color: #475569;">TRANSAÇÕES INDIVIDUALIZADAS</p>
             <div style="font-size: 11px; line-height: 1.5;">
               <strong>Referência:</strong> ${formattedPeriod}<br>
+              <strong>Vencimento:</strong> <span style="color: #e11d48; font-weight: bold;">${dueStr}</span><br>
               <strong>Transações:</strong> ${txs.length} lançamentos<br>
               <strong>Usuário:</strong> ${m.name}<br>
               <strong>Gerado em:</strong> ${now.toLocaleDateString('pt-BR')}<br>
@@ -1106,7 +1119,10 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
       const periodStr = now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
       const formattedPeriod = periodStr.charAt(0).toUpperCase() + periodStr.slice(1);
 
-      const txt = `*SISTEMA DE EMPRÉSTIMO TERCEIRIZADO (SET)*\n_Transações Individualizadas_\n\n*Usuário:* ${m.name}\n*Referência:* ${formattedPeriod}\n*Transações:* ${txs.length} lançamentos\n\n*Lançamentos:*\n${listTxt}\n*Resumo por Banco:*\n${bankSummaryTxt}\n*TOTAL: R$ ${total.toFixed(2)}*\n\n*Chave PIX:* fp.danado16@gmail.com\n\n_Documento gerado pelo Sistema de Empréstimo Terceirizado (SET)_`;
+      const dueDateDay = $('selectDueDate') ? $('selectDueDate').value : '10';
+      const dueStr = `${dueDateDay} de ${formattedPeriod}`;
+
+      const txt = `*SISTEMA DE EMPRÉSTIMO TERCEIRIZADO (SET)*\n_Transações Individualizadas_\n\n*Usuário:* ${m.name}\n*Referência:* ${formattedPeriod}\n*Vencimento:* ${dueStr}\n*Transações:* ${txs.length} lançamentos\n\n*Lançamentos:*\n${listTxt}\n*Resumo por Banco:*\n${bankSummaryTxt}\n*TOTAL: R$ ${total.toFixed(2)}*\n\n*Chave PIX:* fp.danado16@gmail.com\n\n_Documento gerado pelo Sistema de Empréstimo Terceirizado (SET)_`;
 
       const phoneClean = (m.phone || '').replace(/\D/g, '');
       const phoneParam = phoneClean ? `phone=${phoneClean.startsWith('55') ? phoneClean : '55' + phoneClean}&` : '';
@@ -1139,9 +1155,12 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
       const now = new Date();
       const periodStr = now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
       const formattedPeriod = periodStr.charAt(0).toUpperCase() + periodStr.slice(1);
+      
+      const dueDateDay = $('selectDueDate') ? $('selectDueDate').value : '10';
+      const dueStr = `${dueDateDay} de ${formattedPeriod}`;
 
-      const emailHtml = generateEmailHTML(m.name, formattedPeriod, bankSummaryHtml, total.toFixed(2));
-      const printAreaHtml = $('printArea').innerHTML; 
+      const emailHtml = generateEmailHTML(m.name, formattedPeriod, bankSummaryHtml, total.toFixed(2), dueStr);
+      const printAreaHtml = $('printArea').innerHTML;
 
       try {
         await fetch(url, {
@@ -1149,7 +1168,7 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
           body: JSON.stringify({ 
             to: m.email, 
             subject: `Fatura SET Web [R$ ${total.toFixed(2)}]`, 
-            plainText: `Olá ${m.name}, sua fatura de ${formattedPeriod} totaliza R$ ${total.toFixed(2)}.`, 
+            plainText: `Olá ${m.name}, sua fatura com vencimento em ${dueStr} totaliza R$ ${total.toFixed(2)}.`, 
             htmlBody: emailHtml,
             pdfHtml: printAreaHtml,
             pdfFileName: `Fatura_SET_${m.name.split(' ')[0]}_${formattedPeriod.replace(/\s+/g, '')}.pdf`
