@@ -167,7 +167,8 @@
           </div>
           <div class="bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 shadow-sm flex flex-col justify-between">
             <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2.5">
-              <div><h4 class="text-xs sm:text-sm font-bold text-slate-100">Distribuição do Rateio</h4><p class="text-[10px] text-slate-400">Proporção individual das despesas</p></div>
+              <div><h4 class="text-xs sm:text-sm font-bold text-slate-100">Consumo de usuário por banco</h4><p class="text-[10px] text-slate-400">Proporção individual das despesas</p></div>
+              <select id="selectChartBank" onchange="renderCharts()" class="bg-slate-800 border border-slate-700 text-slate-200 text-[10px] font-semibold rounded-lg px-2 py-1 outline-none focus:border-brand-500 cursor-pointer"></select>
             </div>
             <div class="h-64 relative flex items-center justify-center w-full"><canvas id="chartSplit"></canvas></div>
           </div>
@@ -689,11 +690,35 @@
             }
           });
         }
+        
+        // Populate Bank Selector for Chart Split
+        const selBank = $('selectChartBank');
+        let selectedBank = 'all';
+        if (selBank) {
+            selectedBank = selBank.value || 'all';
+            const uniqueBanks = [...new Set(window.currentInvoices.map(i => i.bank_name).filter(Boolean))];
+            let optsHtml = '<option value="all">Todos os Bancos</option>';
+            uniqueBanks.forEach(b => { optsHtml += `<option value="${b}">${b}</option>`; });
+            if (selBank.innerHTML !== optsHtml) {
+                selBank.innerHTML = optsHtml;
+                selBank.value = uniqueBanks.includes(selectedBank) ? selectedBank : 'all';
+                selectedBank = selBank.value;
+            }
+        }
+
         const memberMap = {};
         window.currentMembers.forEach(m => {
-          const s = window.currentTransactions.filter(t => String(t.member_id) === String(m.id)).reduce((a, b) => a + Number(b.amount), 0);
+          const s = window.currentTransactions
+            .filter(t => String(t.member_id) === String(m.id))
+            .filter(t => {
+                if (selectedBank === 'all') return true;
+                const info = getTransactionDetails(t);
+                return info.bankName === selectedBank;
+            })
+            .reduce((a, b) => a + Number(b.amount), 0);
           if (s > 0) memberMap[m.name] = s;
         });
+        
         const c2 = $('chartSplit');
         if (c2) {
           if (chartSplit) chartSplit.destroy();
@@ -770,7 +795,7 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
             continue;
           }
           const data = await resp.json();
-         let raw = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').replace(/```json/gi, '').replace(/```/g, '').trim();
+          let raw = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').replace(/```json/gi, '').replace(/```/g, '').trim();
           const jm = raw.match(/\{[\s\S]*\}/);
           if (jm) raw = jm[0];
           return JSON.parse(raw);
@@ -1227,4 +1252,3 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
   </script>
 </body>
 </html>
-```eof
