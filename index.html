@@ -297,32 +297,12 @@
           <button type="button" onclick="sendInvoiceEmail()" id="btnSendEmailDirect" class="w-full py-2.5 px-3 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl flex items-center justify-center gap-2"><i class="ph-bold ph-envelope text-base"></i><span>Enviar por Email</span></button>
           <button type="button" onclick="sendInvoiceWhatsApp()" class="w-full py-2.5 px-3 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl flex items-center justify-center gap-2"><i class="ph-bold ph-whatsapp-logo text-base"></i><span>Enviar por WhatsApp</span></button>
         </div>
-        <div id="printArea" class="p-6 bg-white text-slate-900 rounded-xl text-xs flex flex-col gap-3 border border-slate-200">
-          <div class="border-b-2 border-slate-800 pb-3">
-            <h2 class="font-black text-sm uppercase">SISTEMA DE EMPRÉSTIMO TERCEIRIZADO (SET)</h2>
-            <p class="text-[11px] font-bold text-slate-600">TRANSAÇÕES INDIVIDUALIZADAS</p>
-            <div class="grid grid-cols-2 gap-1 text-[11px] text-slate-700 mt-2">
-              <div><strong>Referência:</strong> <span id="reportPeriodRef">---</span></div>
-              <div><strong>Transações:</strong> <span id="reportCount">0 lançamentos</span></div>
-              <div><strong>Usuário:</strong> <span id="reportMemberName">---</span></div>
-              <div><strong>Gerado em:</strong> <span id="reportDate">---</span></div>
-              <div class="col-span-2"><strong>Chave PIX:</strong> fp.danado16@gmail.com</div>
-            </div>
-          </div>
-          <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse text-[11px]">
-              <thead><tr class="border-b-2 border-slate-400 bg-slate-100 font-bold text-slate-800"><th class="py-1.5 px-2">Data</th><th class="py-1.5 px-2">Descrição</th><th class="py-1.5 px-2">Categoria</th><th class="py-1.5 px-2">Banco</th><th class="py-1.5 px-2 text-right">Valor</th><th class="py-1.5 px-2 text-center">Parcelas</th><th class="py-1.5 px-2 text-center">Parcela Atual</th><th class="py-1.5 px-2 text-right">Valor Parcela</th></tr></thead>
-              <tbody id="reportItemsContainer" class="divide-y divide-slate-200 font-medium"></tbody>
-            </table>
-          </div>
-          <div class="mt-3 pt-3 border-t-2 border-slate-800 flex flex-col gap-2">
-            <div class="flex items-center justify-between text-xs font-bold"><span>RESUMO POR BANCO:</span><span id="reportBankSummary" class="text-slate-700">---</span></div>
-            <div class="p-3 bg-[#0b4f9c] text-white rounded-lg flex items-center justify-between font-black text-sm">
-              <div class="text-xs font-normal" id="reportCountTypes">À vista: 0 | Parceladas: 0</div>
-              <div class="flex items-center gap-3"><span>TOTAL DOS LANÇAMENTOS</span><span id="reportTotalAmount" class="text-lg">R$ 0,00</span></div>
-            </div>
-          </div>
+        
+        <!-- ÁREA DO PDF VISUALMENTE AJUSTADA -->
+        <div id="printArea" class="bg-white text-slate-900 border border-slate-200">
+           <!-- Conteúdo gerado via JS -->
         </div>
+
         <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-800">
           <button type="button" onclick="closeMemberPdfModal()" class="px-3.5 py-2 text-xs font-semibold text-slate-400">← Voltar</button>
           <div class="flex items-center gap-2"><button type="button" onclick="window.print()" class="px-4 py-2 text-xs font-bold bg-slate-800 text-slate-200 border border-slate-700 rounded-xl flex items-center gap-1.5"><i class="ph-bold ph-printer"></i><span>Imprimir / PDF</span></button><button type="button" onclick="closeMemberPdfModal()" class="px-5 py-2 text-xs font-bold bg-emerald-600 text-white rounded-xl">Concluído</button></div>
@@ -790,7 +770,8 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
             continue;
           }
           const data = await resp.json();
-          let raw = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').replace(/```json/gi, '').replace(/```/g, '').trim();
+          let raw = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').replace(/
+```json/gi, '').replace(/```/g, '').trim();
           const jm = raw.match(/\{[\s\S]*\}/);
           if (jm) raw = jm[0];
           return JSON.parse(raw);
@@ -929,42 +910,174 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
 
     window.closeMemberPdfModal = function() { $('modalMemberPdf').classList.add('hidden'); };
 
+    // NOVA FUNÇÃO: Geração do E-mail HTML estético
+    function generateEmailHTML(memberName, period) {
+      return `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+        <div style="background-color: #0b4f9c; color: white; padding: 30px 20px; text-align: center;">
+          <h4 style="margin: 0; font-size: 12px; font-weight: normal; letter-spacing: 1px; text-transform: uppercase;">Sistema de Empréstimo Terceirizado</h4>
+          <h1 style="margin: 10px 0; font-size: 32px; letter-spacing: 5px;">S E T</h1>
+          <p style="margin: 0; font-size: 12px; font-weight: 300;">Gestão de Transações Individualizadas</p>
+        </div>
+        <div style="padding: 30px 20px; background-color: #ffffff;">
+          <h2 style="margin-top: 0; color: #1e293b; font-size: 18px; font-weight: normal;">Olá, <strong style="color: #0f172a;">${memberName}</strong></h2>
+          <p style="color: #475569; font-size: 14px; line-height: 1.6;">Sua fatura de <strong>${period}</strong> foi gerada e está disponível em anexo neste email e também no Google Drive.</p>
+          <a href="#" style="display: inline-block; background-color: #0b4f9c; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-size: 14px; font-weight: bold; margin: 15px 0 25px 0;">📄 Abrir Fatura no Drive</a>
+          
+          <div style="background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 15px 20px; border-radius: 4px; margin-bottom: 25px;">
+            <p style="margin: 0; font-size: 10px; font-weight: bold; color: #1e40af; text-transform: uppercase; margin-bottom: 5px;">💰 Chave PIX para pagamento</p>
+            <p style="margin: 0; font-size: 18px; font-weight: bold; color: #1d4ed8;">fp.danado16@gmail.com</p>
+          </div>
+
+          <table style="width: 100%; border-collapse: collapse; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; font-size: 12px;">
+            <tr>
+              <td style="padding: 12px 15px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; width: 50%;">
+                <span style="display: block; font-size: 10px; color: #94a3b8; font-weight: bold; text-transform: uppercase; margin-bottom: 4px;">Usuário</span>
+                <strong style="color: #1e293b; font-size: 14px;">${memberName}</strong>
+              </td>
+              <td style="padding: 12px 15px; border-bottom: 1px solid #e2e8f0; width: 50%;">
+                <span style="display: block; font-size: 10px; color: #94a3b8; font-weight: bold; text-transform: uppercase; margin-bottom: 4px;">Período de Referência</span>
+                <strong style="color: #1e293b; font-size: 14px;">${period}</strong>
+              </td>
+            </tr>
+            <tr>
+              <td colspan="2" style="padding: 12px 15px;">
+                <span style="display: block; font-size: 10px; color: #94a3b8; font-weight: bold; text-transform: uppercase; margin-bottom: 4px;">Documento</span>
+                <span style="color: #475569;">PDF em anexo — confira todos os lançamentos do período.</span>
+              </td>
+            </tr>
+          </table>
+        </div>
+        <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
+          <p style="margin: 0; font-size: 10px; color: #64748b;">Sistema de Empréstimo Terceirizado (<strong>SET</strong>)</p>
+          <p style="margin: 5px 0 0 0; font-size: 9px; color: #94a3b8;">Este é um email automático — por favor, não responda diretamente.</p>
+        </div>
+      </div>
+      `;
+    }
+
     window.generateMemberReportPreview = function() {
       const mId = $('selectPdfMember').value;
       const m = window.currentMembers.find(x => String(x.id) === String(mId));
       if (!m) return;
       const txs = window.currentTransactions.filter(t => String(t.member_id) === String(mId));
       const now = new Date();
+      
+      // Capitalizar mês
       const periodStr = now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
       const formattedPeriod = periodStr.charAt(0).toUpperCase() + periodStr.slice(1);
+      
       $('bannerInvoicePeriod').textContent = formattedPeriod;
-      $('reportPeriodRef').textContent = formattedPeriod;
       $('bannerInvoiceUser').textContent = `Usuário: ${m.name}`;
-      $('reportMemberName').textContent = m.name;
-      $('reportCount').textContent = `${txs.length} lançamentos`;
-      $('reportDate').textContent = now.toLocaleDateString('pt-BR');
-      const c = $('reportItemsContainer');
-      c.innerHTML = '';
+      
+      let cHtml = '';
       let total = 0, countInstallments = 0, countCash = 0;
       const bankTotals = {};
+      
       txs.forEach(t => {
         const info = getTransactionDetails(t);
         total += info.installmentAmount;
         bankTotals[info.bankName] = (bankTotals[info.bankName] || 0) + info.installmentAmount;
         if (info.installmentTotal > 1) countInstallments++; else countCash++;
-        c.innerHTML += `<tr class="border-b border-slate-200"><td class="py-1.5 px-2">${info.date}</td><td class="py-1.5 px-2 font-bold">${info.description}</td><td class="py-1.5 px-2">${info.category}</td><td class="py-1.5 px-2">${info.bankName}</td><td class="py-1.5 px-2 text-right">R$ ${info.totalValue.toFixed(2)}</td><td class="py-1.5 px-2 text-center">${info.installmentTotal}</td><td class="py-1.5 px-2 text-center">${info.installmentCurrent}/${info.installmentTotal}</td><td class="py-1.5 px-2 text-right font-black text-rose-600">R$ ${info.installmentAmount.toFixed(2)}</td></tr>`;
+        
+        cHtml += `
+          <tr style="border-bottom: 1px solid #e2e8f0; font-size: 10px;">
+            <td style="padding: 6px 4px;">${info.date}</td>
+            <td style="padding: 6px 4px; font-weight: bold;">${info.description}</td>
+            <td style="padding: 6px 4px;">${info.category}</td>
+            <td style="padding: 6px 4px;">${info.bankName}</td>
+            <td style="padding: 6px 4px; text-align: center;">${info.installmentTotal > 1 ? `${info.installmentCurrent}/${info.installmentTotal}` : '-'}</td>
+            <td style="padding: 6px 4px; text-align: center;">${info.installmentTotal > 1 ? info.installmentTotal : '-'}</td>
+            <td style="padding: 6px 4px; text-align: right; white-space: nowrap;">R$ ${info.installmentAmount.toFixed(2)}</td>
+          </tr>
+        `;
       });
-      $('reportBankSummary').textContent = Object.keys(bankTotals).length ? Object.entries(bankTotals).map(([b, v]) => `${b}: R$ ${v.toFixed(2)}`).join(' | ') : 'Nenhum lançamento';
-      $('reportCountTypes').textContent = `À vista: ${countCash} | Parceladas: ${countInstallments}`;
-      $('reportTotalAmount').textContent = `R$ ${total.toFixed(2)}`;
+      
+      const bankSummaryStr = Object.keys(bankTotals).length 
+        ? Object.entries(bankTotals).map(([b, v]) => `${b}: R$ ${v.toFixed(2)}`).join('<br>') 
+        : 'Nenhum lançamento';
+
+      // HTML da área de impressão idêntica ao PDF de exemplo
+      $('printArea').innerHTML = `
+        <div style="padding: 20px; background: white; color: #1e293b; font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto;">
+          <div style="margin-bottom: 20px;">
+            <h2 style="font-size: 16px; font-weight: bold; margin: 0 0 5px 0;">SISTEMA DE EMPRÉSTIMO TERCEIRIZADO (SET)</h2>
+            <p style="font-size: 11px; margin: 0 0 15px 0; color: #475569;">TRANSAÇÕES INDIVIDUALIZADAS</p>
+            <div style="font-size: 11px; line-height: 1.5;">
+              <strong>Referência:</strong> ${formattedPeriod}<br>
+              <strong>Transações:</strong> ${txs.length} lançamentos<br>
+              <strong>Usuário:</strong> ${m.name}<br>
+              <strong>Gerado em:</strong> ${now.toLocaleDateString('pt-BR')}<br>
+              <strong>Chave PIX:</strong> <span style="color: #2563eb; text-decoration: underline;">fp.danado16@gmail.com</span>
+            </div>
+          </div>
+
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+            <thead>
+              <tr style="border-bottom: 2px solid #cbd5e1; font-size: 11px; text-align: left;">
+                <th style="padding: 8px 4px;">Data</th>
+                <th style="padding: 8px 4px;">Descrição</th>
+                <th style="padding: 8px 4px;">Categoria</th>
+                <th style="padding: 8px 4px;">Banco</th>
+                <th style="padding: 8px 4px; text-align: center;">Parcela</th>
+                <th style="padding: 8px 4px; text-align: center;">Qtd.Parc</th>
+                <th style="padding: 8px 4px; text-align: right;">Valor (R$)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${cHtml}
+            </tbody>
+          </table>
+
+          <div style="font-size: 11px; font-weight: bold; margin-bottom: 5px;">RESUMO POR BANCO</div>
+          <div style="font-size: 11px; margin-bottom: 20px; color: #475569;">${bankSummaryStr}</div>
+
+          <div style="background-color: #0b4f9c; color: white; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; border-radius: 4px 4px 0 0;">
+            <div style="font-weight: bold; font-size: 12px; letter-spacing: 1px;">TOTAL DOS LANÇAMENTOS</div>
+            <div style="font-weight: bold; font-size: 16px;">R$ ${total.toFixed(2)}</div>
+          </div>
+          <div style="background-color: #eff6ff; color: #1e40af; padding: 6px 15px; font-size: 10px; border: 1px solid #bfdbfe; border-top: none; border-radius: 0 0 4px 4px; margin-bottom: 15px;">
+            À vista: ${countCash} &nbsp;&nbsp;|&nbsp;&nbsp; Parceladas: ${countInstallments}
+          </div>
+
+          <div style="text-align: center; font-size: 9px; color: #94a3b8; margin-top: 30px; border-top: 1px solid #f1f5f9; padding-top: 15px;">
+            Documento gerado pelo Sistema de Empréstimo Terceirizado (SET) em ${now.toLocaleDateString('pt-BR')} | PIX: fp.danado16@gmail.com
+            <div style="margin-top: 8px; font-weight: bold; color: #475569; font-size: 14px;">SET</div>
+          </div>
+        </div>
+      `;
     };
 
     window.sendInvoiceWhatsApp = function() {
       const mId = $('selectPdfMember').value;
       const m = window.currentMembers.find(x => String(x.id) === String(mId));
       if (!m) return;
-      const total = window.currentTransactions.filter(t => String(t.member_id) === String(mId)).reduce((a, b) => a + Number(b.amount), 0);
-      const txt = `*SET Web - Fatura Individual*\n*Titular:* ${m.name}\n*Total:* R$ ${total.toFixed(2)}\n*PIX:* fp.danado16@gmail.com`;
+      const txs = window.currentTransactions.filter(t => String(t.member_id) === String(mId));
+      
+      let total = 0;
+      let listTxt = '';
+      const bankTotals = {};
+
+      txs.forEach(t => {
+        const info = getTransactionDetails(t);
+        total += info.installmentAmount;
+        bankTotals[info.bankName] = (bankTotals[info.bankName] || 0) + info.installmentAmount;
+        
+        const parcStr = info.installmentTotal > 1 ? ` (${info.installmentCurrent}/${info.installmentTotal})` : '';
+        listTxt += `${info.date} — ${info.description}${parcStr} — R$ ${info.installmentAmount.toFixed(2)}\n`;
+      });
+
+      let bankSummaryTxt = '';
+      Object.keys(bankTotals).forEach(b => {
+        bankSummaryTxt += `• ${b}: R$ ${bankTotals[b].toFixed(2)}\n`;
+      });
+
+      const now = new Date();
+      const periodStr = now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+      const formattedPeriod = periodStr.charAt(0).toUpperCase() + periodStr.slice(1);
+
+      const txt = `*SISTEMA DE EMPRÉSTIMO TERCEIRIZADO (SET)*\n_Transações Individualizadas_\n\n*Usuário:* ${m.name}\n*Referência:* ${formattedPeriod}\n*Transações:* ${txs.length} lançamentos\n\n*Lançamentos:*\n${listTxt}\n*Resumo por Banco:*\n${bankSummaryTxt}\n*TOTAL: R$ ${total.toFixed(2)}*\n\n*Chave PIX:* fp.danado16@gmail.com\n\n_Documento gerado pelo Sistema de Empréstimo Terceirizado (SET)_`;
+
       const phoneClean = (m.phone || '').replace(/\D/g, '');
       const phoneParam = phoneClean ? `phone=${phoneClean.startsWith('55') ? phoneClean : '55' + phoneClean}&` : '';
       window.open(`https://api.whatsapp.com/send?${phoneParam}text=${encodeURIComponent(txt)}`, '_blank');
@@ -974,12 +1087,28 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
       const mId = $('selectPdfMember').value;
       const m = window.currentMembers.find(x => String(x.id) === String(mId));
       if (!m || !m.email) return alert('Membro sem e-mail cadastrado.');
-      const url = 'https://script.google.com/macros/s/AKfycbzB7GoExKRwmaYukAHJFuGG64HgURnJDIUMcrCJligEttcvI32U7Nk_lBud7DCE07mK7w/exec';
+      
       const total = window.currentTransactions.filter(t => String(t.member_id) === String(mId)).reduce((a, b) => a + Number(b.amount), 0);
+      const url = 'https://script.google.com/macros/s/AKfycbzB7GoExKRwmaYukAHJFuGG64HgURnJDIUMcrCJligEttcvI32U7Nk_lBud7DCE07mK7w/exec';
+      
+      const now = new Date();
+      const periodStr = now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+      const formattedPeriod = periodStr.charAt(0).toUpperCase() + periodStr.slice(1);
+
+      // Corpo moderno do E-mail e o HTML para anexar/gerar PDF
+      const emailHtml = generateEmailHTML(m.name, formattedPeriod);
+      const invoiceHtml = $('printArea').innerHTML; // Enviado para o GAS para que ele gere o PDF anexado
+
       try {
         await fetch(url, {
           method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ to: m.email, subject: `Fatura SET Web [R$ ${total.toFixed(2)}]`, plainText: `Olá ${m.name}, total: R$ ${total.toFixed(2)}`, htmlBody: $('printArea').innerHTML })
+          body: JSON.stringify({ 
+            to: m.email, 
+            subject: `Fatura SET Web [R$ ${total.toFixed(2)}]`, 
+            plainText: `Olá ${m.name}, sua fatura de ${formattedPeriod} totaliza R$ ${total.toFixed(2)}.`, 
+            htmlBody: emailHtml,
+            invoiceHtml: invoiceHtml
+          })
         });
         alert('E-mail enviado para ' + m.email);
       } catch (e) { alert('Erro ao enviar e-mail: ' + e.message); }
@@ -1099,3 +1228,4 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
   </script>
 </body>
 </html>
+```eof
