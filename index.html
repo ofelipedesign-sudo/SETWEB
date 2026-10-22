@@ -933,7 +933,6 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
 
     window.closeMemberPdfModal = function() { $('modalMemberPdf').classList.add('hidden'); };
 
-    // NOVA FUNÇÃO: Geração do E-mail HTML estético
     function generateEmailHTML(memberName, period, bankSummaryHtml, totalAmount) {
       return `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
@@ -997,7 +996,6 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
       const txs = window.currentTransactions.filter(t => String(t.member_id) === String(mId));
       const now = new Date();
       
-      // Capitalizar mês
       const periodStr = now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
       const formattedPeriod = periodStr.charAt(0).toUpperCase() + periodStr.slice(1);
       
@@ -1031,7 +1029,6 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
         ? Object.entries(bankTotals).map(([b, v]) => `${b}: R$ ${v.toFixed(2)}`).join('<br>') 
         : 'Nenhum lançamento';
 
-      // HTML da área de impressão idêntica ao PDF de exemplo
       $('printArea').innerHTML = `
         <div style="padding: 20px; background: white; color: #1e293b; font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto;">
           <div style="margin-bottom: 20px;">
@@ -1145,7 +1142,7 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
       const formattedPeriod = periodStr.charAt(0).toUpperCase() + periodStr.slice(1);
 
       const emailHtml = generateEmailHTML(m.name, formattedPeriod, bankSummaryHtml, total.toFixed(2));
-      const invoiceHtml = $('printArea').innerHTML; // Enviado para o GAS para que ele gere o PDF anexado
+      const invoiceHtml = $('printArea').innerHTML; // Enviado para o seu Google Apps Script 
 
       try {
         await fetch(url, {
@@ -1158,7 +1155,7 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
             invoiceHtml: invoiceHtml
           })
         });
-        alert('E-mail enviado para ' + m.email);
+        alert('E-mail enviado para ' + m.email + '. OBS: Verifique se o Google Apps Script está configurado corretamente para anexar o PDF.');
       } catch (e) { alert('Erro ao enviar e-mail: ' + e.message); }
     };
 
