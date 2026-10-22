@@ -943,10 +943,9 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
         </div>
         <div style="padding: 30px 20px; background-color: #ffffff;">
           <h2 style="margin-top: 0; color: #1e293b; font-size: 18px; font-weight: normal;">Olá, <strong style="color: #0f172a;">${memberName}</strong></h2>
-          <p style="color: #475569; font-size: 14px; line-height: 1.6;">Sua fatura de <strong>${period}</strong> foi gerada e está disponível em anexo neste email e também no Google Drive.</p>
-          <a href="#" style="display: inline-block; background-color: #0b4f9c; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-size: 14px; font-weight: bold; margin: 15px 0 25px 0;">Abrir Fatura no Drive</a>
+          <p style="color: #475569; font-size: 14px; line-height: 1.6;">Sua fatura de <strong>${period}</strong> foi gerada e os detalhes encontram-se no documento PDF em anexo neste email.</p>
           
-          <div style="background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 15px 20px; border-radius: 4px; margin-bottom: 15px;">
+          <div style="background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 15px 20px; border-radius: 4px; margin-bottom: 15px; margin-top: 25px;">
             <p style="margin: 0; font-size: 10px; font-weight: bold; color: #1e40af; text-transform: uppercase; margin-bottom: 5px;">CHAVE PIX PARA PAGAMENTO</p>
             <p style="margin: 0; font-size: 18px; font-weight: bold; color: #1d4ed8;">fp.danado16@gmail.com</p>
           </div>
@@ -976,14 +975,14 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
             <tr>
               <td colspan="2" style="padding: 12px 15px;">
                 <span style="display: block; font-size: 10px; color: #94a3b8; font-weight: bold; text-transform: uppercase; margin-bottom: 4px;">Documento</span>
-                <span style="color: #475569;">PDF em anexo — confira todos os lançamentos do período.</span>
+                <span style="color: #475569;">PDF em anexo - confira todos os lançamentos do período.</span>
               </td>
             </tr>
           </table>
         </div>
         <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
           <p style="margin: 0; font-size: 10px; color: #64748b;">Sistema de Empréstimo Terceirizado (<strong>SET</strong>)</p>
-          <p style="margin: 5px 0 0 0; font-size: 9px; color: #94a3b8;">Este é um email automático — por favor, não responda diretamente.</p>
+          <p style="margin: 5px 0 0 0; font-size: 9px; color: #94a3b8;">Este e um email automatico - por favor, nao responda diretamente.</p>
         </div>
       </div>
       `;
@@ -1095,12 +1094,12 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
         bankTotals[info.bankName] = (bankTotals[info.bankName] || 0) + info.installmentAmount;
         
         const parcStr = info.installmentTotal > 1 ? ` (${info.installmentCurrent}/${info.installmentTotal})` : '';
-        listTxt += `${info.date} — ${info.description}${parcStr} — R$ ${info.installmentAmount.toFixed(2)}\n`;
+        listTxt += `${info.date} - ${info.description}${parcStr} - R$ ${info.installmentAmount.toFixed(2)}\n`;
       });
 
       let bankSummaryTxt = '';
       Object.keys(bankTotals).forEach(b => {
-        bankSummaryTxt += `• ${b}: R$ ${bankTotals[b].toFixed(2)}\n`;
+        bankSummaryTxt += `* ${b}: R$ ${bankTotals[b].toFixed(2)}\n`;
       });
 
       const now = new Date();
@@ -1142,7 +1141,7 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
       const formattedPeriod = periodStr.charAt(0).toUpperCase() + periodStr.slice(1);
 
       const emailHtml = generateEmailHTML(m.name, formattedPeriod, bankSummaryHtml, total.toFixed(2));
-      const invoiceHtml = $('printArea').innerHTML; // Enviado para o seu Google Apps Script 
+      const invoiceHtml = $('printArea').innerHTML;
 
       try {
         await fetch(url, {
@@ -1155,7 +1154,7 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
             invoiceHtml: invoiceHtml
           })
         });
-        alert('E-mail enviado para ' + m.email + '. OBS: Verifique se o Google Apps Script está configurado corretamente para anexar o PDF.');
+        alert('E-mail enviado para ' + m.email + '. OBS: Verifique o Google Apps Script para o PDF anexar corretamente.');
       } catch (e) { alert('Erro ao enviar e-mail: ' + e.message); }
     };
 
