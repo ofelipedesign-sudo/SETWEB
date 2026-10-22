@@ -691,7 +691,6 @@
           });
         }
         
-        // Populate Bank Selector for Chart Split
         const selBank = $('selectChartBank');
         let selectedBank = 'all';
         if (selBank) {
@@ -935,7 +934,7 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
     window.closeMemberPdfModal = function() { $('modalMemberPdf').classList.add('hidden'); };
 
     // NOVA FUNÇÃO: Geração do E-mail HTML estético
-    function generateEmailHTML(memberName, period) {
+    function generateEmailHTML(memberName, period, bankSummaryHtml, totalAmount) {
       return `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
         <div style="background-color: #0b4f9c; color: white; padding: 30px 20px; text-align: center;">
@@ -946,11 +945,22 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
         <div style="padding: 30px 20px; background-color: #ffffff;">
           <h2 style="margin-top: 0; color: #1e293b; font-size: 18px; font-weight: normal;">Olá, <strong style="color: #0f172a;">${memberName}</strong></h2>
           <p style="color: #475569; font-size: 14px; line-height: 1.6;">Sua fatura de <strong>${period}</strong> foi gerada e está disponível em anexo neste email e também no Google Drive.</p>
-          <a href="#" style="display: inline-block; background-color: #0b4f9c; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-size: 14px; font-weight: bold; margin: 15px 0 25px 0;">📄 Abrir Fatura no Drive</a>
+          <a href="#" style="display: inline-block; background-color: #0b4f9c; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-size: 14px; font-weight: bold; margin: 15px 0 25px 0;">Abrir Fatura no Drive</a>
           
-          <div style="background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 15px 20px; border-radius: 4px; margin-bottom: 25px;">
-            <p style="margin: 0; font-size: 10px; font-weight: bold; color: #1e40af; text-transform: uppercase; margin-bottom: 5px;">💰 Chave PIX para pagamento</p>
+          <div style="background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 15px 20px; border-radius: 4px; margin-bottom: 15px;">
+            <p style="margin: 0; font-size: 10px; font-weight: bold; color: #1e40af; text-transform: uppercase; margin-bottom: 5px;">CHAVE PIX PARA PAGAMENTO</p>
             <p style="margin: 0; font-size: 18px; font-weight: bold; color: #1d4ed8;">fp.danado16@gmail.com</p>
+          </div>
+
+          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 15px 20px; border-radius: 4px; margin-bottom: 25px;">
+            <p style="margin: 0 0 10px 0; font-size: 11px; font-weight: bold; color: #475569; text-transform: uppercase;">Resumo por Banco</p>
+            <p style="margin: 0 0 10px 0; font-size: 13px; color: #1e293b; line-height: 1.6;">
+                ${bankSummaryHtml}
+            </p>
+            <div style="border-top: 1px solid #cbd5e1; padding-top: 10px; margin-top: 10px;">
+                <p style="margin: 0; font-size: 11px; font-weight: bold; color: #1e293b; text-transform: uppercase;">Valor Total da Fatura</p>
+                <p style="margin: 5px 0 0 0; font-size: 18px; font-weight: bold; color: #0b4f9c;">R$ ${totalAmount}</p>
+            </div>
           </div>
 
           <table style="width: 100%; border-collapse: collapse; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; font-size: 12px;">
@@ -1112,15 +1122,29 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
       const m = window.currentMembers.find(x => String(x.id) === String(mId));
       if (!m || !m.email) return alert('Membro sem e-mail cadastrado.');
       
-      const total = window.currentTransactions.filter(t => String(t.member_id) === String(mId)).reduce((a, b) => a + Number(b.amount), 0);
-      const url = 'https://script.google.com/macros/s/AKfycbzB7GoExKRwmaYukAHJFuGG64HgURnJDIUMcrCJligEttcvI32U7Nk_lBud7DCE07mK7w/exec';
+      const txs = window.currentTransactions.filter(t => String(t.member_id) === String(mId));
+      let total = 0;
+      const bankTotals = {};
       
+      txs.forEach(t => {
+        const info = getTransactionDetails(t);
+        total += info.installmentAmount;
+        bankTotals[info.bankName] = (bankTotals[info.bankName] || 0) + info.installmentAmount;
+      });
+
+      let bankSummaryHtml = '';
+      if (Object.keys(bankTotals).length > 0) {
+        bankSummaryHtml = Object.entries(bankTotals).map(([b, v]) => `<strong>${b}:</strong> R$ ${v.toFixed(2)}`).join('<br>');
+      } else {
+        bankSummaryHtml = 'Nenhum lançamento';
+      }
+
+      const url = 'https://script.google.com/macros/s/AKfycbzB7GoExKRwmaYukAHJFuGG64HgURnJDIUMcrCJligEttcvI32U7Nk_lBud7DCE07mK7w/exec';
       const now = new Date();
       const periodStr = now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
       const formattedPeriod = periodStr.charAt(0).toUpperCase() + periodStr.slice(1);
 
-      // Corpo moderno do E-mail e o HTML para anexar/gerar PDF
-      const emailHtml = generateEmailHTML(m.name, formattedPeriod);
+      const emailHtml = generateEmailHTML(m.name, formattedPeriod, bankSummaryHtml, total.toFixed(2));
       const invoiceHtml = $('printArea').innerHTML; // Enviado para o GAS para que ele gere o PDF anexado
 
       try {
