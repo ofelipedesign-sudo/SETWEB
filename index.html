@@ -770,8 +770,7 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
             continue;
           }
           const data = await resp.json();
-          let raw = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').replace(/
-```json/gi, '').replace(/```/g, '').trim();
+         let raw = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').replace(/```json/gi, '').replace(/```/g, '').trim();
           const jm = raw.match(/\{[\s\S]*\}/);
           if (jm) raw = jm[0];
           return JSON.parse(raw);
