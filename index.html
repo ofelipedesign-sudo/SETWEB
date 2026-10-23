@@ -732,7 +732,11 @@
       $('cardOpenInvoices').textContent = 'R$ ' + openTotal.toFixed(2);
       $('cardOpenCount').textContent = `${openInvs.length} faturas pendentes`;
       
-      const transTotal = filteredTrans.reduce((a, b) => a + Number(b.amount), 0);
+      const transTotal = filteredTrans.reduce((a, b) => {
+          const info = getTransactionDetails(b);
+          return a + Number(info.installmentAmount);
+      }, 0);
+      
       $('cardTotalTransactions').textContent = 'R$ ' + transTotal.toFixed(2);
       $('cardTransCount').textContent = `${filteredTrans.length} itens catalogados`;
       
@@ -906,7 +910,6 @@
         const bankMap = {};
         filteredInvs.forEach(i => { bankMap[i.bank_name] = (bankMap[i.bank_name] || 0) + Number(i.total_amount); });
         
-        // Cores padrão para usuários e bancos
         const colors = ['#10b981', '#6366f1', '#f59e0b', '#ec4899', '#06b6d4', '#8b5cf6', '#ef4444', '#14b8a6', '#f97316'];
 
         let banks = [...new Set(filteredTrans.map(t => getTransactionDetails(t).bankName))];
@@ -1318,7 +1321,7 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
         </div>
         <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
           <p style="margin: 0; font-size: 10px; color: #64748b;">Sistema de Empréstimo Terceirizado (<strong>SET</strong>)</p>
-          <p style="margin: 5px 0 0 0; font-size: 9px; color: #94a3b8;">Este e um email automatico - por favor, nao直接 responda.</p>
+          <p style="margin: 5px 0 0 0; font-size: 9px; color: #94a3b8;">Este e um email automatico - por favor, nao responda diretamente.</p>
         </div>
       </div>
       `;
