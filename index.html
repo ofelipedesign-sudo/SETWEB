@@ -174,6 +174,23 @@
             <div class="h-64 relative flex items-center justify-center w-full"><canvas id="chartSplit"></canvas></div>
           </div>
         </div>
+        
+        <!-- Rodapé do Painel -->
+        <div class="mt-2 pt-4 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] text-slate-500 font-medium">
+          <div class="flex items-center gap-2">
+            <span class="relative flex h-2 w-2">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span>Sistema online e sincronizado com base de dados</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <span>SET Web v1.0</span>
+            <span class="w-1 h-1 rounded-full bg-slate-700"></span>
+            <span class="flex items-center gap-1"><i class="ph-bold ph-sparkle text-amber-500/70"></i> IA Powered</span>
+          </div>
+        </div>
+
       </div>
 
       <!-- ABA 2: FATURAS -->
@@ -1068,6 +1085,10 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
         : 'Nenhum lançamento';
 
       $('printArea').innerHTML = `
+        <style>
+          .bg-brand-pdf { background-color: #0b4f9c !important; background: #0b4f9c !important; color: #ffffff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          .bg-brand-pdf div, .bg-brand-pdf span { color: #ffffff !important; }
+        </style>
         <div style="padding: 20px; background: white; color: #1e293b; font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto;">
           <div style="margin-bottom: 20px;">
             <h2 style="font-size: 16px; font-weight: bold; margin: 0 0 5px 0;">SISTEMA DE EMPRÉSTIMO TERCEIRIZADO (SET)</h2>
@@ -1103,16 +1124,16 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
           <div style="font-size: 11px; margin-bottom: 20px; color: #475569;">${bankSummaryStr}</div>
 
           <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse; margin-bottom: 15px; border: 1px solid #bfdbfe;">
-            <tr>
-                <td bgcolor="#0b4f9c" style="background-color: #0b4f9c; color: #ffffff; padding: 10px 15px;">
-                    <div style="font-weight: bold; font-size: 12px; letter-spacing: 1px; color: #ffffff;">TOTAL DOS LANÇAMENTOS</div>
+            <tr class="bg-brand-pdf" bgcolor="#0b4f9c">
+                <td style="padding: 10px 15px; border-radius: 4px 0 0 0;">
+                    <div style="font-weight: bold; font-size: 12px; letter-spacing: 1px;">TOTAL DOS LANÇAMENTOS</div>
                 </td>
-                <td bgcolor="#0b4f9c" style="background-color: #0b4f9c; color: #ffffff; padding: 10px 15px; text-align: right;">
-                    <div style="font-weight: bold; font-size: 16px; color: #ffffff;">R$ ${total.toFixed(2)}</div>
+                <td style="padding: 10px 15px; border-radius: 0 4px 0 0; text-align: right;">
+                    <div style="font-weight: bold; font-size: 16px;">R$ ${total.toFixed(2)}</div>
                 </td>
             </tr>
             <tr>
-                <td colspan="2" bgcolor="#eff6ff" style="background-color: #eff6ff; color: #1e40af; padding: 6px 15px; font-size: 10px; border-top: 1px solid #bfdbfe;">
+                <td colspan="2" bgcolor="#eff6ff" style="background-color: #eff6ff; color: #1e40af; padding: 6px 15px; font-size: 10px; border-top: 1px solid #bfdbfe; border-radius: 0 0 4px 4px;">
                     À vista: ${countCash} &nbsp;&nbsp;|&nbsp;&nbsp; Parceladas: ${countInstallments}
                 </td>
             </tr>
@@ -1327,22 +1348,3 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
   </script>
 </body>
 </html>
-<!-- Rodapé do Painel -->
-<div class="mt-4 pt-4 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] text-slate-500 font-medium">
-  
-  <!-- Indicador de Status -->
-  <div class="flex items-center gap-2">
-    <span class="relative flex h-2 w-2">
-      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-      <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-    </span>
-    <span>Sistema online e sincronizado com base de dados</span>
-  </div>
-
-  <!-- Versão e Créditos -->
-  <div class="flex items-center gap-3">
-    <span>SET Web v1.0</span>
-    <span class="w-1 h-1 rounded-full bg-slate-700"></span>
-    <span class="flex items-center gap-1"><i class="ph-bold ph-sparkle text-amber-500/70"></i> IA Powered</span>
-  </div>
-</div>
