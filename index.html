@@ -205,16 +205,22 @@
       </div>
 
       <!-- ABA 3: LANÇAMENTOS & RATEIO -->
-      <div id="viewTransactions" class="flex flex-col gap-4 hidden">
-        <div class="bg-slate-900 rounded-2xl border border-slate-800 p-4 shadow-sm">
-          <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
-            <div><h4 class="text-sm font-bold text-white">Lançamentos Conciliados & Rateio</h4><p class="text-xs text-slate-400">Atribua a transação diretamente a um usuário ou use o botão de tesoura para dividir o valor.</p></div>
-            <button type="button" onclick="openGenerateMemberPdfModal()" class="px-3 py-1.5 text-xs font-bold rounded-xl bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700 flex items-center gap-1"><i class="ph-bold ph-file-pdf text-rose-400"></i><span>Gerar Fatura Individual</span></button>
+     <div class="flex flex-col gap-3 mb-3 border-b border-slate-800 pb-3">
+            <div class="flex items-center justify-between">
+              <div><h4 class="text-sm font-bold text-white">Lançamentos Conciliados & Rateio</h4><p class="text-[11px] text-slate-400">Atribua a transação a um usuário ou divida o valor.</p></div>
+              <button type="button" onclick="openGenerateMemberPdfModal()" class="px-3 py-1.5 text-xs font-bold rounded-xl bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700 flex items-center gap-1 shrink-0"><i class="ph-bold ph-file-pdf text-rose-400"></i><span class="hidden sm:inline">Gerar Fatura</span></button>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="relative flex-1">
+                <i class="ph-bold ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                <input type="text" id="searchTxInput" onkeyup="renderTransactionsList()" placeholder="Buscar estabelecimento..." class="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-white focus:outline-none focus:border-brand-500 transition">
+              </div>
+              <select id="filterTxMember" onchange="renderTransactionsList()" class="px-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-slate-300 focus:outline-none focus:border-brand-500 cursor-pointer outline-none">
+                <option value="all">Todos os itens</option>
+                <option value="unassigned">🔴 Não Rateados</option>
+              </select>
+            </div>
           </div>
-          <div id="transactionsList" class="divide-y divide-slate-800"></div>
-          <div id="emptyTransactions" class="p-8 text-center text-slate-400 text-xs">Nenhum lançamento encontrado.</div>
-        </div>
-      </div>
 
       <!-- ABA 4: MEMBROS -->
       <div id="viewMembers" class="flex flex-col gap-4 hidden">
@@ -664,10 +670,27 @@
       const c = $('transactionsList'), emp = $('emptyTransactions');
       if (!c) return;
       c.innerHTML = '';
-      if (!window.currentTransactions.length) { emp?.classList.remove('hidden'); return; }
+      
+      const searchVal = ($('searchTxInput')?.value || '').toLowerCase().trim();
+      const filterVal = $('filterTxMember')?.value || 'all';
+
+      const filteredTxs = window.currentTransactions.filter(t => {
+        const info = getTransactionDetails(t);
+        const matchesSearch = info.description.toLowerCase().includes(searchVal) || info.category.toLowerCase().includes(searchVal) || info.bankName.toLowerCase().includes(searchVal);
+        let matchesFilter = true;
+        if (filterVal === 'unassigned') matchesFilter = !t.member_id;
+        return matchesSearch && matchesFilter;
+      });
+
+      if (!filteredTxs.length) { 
+        emp?.classList.remove('hidden'); 
+        emp.textContent = window.currentTransactions.length ? 'Nenhum lançamento corresponde à sua busca.' : 'Nenhum lançamento encontrado.';
+        return; 
+      }
       emp?.classList.add('hidden');
+      
       let rowsHtml = '';
-      window.currentTransactions.forEach(t => {
+      filteredTxs.forEach(t => {
         const info = getTransactionDetails(t);
         let opts = '<option value="">Sem rateio (Geral)</option>';
         window.currentMembers.forEach(m => {
