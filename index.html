@@ -1102,17 +1102,17 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
           <div style="font-size: 11px; font-weight: bold; margin-bottom: 5px;">RESUMO POR BANCO</div>
           <div style="font-size: 11px; margin-bottom: 20px; color: #475569;">${bankSummaryStr}</div>
 
-          <table width="100%" style="border-collapse: collapse; margin-bottom: 15px;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse; margin-bottom: 15px; border: 1px solid #bfdbfe;">
             <tr>
-                <td style="background-color: #0b4f9c; color: white; padding: 10px 15px; border-radius: 4px 0 0 0;">
-                    <div style="font-weight: bold; font-size: 12px; letter-spacing: 1px;">TOTAL DOS LANÇAMENTOS</div>
+                <td bgcolor="#0b4f9c" style="background-color: #0b4f9c; color: #ffffff; padding: 10px 15px;">
+                    <div style="font-weight: bold; font-size: 12px; letter-spacing: 1px; color: #ffffff;">TOTAL DOS LANÇAMENTOS</div>
                 </td>
-                <td style="background-color: #0b4f9c; color: white; padding: 10px 15px; border-radius: 0 4px 0 0; text-align: right;">
-                    <div style="font-weight: bold; font-size: 16px;">R$ ${total.toFixed(2)}</div>
+                <td bgcolor="#0b4f9c" style="background-color: #0b4f9c; color: #ffffff; padding: 10px 15px; text-align: right;">
+                    <div style="font-weight: bold; font-size: 16px; color: #ffffff;">R$ ${total.toFixed(2)}</div>
                 </td>
             </tr>
             <tr>
-                <td colspan="2" style="background-color: #eff6ff; color: #1e40af; padding: 6px 15px; font-size: 10px; border: 1px solid #bfdbfe; border-top: none; border-radius: 0 0 4px 4px;">
+                <td colspan="2" bgcolor="#eff6ff" style="background-color: #eff6ff; color: #1e40af; padding: 6px 15px; font-size: 10px; border-top: 1px solid #bfdbfe;">
                     À vista: ${countCash} &nbsp;&nbsp;|&nbsp;&nbsp; Parceladas: ${countInstallments}
                 </td>
             </tr>
