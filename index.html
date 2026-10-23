@@ -127,7 +127,7 @@
         <div class="flex items-center gap-2 shrink-0 ml-auto bg-slate-900 border border-slate-800 p-1 rounded-xl">
            <div class="w-7 h-7 rounded-lg bg-emerald-950/50 flex items-center justify-center text-emerald-400"><i class="ph-bold ph-calendar-blank"></i></div>
            <select id="globalMonthFilter" onchange="applyGlobalMonthFilter()" class="bg-transparent text-slate-200 text-xs font-bold px-1 py-1 outline-none cursor-pointer">
-             <option value="all">Todos os Meses</option>
+             <!-- Options generated via JS -->
            </select>
         </div>
       </div>
@@ -224,8 +224,8 @@
                 <input type="text" id="searchTxInput" onkeyup="renderTransactionsList()" placeholder="Buscar estabelecimento..." class="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-white focus:outline-none focus:border-brand-500 transition">
               </div>
               <select id="filterTxMember" onchange="renderTransactionsList()" class="px-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-slate-300 focus:outline-none focus:border-brand-500 cursor-pointer outline-none">
-                <option value="all">Todos os itens</option>
-                <option value="unassigned">🔴 Não Rateados</option>
+                <option value="all" class="bg-slate-900 text-white">Todos os itens</option>
+                <option value="unassigned" class="bg-slate-900 text-white">🔴 Não Rateados</option>
               </select>
             </div>
           </div>
@@ -624,24 +624,24 @@
       });
       const sortedMonths = Array.from(months).sort((a, b) => b.localeCompare(a));
       
-      let html = '<option value="all">Todos os Meses</option>';
+      let html = '<option value="all" class="bg-slate-900 text-slate-200">Todos os Meses</option>';
       sortedMonths.forEach(m => {
         const [y, mm] = m.split('-');
         const date = new Date(y, parseInt(mm)-1, 15);
         const monthName = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
         const capitalized = monthName.charAt(0).toUpperCase() + monthName.slice(1);
-        html += `<option value="${m}">${capitalized}</option>`;
+        html += `<option value="${m}" class="bg-slate-900 text-slate-200">${capitalized}</option>`;
       });
       
       const currentVal = window.currentGlobalMonth || 'all';
       select.innerHTML = html;
       
-      if (sortedMonths.includes(currentVal)) {
+      if (currentVal === 'all' || sortedMonths.includes(currentVal)) {
         select.value = currentVal;
         window.currentGlobalMonth = currentVal;
       } else {
-        select.value = sortedMonths.length > 0 ? sortedMonths[0] : 'all';
-        window.currentGlobalMonth = select.value;
+        select.value = 'all';
+        window.currentGlobalMonth = 'all';
       }
     }
 
@@ -1217,8 +1217,8 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
 
       let refDate = new Date();
       if (globalFilter !== 'all') {
-          const [y, m] = globalFilter.split('-');
-          refDate = new Date(y, parseInt(m)-1, 15);
+          const [y, mm] = globalFilter.split('-');
+          refDate = new Date(y, parseInt(mm)-1, 15);
       }
       
       const periodStr = refDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
@@ -1278,7 +1278,7 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
               <strong>Vencimento:</strong> <span style="color: #e11d48; font-weight: bold;">${dueStr}</span><br>
               <strong>Transações:</strong> ${txs.length} lançamentos<br>
               <strong>Usuário:</strong> ${m.name}<br>
-              <strong>Gerado em:</strong> ${new Date().toLocaleDateString('pt-BR')}<br>
+              <strong>Gerado em:</strong> ${now.toLocaleDateString('pt-BR')}<br>
               <strong>Chave PIX:</strong> <span style="color: #2563eb; text-decoration: underline;">fp.danado16@gmail.com</span>
             </div>
           </div>
@@ -1320,7 +1320,7 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
           </table>
 
           <div style="text-align: center; font-size: 9px; color: #94a3b8; margin-top: 30px; border-top: 1px solid #f1f5f9; padding-top: 15px;">
-            Documento gerado pelo Sistema de Empréstimo Terceirizado (SET) em ${new Date().toLocaleDateString('pt-BR')} | PIX: fp.danado16@gmail.com
+            Documento gerado pelo Sistema de Empréstimo Terceirizado (SET) em ${now.toLocaleDateString('pt-BR')} | PIX: fp.danado16@gmail.com
             <div style="margin-top: 8px; font-weight: bold; color: #475569; font-size: 14px;">SET</div>
           </div>
         </div>
