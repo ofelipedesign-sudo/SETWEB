@@ -205,7 +205,9 @@
       </div>
 
       <!-- ABA 3: LANÇAMENTOS & RATEIO -->
-     <div class="flex flex-col gap-3 mb-3 border-b border-slate-800 pb-3">
+      <div id="viewTransactions" class="flex flex-col gap-4 hidden">
+        <div class="bg-slate-900 rounded-2xl border border-slate-800 p-4 shadow-sm">
+          <div class="flex flex-col gap-3 mb-3 border-b border-slate-800 pb-3">
             <div class="flex items-center justify-between">
               <div><h4 class="text-sm font-bold text-white">Lançamentos Conciliados & Rateio</h4><p class="text-[11px] text-slate-400">Atribua a transação a um usuário ou divida o valor.</p></div>
               <button type="button" onclick="openGenerateMemberPdfModal()" class="px-3 py-1.5 text-xs font-bold rounded-xl bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700 flex items-center gap-1 shrink-0"><i class="ph-bold ph-file-pdf text-rose-400"></i><span class="hidden sm:inline">Gerar Fatura</span></button>
@@ -221,6 +223,10 @@
               </select>
             </div>
           </div>
+          <div id="transactionsList" class="divide-y divide-slate-800"></div>
+          <div id="emptyTransactions" class="p-8 text-center text-slate-400 text-xs">Nenhum lançamento encontrado.</div>
+        </div>
+      </div>
 
       <!-- ABA 4: MEMBROS -->
       <div id="viewMembers" class="flex flex-col gap-4 hidden">
