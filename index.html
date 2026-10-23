@@ -861,16 +861,17 @@
     function renderCharts() {
       try {
         const filterMonth = window.currentGlobalMonth;
+        const filteredInvs = window.currentInvoices.filter(invoiceMatchesGlobalFilter);
         const filteredTrans = window.currentTransactions.filter(transactionMatchesGlobalFilter);
 
-        // Cores padrão para usuários e bancos
+        const bankMap = {};
+        filteredInvs.forEach(i => { bankMap[i.bank_name] = (bankMap[i.bank_name] || 0) + Number(i.total_amount); });
+        
         const colors = ['#10b981', '#6366f1', '#f59e0b', '#ec4899', '#06b6d4', '#8b5cf6', '#ef4444', '#14b8a6', '#f97316'];
 
-        // Levantar bancos únicos nas transações
         let banks = [...new Set(filteredTrans.map(t => getTransactionDetails(t).bankName))];
         if (banks.length === 0) banks = ['Sem dados'];
 
-        // Montar Datasets para Gráfico de Barras Empilhadas (Usuários por Banco)
         const barDatasets = [];
         window.currentMembers.forEach((m, i) => {
             const data = banks.map(b => {
@@ -890,7 +891,6 @@
             }
         });
 
-        // Capturar despesas Não Rateadas
         const unassignedData = banks.map(b => {
             if (b === 'Sem dados') return 0;
             return filteredTrans
@@ -904,7 +904,6 @@
             barDatasets.push({ label: 'Sem dados', data: [0], backgroundColor: 'rgba(16, 185, 129, 0.18)', maxBarThickness: 48 });
         }
 
-        // Montar Dados para Gráfico de Rosca (Proporção Total de Bancos)
         const bankTotals = {};
         filteredTrans.forEach(t => {
            const b = getTransactionDetails(t).bankName;
@@ -922,7 +921,11 @@
               responsive: true, maintainAspectRatio: false, layout: { padding: { top: 8, right: 8, left: 4, bottom: 0 } },
               plugins: { 
                 legend: { display: true, position: 'top', labels: { color: '#94a3b8', usePointStyle: true, boxWidth: 8, font: { size: 10, weight: '600' } } }, 
-                tooltip: { backgroundColor: '#0f172a', titleColor: '#f8fafc', bodyColor: '#cbd5e1', borderColor: '#1e293b', borderWidth: 1, padding: 10, cornerRadius: 10, callbacks: { label: ctx => ` ${ctx.dataset.label}: R$ ` + Number(ctx.parsed.y || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) } } 
+                tooltip: { 
+                  displayColors: false, 
+                  backgroundColor: '#0f172a', titleColor: '#f8fafc', bodyColor: '#cbd5e1', borderColor: '#1e293b', borderWidth: 1, padding: 10, cornerRadius: 10, 
+                  callbacks: { label: ctx => ` ${ctx.dataset.label}: R$ ` + Number(ctx.parsed.y || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) } 
+                } 
               },
               scales: {
                 x: { stacked: true, grid: { display: false }, border: { display: false }, ticks: { color: '#94a3b8', font: { size: 11, weight: '600' } } },
@@ -950,7 +953,11 @@
               responsive: true, maintainAspectRatio: false, cutout: '72%',
               plugins: {
                 legend: { position: 'top', labels: { color: '#94a3b8', usePointStyle: true, pointStyle: 'circle', boxWidth: 8, padding: 14, font: { size: 11, weight: '600' } } },
-                tooltip: { enabled: hasBanks, backgroundColor: '#0f172a', titleColor: '#f8fafc', bodyColor: '#e2e8f0', borderColor: '#1e293b', borderWidth: 1, padding: 10, cornerRadius: 10, callbacks: { label: ctx => ` R$ ${Number(ctx.parsed || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` } }
+                tooltip: { 
+                  displayColors: false, 
+                  backgroundColor: '#0f172a', titleColor: '#f8fafc', bodyColor: '#e2e8f0', borderColor: '#1e293b', borderWidth: 1, padding: 10, cornerRadius: 10, 
+                  callbacks: { label: ctx => ` R$ ${Number(ctx.parsed || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` } 
+                }
               }
             }
           });
@@ -1211,7 +1218,7 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
         </div>
         <div style="padding: 30px 20px; background-color: #ffffff;">
           <h2 style="margin-top: 0; color: #1e293b; font-size: 18px; font-weight: normal;">Olá, <strong style="color: #0f172a;">${memberName}</strong></h2>
-          <p style="color: #475569; font-size: 14px; line-height: 1.6;">Sua fatura de <strong>${period}</strong> foi gerada e os detalhes encontram-se no documento PDF em anexo neste email.</p>
+          <p style="color: #475569; font-size: 14px; line-height: 1.6;">Sua fatura do <strong>${period}</strong> foi gerada e os detalhes encontram-se no documento PDF em anexo neste email.</p>
           
           <div style="background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 15px 20px; border-radius: 4px; margin-bottom: 15px; margin-top: 25px;">
             <p style="margin: 0; font-size: 10px; font-weight: bold; color: #1e40af; text-transform: uppercase; margin-bottom: 5px;">CHAVE PIX PARA PAGAMENTO</p>
@@ -1334,7 +1341,7 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
               <strong>Vencimento:</strong> <span style="color: #e11d48; font-weight: bold;">${dueStr}</span><br>
               <strong>Transações:</strong> ${txs.length} lançamentos<br>
               <strong>Usuário:</strong> ${m.name}<br>
-              <strong>Gerado em:</strong> ${now.toLocaleDateString('pt-BR')}<br>
+              <strong>Gerado em:</strong> ${new Date().toLocaleDateString('pt-BR')}<br>
               <strong>Chave PIX:</strong> <span style="color: #2563eb; text-decoration: underline;">fp.danado16@gmail.com</span>
             </div>
           </div>
@@ -1376,7 +1383,7 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
           </table>
 
           <div style="text-align: center; font-size: 9px; color: #94a3b8; margin-top: 30px; border-top: 1px solid #f1f5f9; padding-top: 15px;">
-            Documento gerado pelo Sistema de Empréstimo Terceirizado (SET) em ${now.toLocaleDateString('pt-BR')} | PIX: fp.danado16@gmail.com
+            Documento gerado pelo Sistema de Empréstimo Terceirizado (SET) em ${new Date().toLocaleDateString('pt-BR')} | PIX: fp.danado16@gmail.com
             <div style="margin-top: 8px; font-weight: bold; color: #475569; font-size: 14px;">SET</div>
           </div>
         </div>
@@ -1388,7 +1395,6 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
       const m = window.currentMembers.find(x => String(x.id) === String(mId));
       if (!m) return;
       
-      const globalFilter = window.currentGlobalMonth || 'all';
       const txs = window.currentTransactions.filter(t => {
           if (String(t.member_id) !== String(mId)) return false;
           return transactionMatchesGlobalFilter(t);
@@ -1412,16 +1418,14 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
         bankSummaryTxt += `* ${b}: R$ ${bankTotals[b].toFixed(2)}\n`;
       });
 
-      let refDate = new Date();
-      if (globalFilter !== 'all') {
-          const [y, mm] = globalFilter.split('-');
-          refDate = new Date(y, parseInt(mm)-1, 15);
-      }
-      const periodStr = refDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-      const formattedPeriod = periodStr.charAt(0).toUpperCase() + periodStr.slice(1);
-
+      const formattedPeriod = getGlobalPeriodString();
       const dueDateDay = $('selectDueDate') ? $('selectDueDate').value : '10';
-      const dueStr = `${dueDateDay} de ${formattedPeriod}`;
+      let dueStr = '';
+      if (formattedPeriod === 'Período Geral') {
+          dueStr = `Dia ${dueDateDay}`;
+      } else {
+          dueStr = `${dueDateDay} de ${formattedPeriod.replace('Ano de ', '')}`;
+      }
 
       const txt = `*SISTEMA DE EMPRÉSTIMO TERCEIRIZADO (SET)*\n_Transações Individualizadas_\n\n*Usuário:* ${m.name}\n*Referência:* ${formattedPeriod}\n*Vencimento:* ${dueStr}\n*Transações:* ${txs.length} lançamentos\n\n*Lançamentos:*\n${listTxt}\n*Resumo por Banco:*\n${bankSummaryTxt}\n*TOTAL: R$ ${total.toFixed(2)}*\n\n*Chave PIX:* fp.danado16@gmail.com\n\n_Documento gerado pelo Sistema de Empréstimo Terceirizado (SET)_`;
 
@@ -1435,7 +1439,6 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
       const m = window.currentMembers.find(x => String(x.id) === String(mId));
       if (!m || !m.email) return alert('Membro sem e-mail cadastrado.');
       
-      const globalFilter = window.currentGlobalMonth || 'all';
       const txs = window.currentTransactions.filter(t => {
           if (String(t.member_id) !== String(mId)) return false;
           return transactionMatchesGlobalFilter(t);
@@ -1458,16 +1461,14 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
       }
 
       const url = 'https://script.google.com/macros/s/AKfycbzB7GoExKRwmaYukAHJFuGG64HgURnJDIUMcrCJligEttcvI32U7Nk_lBud7DCE07mK7w/exec';
-      let refDate = new Date();
-      if (globalFilter !== 'all') {
-          const [y, mm] = globalFilter.split('-');
-          refDate = new Date(y, parseInt(mm)-1, 15);
-      }
-      const periodStr = refDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-      const formattedPeriod = periodStr.charAt(0).toUpperCase() + periodStr.slice(1);
-      
+      const formattedPeriod = getGlobalPeriodString();
       const dueDateDay = $('selectDueDate') ? $('selectDueDate').value : '10';
-      const dueStr = `${dueDateDay} de ${formattedPeriod}`;
+      let dueStr = '';
+      if (formattedPeriod === 'Período Geral') {
+          dueStr = `Dia ${dueDateDay}`;
+      } else {
+          dueStr = `${dueDateDay} de ${formattedPeriod.replace('Ano de ', '')}`;
+      }
 
       const emailHtml = generateEmailHTML(m.name, formattedPeriod, bankSummaryHtml, total.toFixed(2), dueStr);
       const printAreaHtml = $('printArea').innerHTML;
