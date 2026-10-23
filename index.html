@@ -186,15 +186,14 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div class="lg:col-span-2 bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 shadow-sm flex flex-col justify-between">
             <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2.5">
-              <div><h4 class="text-xs sm:text-sm font-bold text-slate-100">Gastos por Banco / Cartão</h4><p class="text-[10px] text-slate-400">Total acumulado por instituição bancária</p></div>
+              <div><h4 class="text-xs sm:text-sm font-bold text-slate-100">Gastos por Banco / Cartão</h4><p class="text-[10px] text-slate-400">Composição de consumo por usuário</p></div>
               <span class="text-[10px] font-mono font-bold text-slate-500 uppercase">Valores em R$</span>
             </div>
             <div class="h-64 relative w-full"><canvas id="chartInvoices"></canvas></div>
           </div>
           <div class="bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 shadow-sm flex flex-col justify-between">
             <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2.5">
-              <div><h4 class="text-xs sm:text-sm font-bold text-slate-100">Consumo de usuário por banco</h4><p class="text-[10px] text-slate-400">Proporção individual das despesas</p></div>
-              <select id="selectChartBank" onchange="renderCharts()" class="bg-slate-800 border border-slate-700 text-slate-200 text-[10px] font-semibold rounded-lg px-2 py-1 outline-none focus:border-brand-500 cursor-pointer"></select>
+              <div><h4 class="text-xs sm:text-sm font-bold text-slate-100">Composição Geral</h4><p class="text-[10px] text-slate-400">Proporção de gastos entre todos os bancos</p></div>
             </div>
             <div class="h-64 relative flex items-center justify-center w-full"><canvas id="chartSplit"></canvas></div>
           </div>
@@ -861,76 +860,97 @@
 
     function renderCharts() {
       try {
-        const filteredInvs = window.currentInvoices.filter(invoiceMatchesGlobalFilter);
+        const filterMonth = window.currentGlobalMonth;
         const filteredTrans = window.currentTransactions.filter(transactionMatchesGlobalFilter);
 
-        const bankMap = {};
-        filteredInvs.forEach(i => { bankMap[i.bank_name] = (bankMap[i.bank_name] || 0) + Number(i.total_amount); });
-        
+        // Cores padrão para usuários e bancos
+        const colors = ['#10b981', '#6366f1', '#f59e0b', '#ec4899', '#06b6d4', '#8b5cf6', '#ef4444', '#14b8a6', '#f97316'];
+
+        // Levantar bancos únicos nas transações
+        let banks = [...new Set(filteredTrans.map(t => getTransactionDetails(t).bankName))];
+        if (banks.length === 0) banks = ['Sem dados'];
+
+        // Montar Datasets para Gráfico de Barras Empilhadas (Usuários por Banco)
+        const barDatasets = [];
+        window.currentMembers.forEach((m, i) => {
+            const data = banks.map(b => {
+                if (b === 'Sem dados') return 0;
+                return filteredTrans
+                    .filter(t => String(t.member_id) === String(m.id) && getTransactionDetails(t).bankName === b)
+                    .reduce((sum, t) => sum + Number(t.amount), 0);
+            });
+            if (data.some(v => v > 0)) {
+                barDatasets.push({
+                    label: m.name,
+                    data: data,
+                    backgroundColor: colors[i % colors.length],
+                    borderWidth: 0,
+                    maxBarThickness: 48
+                });
+            }
+        });
+
+        // Capturar despesas Não Rateadas
+        const unassignedData = banks.map(b => {
+            if (b === 'Sem dados') return 0;
+            return filteredTrans
+                .filter(t => !t.member_id && getTransactionDetails(t).bankName === b)
+                .reduce((sum, t) => sum + Number(t.amount), 0);
+        });
+        if (unassignedData.some(v => v > 0)) {
+            barDatasets.push({ label: 'Não Rateado', data: unassignedData, backgroundColor: '#475569', borderWidth: 0, maxBarThickness: 48 });
+        }
+        if (barDatasets.length === 0) {
+            barDatasets.push({ label: 'Sem dados', data: [0], backgroundColor: 'rgba(16, 185, 129, 0.18)', maxBarThickness: 48 });
+        }
+
+        // Montar Dados para Gráfico de Rosca (Proporção Total de Bancos)
+        const bankTotals = {};
+        filteredTrans.forEach(t => {
+           const b = getTransactionDetails(t).bankName;
+           bankTotals[b] = (bankTotals[b] || 0) + Number(t.amount);
+        });
+
         const c1 = $('chartInvoices');
         if (c1) {
           if (chartInvoices) chartInvoices.destroy();
           const ctx1 = c1.getContext('2d');
-          const grad = ctx1.createLinearGradient(0, 0, 0, 240);
-          grad.addColorStop(0, 'rgba(16, 185, 129, 0.95)');
-          grad.addColorStop(1, 'rgba(16, 185, 129, 0.18)');
-          const hasBanks = Object.keys(bankMap).length > 0;
           chartInvoices = new Chart(ctx1, {
             type: 'bar',
-            data: {
-              labels: hasBanks ? Object.keys(bankMap) : ['Sem dados'],
-              datasets: [{ data: hasBanks ? Object.values(bankMap) : [0], backgroundColor: grad, hoverBackgroundColor: '#10b981', borderColor: '#34d399', borderWidth: { top: 2, right: 0, bottom: 0, left: 0 }, borderRadius: 10, borderSkipped: false, maxBarThickness: 48, barPercentage: 0.55, categoryPercentage: 0.65 }]
-            },
+            data: { labels: banks, datasets: barDatasets },
             options: {
               responsive: true, maintainAspectRatio: false, layout: { padding: { top: 8, right: 8, left: 4, bottom: 0 } },
-              plugins: { legend: { display: false }, tooltip: { backgroundColor: '#0f172a', titleColor: '#f8fafc', bodyColor: '#34d399', borderColor: '#1e293b', borderWidth: 1, padding: 10, cornerRadius: 10, displayColors: false, callbacks: { label: ctx => 'R$ ' + Number(ctx.parsed.y || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) } } },
+              plugins: { 
+                legend: { display: true, position: 'top', labels: { color: '#94a3b8', usePointStyle: true, boxWidth: 8, font: { size: 10, weight: '600' } } }, 
+                tooltip: { backgroundColor: '#0f172a', titleColor: '#f8fafc', bodyColor: '#cbd5e1', borderColor: '#1e293b', borderWidth: 1, padding: 10, cornerRadius: 10, callbacks: { label: ctx => ` ${ctx.dataset.label}: R$ ` + Number(ctx.parsed.y || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) } } 
+              },
               scales: {
-                x: { grid: { display: false }, border: { display: false }, ticks: { color: '#94a3b8', font: { size: 11, weight: '600' } } },
-                y: { beginAtZero: true, border: { display: false, dash: [4, 4] }, grid: { color: 'rgba(148, 163, 184, 0.08)' }, ticks: { color: '#64748b', font: { size: 10, weight: '600' }, callback: val => 'R$ ' + Number(val).toLocaleString('pt-BR') } }
+                x: { stacked: true, grid: { display: false }, border: { display: false }, ticks: { color: '#94a3b8', font: { size: 11, weight: '600' } } },
+                y: { stacked: true, beginAtZero: true, border: { display: false, dash: [4, 4] }, grid: { color: 'rgba(148, 163, 184, 0.08)' }, ticks: { color: '#64748b', font: { size: 10, weight: '600' }, callback: val => 'R$ ' + Number(val).toLocaleString('pt-BR') } }
               }
             }
           });
         }
-        
-        const selBank = $('selectChartBank');
-        let selectedBank = 'all';
-        if (selBank) {
-            selectedBank = selBank.value || 'all';
-            const uniqueBanks = [...new Set(window.currentInvoices.map(i => i.bank_name).filter(Boolean))];
-            let optsHtml = '<option value="all">Todos os Bancos</option>';
-            uniqueBanks.forEach(b => { optsHtml += `<option value="${b}">${b}</option>`; });
-            if (selBank.innerHTML !== optsHtml) {
-                selBank.innerHTML = optsHtml;
-                selBank.value = uniqueBanks.includes(selectedBank) ? selectedBank : 'all';
-                selectedBank = selBank.value;
-            }
-        }
 
-        const memberMap = {};
-        window.currentMembers.forEach(m => {
-          const s = filteredTrans
-            .filter(t => String(t.member_id) === String(m.id))
-            .filter(t => {
-                if (selectedBank === 'all') return true;
-                const info = getTransactionDetails(t);
-                return info.bankName === selectedBank;
-            })
-            .reduce((a, b) => a + Number(b.amount), 0);
-          if (s > 0) memberMap[m.name] = s;
-        });
-        
         const c2 = $('chartSplit');
         if (c2) {
           if (chartSplit) chartSplit.destroy();
-          const hasSplits = Object.keys(memberMap).length > 0;
+          const hasBanks = Object.keys(bankTotals).length > 0;
           chartSplit = new Chart(c2.getContext('2d'), {
             type: 'doughnut',
-            data: { labels: hasSplits ? Object.keys(memberMap) : ['Sem rateio'], datasets: [{ data: hasSplits ? Object.values(memberMap) : [1], backgroundColor: hasSplits ? ['#10b981', '#6366f1', '#f59e0b', '#ec4899', '#06b6d4'] : ['#1e293b'], borderWidth: 0, hoverOffset: 4 }] },
+            data: { 
+                labels: hasBanks ? Object.keys(bankTotals) : ['Sem dados'], 
+                datasets: [{ 
+                    data: hasBanks ? Object.values(bankTotals) : [1], 
+                    backgroundColor: hasBanks ? colors : ['#1e293b'], 
+                    borderWidth: 0, hoverOffset: 4 
+                }] 
+            },
             options: {
               responsive: true, maintainAspectRatio: false, cutout: '72%',
               plugins: {
                 legend: { position: 'top', labels: { color: '#94a3b8', usePointStyle: true, pointStyle: 'circle', boxWidth: 8, padding: 14, font: { size: 11, weight: '600' } } },
-                tooltip: { enabled: hasSplits, backgroundColor: '#0f172a', titleColor: '#f8fafc', bodyColor: '#e2e8f0', borderColor: '#1e293b', borderWidth: 1, padding: 10, cornerRadius: 10, callbacks: { label: ctx => ` R$ ${Number(ctx.parsed || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` } }
+                tooltip: { enabled: hasBanks, backgroundColor: '#0f172a', titleColor: '#f8fafc', bodyColor: '#e2e8f0', borderColor: '#1e293b', borderWidth: 1, padding: 10, cornerRadius: 10, callbacks: { label: ctx => ` R$ ${Number(ctx.parsed || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` } }
               }
             }
           });
@@ -1191,7 +1211,7 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
         </div>
         <div style="padding: 30px 20px; background-color: #ffffff;">
           <h2 style="margin-top: 0; color: #1e293b; font-size: 18px; font-weight: normal;">Olá, <strong style="color: #0f172a;">${memberName}</strong></h2>
-          <p style="color: #475569; font-size: 14px; line-height: 1.6;">Sua fatura do <strong>${period}</strong> foi gerada e os detalhes encontram-se no documento PDF em anexo neste email.</p>
+          <p style="color: #475569; font-size: 14px; line-height: 1.6;">Sua fatura de <strong>${period}</strong> foi gerada e os detalhes encontram-se no documento PDF em anexo neste email.</p>
           
           <div style="background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 15px 20px; border-radius: 4px; margin-bottom: 15px; margin-top: 25px;">
             <p style="margin: 0; font-size: 10px; font-weight: bold; color: #1e40af; text-transform: uppercase; margin-bottom: 5px;">CHAVE PIX PARA PAGAMENTO</p>
@@ -1245,20 +1265,23 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
       const m = window.currentMembers.find(x => String(x.id) === String(mId));
       if (!m) return;
       
+      const globalFilter = window.currentGlobalMonth || 'all';
       const txs = window.currentTransactions.filter(t => {
           if (String(t.member_id) !== String(mId)) return false;
           return transactionMatchesGlobalFilter(t);
       });
 
-      const formattedPeriod = getGlobalPeriodString();
-      const dueDateDay = $('selectDueDate') ? $('selectDueDate').value : '10';
-      
-      let dueStr = '';
-      if (formattedPeriod === 'Período Geral') {
-          dueStr = `Dia ${dueDateDay}`;
-      } else {
-          dueStr = `${dueDateDay} de ${formattedPeriod.replace('Ano de ', '')}`;
+      let refDate = new Date();
+      if (globalFilter !== 'all') {
+          const [y, mm] = globalFilter.split('-');
+          refDate = new Date(y, parseInt(mm)-1, 15);
       }
+      
+      const periodStr = refDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+      const formattedPeriod = periodStr.charAt(0).toUpperCase() + periodStr.slice(1);
+      
+      const dueDateDay = $('selectDueDate') ? $('selectDueDate').value : '10';
+      const dueStr = `${dueDateDay} de ${formattedPeriod}`;
       
       $('bannerInvoicePeriod').textContent = formattedPeriod;
       $('bannerInvoiceUser').textContent = `Usuário: ${m.name}`;
@@ -1311,7 +1334,7 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
               <strong>Vencimento:</strong> <span style="color: #e11d48; font-weight: bold;">${dueStr}</span><br>
               <strong>Transações:</strong> ${txs.length} lançamentos<br>
               <strong>Usuário:</strong> ${m.name}<br>
-              <strong>Gerado em:</strong> ${new Date().toLocaleDateString('pt-BR')}<br>
+              <strong>Gerado em:</strong> ${now.toLocaleDateString('pt-BR')}<br>
               <strong>Chave PIX:</strong> <span style="color: #2563eb; text-decoration: underline;">fp.danado16@gmail.com</span>
             </div>
           </div>
@@ -1353,7 +1376,7 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
           </table>
 
           <div style="text-align: center; font-size: 9px; color: #94a3b8; margin-top: 30px; border-top: 1px solid #f1f5f9; padding-top: 15px;">
-            Documento gerado pelo Sistema de Empréstimo Terceirizado (SET) em ${new Date().toLocaleDateString('pt-BR')} | PIX: fp.danado16@gmail.com
+            Documento gerado pelo Sistema de Empréstimo Terceirizado (SET) em ${now.toLocaleDateString('pt-BR')} | PIX: fp.danado16@gmail.com
             <div style="margin-top: 8px; font-weight: bold; color: #475569; font-size: 14px;">SET</div>
           </div>
         </div>
@@ -1365,6 +1388,7 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
       const m = window.currentMembers.find(x => String(x.id) === String(mId));
       if (!m) return;
       
+      const globalFilter = window.currentGlobalMonth || 'all';
       const txs = window.currentTransactions.filter(t => {
           if (String(t.member_id) !== String(mId)) return false;
           return transactionMatchesGlobalFilter(t);
@@ -1388,14 +1412,16 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
         bankSummaryTxt += `* ${b}: R$ ${bankTotals[b].toFixed(2)}\n`;
       });
 
-      const formattedPeriod = getGlobalPeriodString();
-      const dueDateDay = $('selectDueDate') ? $('selectDueDate').value : '10';
-      let dueStr = '';
-      if (formattedPeriod === 'Período Geral') {
-          dueStr = `Dia ${dueDateDay}`;
-      } else {
-          dueStr = `${dueDateDay} de ${formattedPeriod.replace('Ano de ', '')}`;
+      let refDate = new Date();
+      if (globalFilter !== 'all') {
+          const [y, mm] = globalFilter.split('-');
+          refDate = new Date(y, parseInt(mm)-1, 15);
       }
+      const periodStr = refDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+      const formattedPeriod = periodStr.charAt(0).toUpperCase() + periodStr.slice(1);
+
+      const dueDateDay = $('selectDueDate') ? $('selectDueDate').value : '10';
+      const dueStr = `${dueDateDay} de ${formattedPeriod}`;
 
       const txt = `*SISTEMA DE EMPRÉSTIMO TERCEIRIZADO (SET)*\n_Transações Individualizadas_\n\n*Usuário:* ${m.name}\n*Referência:* ${formattedPeriod}\n*Vencimento:* ${dueStr}\n*Transações:* ${txs.length} lançamentos\n\n*Lançamentos:*\n${listTxt}\n*Resumo por Banco:*\n${bankSummaryTxt}\n*TOTAL: R$ ${total.toFixed(2)}*\n\n*Chave PIX:* fp.danado16@gmail.com\n\n_Documento gerado pelo Sistema de Empréstimo Terceirizado (SET)_`;
 
@@ -1409,6 +1435,7 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
       const m = window.currentMembers.find(x => String(x.id) === String(mId));
       if (!m || !m.email) return alert('Membro sem e-mail cadastrado.');
       
+      const globalFilter = window.currentGlobalMonth || 'all';
       const txs = window.currentTransactions.filter(t => {
           if (String(t.member_id) !== String(mId)) return false;
           return transactionMatchesGlobalFilter(t);
@@ -1431,14 +1458,16 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
       }
 
       const url = 'https://script.google.com/macros/s/AKfycbzB7GoExKRwmaYukAHJFuGG64HgURnJDIUMcrCJligEttcvI32U7Nk_lBud7DCE07mK7w/exec';
-      const formattedPeriod = getGlobalPeriodString();
-      const dueDateDay = $('selectDueDate') ? $('selectDueDate').value : '10';
-      let dueStr = '';
-      if (formattedPeriod === 'Período Geral') {
-          dueStr = `Dia ${dueDateDay}`;
-      } else {
-          dueStr = `${dueDateDay} de ${formattedPeriod.replace('Ano de ', '')}`;
+      let refDate = new Date();
+      if (globalFilter !== 'all') {
+          const [y, mm] = globalFilter.split('-');
+          refDate = new Date(y, parseInt(mm)-1, 15);
       }
+      const periodStr = refDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+      const formattedPeriod = periodStr.charAt(0).toUpperCase() + periodStr.slice(1);
+      
+      const dueDateDay = $('selectDueDate') ? $('selectDueDate').value : '10';
+      const dueStr = `${dueDateDay} de ${formattedPeriod}`;
 
       const emailHtml = generateEmailHTML(m.name, formattedPeriod, bankSummaryHtml, total.toFixed(2), dueStr);
       const printAreaHtml = $('printArea').innerHTML;
