@@ -743,6 +743,7 @@
       let totalCreditos = 0;
       
       filteredTrans.forEach(t => {
+          if (t.type === 'ignored') return; // Ignora as transações marcadas como "Não Ratear"
           const info = getTransactionDetails(t);
           const amt = Number(info.installmentAmount);
           if (amt > 0) totalDespesas += amt;
@@ -756,14 +757,14 @@
       $('cardTotalBanks').textContent = window.currentBanks.length;
       $('badgeInvoicesCount').textContent = filteredInvs.length;
 
-      // Calcular Alertas Inteligentes
-      const unassignedCount = filteredTrans.filter(t => !t.member_id).length;
+      // Calcular Alertas Inteligentes (itens sem rateio e não ignorados)
+      const unassignedCount = filteredTrans.filter(t => !t.member_id && t.type !== 'ignored').length;
       if ($('alertUnassignedCount')) $('alertUnassignedCount').textContent = unassignedCount;
 
       const today = new Date().toISOString().split('T')[0];
       let overdueCount = 0;
       window.currentMembers.forEach(m => {
-          const due = window.currentTransactions.filter(t => String(t.member_id) === String(m.id)).reduce((a,b) => a + Number(b.amount), 0);
+          const due = window.currentTransactions.filter(t => String(t.member_id) === String(m.id) && t.type !== 'ignored').reduce((a,b) => a + Number(b.amount), 0);
           const paid = window.currentPayments.filter(p => String(p.member_id) === String(m.id)).reduce((a,b) => a + Number(b.amount), 0);
           const rem = due - paid;
           if (rem > 0) {
@@ -846,7 +847,7 @@
         const info = getTransactionDetails(t);
         const matchesSearch = info.description.toLowerCase().includes(searchVal) || info.category.toLowerCase().includes(searchVal) || info.bankName.toLowerCase().includes(searchVal);
         let matchesFilter = true;
-        if (filterVal === 'unassigned') matchesFilter = !t.member_id;
+        if (filterVal === 'unassigned') matchesFilter = !t.member_id && t.type !== 'ignored';
         
         const matchesGlobal = transactionMatchesGlobalFilter(t);
         
@@ -863,13 +864,18 @@
       let rowsHtml = '';
       filteredTxs.forEach(t => {
         const info = getTransactionDetails(t);
-        let opts = '<option value="" class="bg-slate-900 text-white">Sem rateio (Geral)</option>';
+        let opts = '<option value="" class="bg-slate-900 text-white">🔴 Rateio Pendente</option>';
+        opts += `<option value="ignore" class="bg-slate-900 text-slate-400" ${t.type === 'ignored' ? 'selected' : ''}>⚪ Não ratear (Ignorar)</option>`;
+        
         window.currentMembers.forEach(m => {
-          opts += `<option value="${m.id}" class="bg-slate-900 text-white" ${String(t.member_id) === String(m.id) ? 'selected' : ''}>${m.name}</option>`;
+          opts += `<option value="${m.id}" class="bg-slate-900 text-white" ${String(t.member_id) === String(m.id) && t.type !== 'ignored' ? 'selected' : ''}>${m.name}</option>`;
         });
+
+        let lineOpacity = t.type === 'ignored' ? 'opacity-40 grayscale hover:grayscale-0' : '';
         const valColor = info.totalValue < 0 ? 'text-emerald-400' : 'text-slate-100';
         const parcValColor = info.installmentAmount < 0 ? 'text-emerald-400' : 'text-rose-400';
-        rowsHtml += `<tr class="hover:bg-slate-800/40 transition"><td class="py-2.5 px-3 font-mono text-[11px] text-slate-300 whitespace-nowrap">${info.date}</td><td class="py-2.5 px-3 font-bold text-slate-100 min-w-[180px]">${info.description}</td><td class="py-2.5 px-3 whitespace-nowrap"><span class="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 text-[11px] font-medium border border-slate-700/70">${info.category}</span></td><td class="py-2.5 px-3 whitespace-nowrap"><span class="px-2 py-0.5 rounded-md bg-emerald-950/50 text-emerald-300 border border-emerald-800/60 text-[11px] font-semibold">${info.bankName}</span></td><td class="py-2.5 px-3 text-right font-bold ${valColor} whitespace-nowrap">R$ ${info.totalValue.toFixed(2)}</td><td class="py-2.5 px-3 text-center font-mono font-bold text-slate-300 whitespace-nowrap">${info.installmentTotal}</td><td class="py-2.5 px-3 text-center whitespace-nowrap"><span class="px-2 py-0.5 rounded bg-slate-800 text-amber-300 font-mono text-[11px] font-bold border border-slate-700">${info.installmentCurrent}/${info.installmentTotal}</span></td><td class="py-2.5 px-3 text-right font-black ${parcValColor} whitespace-nowrap">R$ ${info.installmentAmount.toFixed(2)}</td><td class="py-2.5 px-3 text-right whitespace-nowrap"><div class="flex items-center justify-end gap-1.5"><select onchange="assignSingleMember('${t.id}', this.value)" class="bg-slate-800 border border-slate-700 text-slate-200 text-[11px] font-semibold rounded-lg px-2 py-1.5 outline-none cursor-pointer">${opts}</select><button type="button" onclick="openSplitTransactionModal('${t.id}')" class="p-1.5 rounded-lg border border-slate-700 bg-slate-800 text-amber-400 hover:bg-slate-700 transition" title="Dividir valor (Rateio)"><i class="ph-bold ph-scissors text-sm"></i></button><button type="button" onclick="deleteTransaction('${t.id}')" class="p-1.5 rounded-lg border border-slate-700 bg-slate-800 text-rose-400 hover:bg-rose-900/40 transition" title="Excluir Lançamento"><i class="ph-bold ph-trash text-sm"></i></button></div></td></tr>`;
+        
+        rowsHtml += `<tr class="hover:bg-slate-800/40 transition ${lineOpacity}"><td class="py-2.5 px-3 font-mono text-[11px] text-slate-300 whitespace-nowrap">${info.date}</td><td class="py-2.5 px-3 font-bold text-slate-100 min-w-[180px]">${info.description}</td><td class="py-2.5 px-3 whitespace-nowrap"><span class="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 text-[11px] font-medium border border-slate-700/70">${info.category}</span></td><td class="py-2.5 px-3 whitespace-nowrap"><span class="px-2 py-0.5 rounded-md bg-emerald-950/50 text-emerald-300 border border-emerald-800/60 text-[11px] font-semibold">${info.bankName}</span></td><td class="py-2.5 px-3 text-right font-bold ${valColor} whitespace-nowrap">R$ ${info.totalValue.toFixed(2)}</td><td class="py-2.5 px-3 text-center font-mono font-bold text-slate-300 whitespace-nowrap">${info.installmentTotal}</td><td class="py-2.5 px-3 text-center whitespace-nowrap"><span class="px-2 py-0.5 rounded bg-slate-800 text-amber-300 font-mono text-[11px] font-bold border border-slate-700">${info.installmentCurrent}/${info.installmentTotal}</span></td><td class="py-2.5 px-3 text-right font-black ${parcValColor} whitespace-nowrap">R$ ${info.installmentAmount.toFixed(2)}</td><td class="py-2.5 px-3 text-right whitespace-nowrap"><div class="flex items-center justify-end gap-1.5"><select onchange="assignSingleMember('${t.id}', this.value)" class="bg-slate-800 border border-slate-700 text-slate-200 text-[11px] font-semibold rounded-lg px-2 py-1.5 outline-none cursor-pointer">${opts}</select><button type="button" onclick="openSplitTransactionModal('${t.id}')" class="p-1.5 rounded-lg border border-slate-700 bg-slate-800 text-amber-400 hover:bg-slate-700 transition" title="Dividir valor (Rateio)"><i class="ph-bold ph-scissors text-sm"></i></button><button type="button" onclick="deleteTransaction('${t.id}')" class="p-1.5 rounded-lg border border-slate-700 bg-slate-800 text-rose-400 hover:bg-rose-900/40 transition" title="Excluir Lançamento"><i class="ph-bold ph-trash text-sm"></i></button></div></td></tr>`;
       });
       c.innerHTML = `<div class="overflow-x-auto custom-scrollbar"><table class="w-full text-left border-collapse text-xs"><thead><tr class="border-b border-slate-800 text-[11px] font-bold text-slate-400 uppercase tracking-wider bg-slate-950/50"><th class="py-2.5 px-3 whitespace-nowrap">Data</th><th class="py-2.5 px-3">Descrição</th><th class="py-2.5 px-3 whitespace-nowrap">Categoria</th><th class="py-2.5 px-3 whitespace-nowrap">Banco</th><th class="py-2.5 px-3 text-right whitespace-nowrap">Valor</th><th class="py-2.5 px-3 text-center whitespace-nowrap">Parcelas</th><th class="py-2.5 px-3 text-center whitespace-nowrap">Parcela Atual</th><th class="py-2.5 px-3 text-right whitespace-nowrap">Valor Parcela</th><th class="py-2.5 px-3 text-right whitespace-nowrap">Rateio & Ações</th></tr></thead><tbody class="divide-y divide-slate-800/80">${rowsHtml}</tbody></table></div>`;
     }
@@ -881,7 +887,7 @@
       if (!window.currentMembers.length) { emp?.classList.remove('hidden'); return; }
       emp?.classList.add('hidden');
       window.currentMembers.forEach(m => {
-        const due = window.currentTransactions.filter(t => String(t.member_id) === String(m.id)).reduce((a, b) => a + Number(b.amount), 0);
+        const due = window.currentTransactions.filter(t => String(t.member_id) === String(m.id) && t.type !== 'ignored').reduce((a, b) => a + Number(b.amount), 0);
         const paid = window.currentPayments.filter(p => String(p.member_id) === String(m.id)).reduce((a, b) => a + Number(b.amount), 0);
         const rem = due - paid;
         const promise = window.currentPayments.filter(p => String(p.member_id) === String(m.id) && p.promise_date).sort((a, b) => new Date(b.promise_date) - new Date(a.promise_date))[0]?.promise_date;
@@ -918,20 +924,16 @@
         const filterMonth = window.currentGlobalMonth;
         const filteredTrans = window.currentTransactions.filter(transactionMatchesGlobalFilter);
 
-        // Cores padrão para usuários e bancos
         const colors = ['#10b981', '#6366f1', '#f59e0b', '#ec4899', '#06b6d4', '#8b5cf6', '#ef4444', '#14b8a6', '#f97316'];
 
-        // Levantar bancos únicos nas transações
         let banks = [...new Set(filteredTrans.map(t => getTransactionDetails(t).bankName))];
         if (banks.length === 0) banks = ['Sem dados'];
 
-        // Montar Datasets para Gráfico de Barras Empilhadas (Usuários por Banco) - SOMA APENAS POSITIVOS
         const barDatasets = [];
         window.currentMembers.forEach((m, i) => {
             const data = banks.map(b => {
-                if (b === 'Sem dados') return null; // Previne que o 0 assuma espaço se houver minBarLength
                 const totalVal = filteredTrans
-                    .filter(t => String(t.member_id) === String(m.id) && getTransactionDetails(t).bankName === b)
+                    .filter(t => String(t.member_id) === String(m.id) && getTransactionDetails(t).bankName === b && t.type !== 'ignored')
                     .reduce((sum, t) => {
                         const amt = Number(getTransactionDetails(t).installmentAmount);
                         return sum + (amt > 0 ? amt : 0);
@@ -943,19 +945,15 @@
                     label: m.name,
                     data: data,
                     backgroundColor: colors[i % colors.length],
-                    borderColor: '#0f172a', // Cor igual ao fundo do gráfico para separar as fatias
-                    borderWidth: 2,         // Espessura do separador visual
-                    minBarLength: 5,        // Garante altura mínima para valores pequenos serem clicáveis
+                    borderWidth: 0,
                     maxBarThickness: 48
                 });
             }
         });
 
-        // Capturar despesas Não Rateadas - SOMA APENAS POSITIVOS
         const unassignedData = banks.map(b => {
-            if (b === 'Sem dados') return null;
             const totalVal = filteredTrans
-                .filter(t => !t.member_id && getTransactionDetails(t).bankName === b)
+                .filter(t => !t.member_id && getTransactionDetails(t).bankName === b && t.type !== 'ignored')
                 .reduce((sum, t) => {
                     const amt = Number(getTransactionDetails(t).installmentAmount);
                     return sum + (amt > 0 ? amt : 0);
@@ -963,23 +961,16 @@
             return totalVal > 0 ? totalVal : null;
         });
         if (unassignedData.some(v => v !== null)) {
-            barDatasets.push({ 
-                label: 'Não Rateado', 
-                data: unassignedData, 
-                backgroundColor: '#475569', 
-                borderColor: '#0f172a', 
-                borderWidth: 2, 
-                minBarLength: 5, 
-                maxBarThickness: 48 
-            });
+            barDatasets.push({ label: 'Não Rateado', data: unassignedData, backgroundColor: '#475569', borderWidth: 0, maxBarThickness: 48 });
         }
+        
         if (barDatasets.length === 0) {
             barDatasets.push({ label: 'Sem dados', data: [0], backgroundColor: 'rgba(16, 185, 129, 0.18)', maxBarThickness: 48 });
         }
 
-        // Montar Dados para Gráfico de Rosca (Proporção Total de Bancos) - SOMA APENAS POSITIVOS
         const bankTotals = {};
         filteredTrans.forEach(t => {
+           if (t.type === 'ignored') return; // Ignora as transações marcadas como "Não Ratear" na conta global
            const info = getTransactionDetails(t);
            const amt = Number(info.installmentAmount);
            if (amt > 0) {
@@ -1002,8 +993,6 @@
                   displayColors: true,
                   usePointStyle: true,
                   boxPadding: 6,
-                  multiKeyBackground: 'transparent',
-                  boxBorderWidth: 0,
                   backgroundColor: '#0f172a', titleColor: '#f8fafc', bodyColor: '#cbd5e1', borderColor: '#1e293b', borderWidth: 1, padding: 10, cornerRadius: 10, 
                   callbacks: { 
                     labelPointStyle: function(context) { return { pointStyle: 'rectRounded', rotation: 0 }; },
@@ -1045,8 +1034,6 @@
                   displayColors: true,
                   usePointStyle: true,
                   boxPadding: 6,
-                  multiKeyBackground: 'transparent',
-                  boxBorderWidth: 0,
                   backgroundColor: '#0f172a', titleColor: '#f8fafc', bodyColor: '#e2e8f0', borderColor: '#1e293b', borderWidth: 1, padding: 10, cornerRadius: 10, 
                   callbacks: { 
                     labelPointStyle: function(context) { return { pointStyle: 'rectRounded', rotation: 0 }; },
@@ -1229,11 +1216,19 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
     };
 
     window.assignSingleMember = async function(txId, memberId) {
-      const mId = memberId || null;
-      const { error } = await window.supabaseClient.from('transactions').update({ member_id: mId }).eq('id', txId);
+      const isIgnore = memberId === 'ignore';
+      const mId = isIgnore ? null : (memberId || null);
+      const typeVal = isIgnore ? 'ignored' : 'expense';
+
+      const { error } = await window.supabaseClient.from('transactions').update({ member_id: mId, type: typeVal }).eq('id', txId);
       if (error) return alert('Erro ao atribuir membro: ' + error.message);
+      
       const tx = window.currentTransactions.find(t => String(t.id) === String(txId));
-      if (tx) tx.member_id = mId;
+      if (tx) { 
+          tx.member_id = mId;
+          tx.type = typeVal; 
+      }
+      
       renderDashboard(); renderMembersList(); renderCharts();
     };
 
@@ -1286,7 +1281,7 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
       if (String(m1) === String(m2)) return alert('Selecione membros diferentes.');
       const p1 = Math.min(100, Math.max(0, parseInt($('splitSlider').value) || 0));
       const v1 = Number((Number(tx.amount) * (p1 / 100)).toFixed(2)), v2 = Number((Number(tx.amount) - v1).toFixed(2));
-      const { error: err1 } = await window.supabaseClient.from('transactions').update({ amount: v1, member_id: m1 }).eq('id', tx.id);
+      const { error: err1 } = await window.supabaseClient.from('transactions').update({ amount: v1, member_id: m1, type: 'expense' }).eq('id', tx.id);
       if (err1) return alert('Erro ao atualizar transação: ' + err1.message);
       const { error: err2 } = await window.supabaseClient.from('transactions').insert([{
         user_id: window.currentUser.id, invoice_id: tx.invoice_id, member_id: m2, description: tx.description,
@@ -1375,7 +1370,7 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
       
       const globalFilter = window.currentGlobalMonth || 'all';
       const txs = window.currentTransactions.filter(t => {
-          if (String(t.member_id) !== String(mId)) return false;
+          if (String(t.member_id) !== String(mId) || t.type === 'ignored') return false;
           return transactionMatchesGlobalFilter(t);
       });
 
@@ -1497,7 +1492,7 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
       if (!m) return;
       
       const txs = window.currentTransactions.filter(t => {
-          if (String(t.member_id) !== String(mId)) return false;
+          if (String(t.member_id) !== String(mId) || t.type === 'ignored') return false;
           return transactionMatchesGlobalFilter(t);
       });
       
@@ -1541,7 +1536,7 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
       if (!m || !m.email) return alert('Membro sem e-mail cadastrado.');
       
       const txs = window.currentTransactions.filter(t => {
-          if (String(t.member_id) !== String(mId)) return false;
+          if (String(t.member_id) !== String(mId) || t.type === 'ignored') return false;
           return transactionMatchesGlobalFilter(t);
       });
       
@@ -1594,7 +1589,7 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
     window.openPaymentModal = function(mId) {
       const m = window.currentMembers.find(x => String(x.id) === String(mId));
       if (!m) return;
-      const due = window.currentTransactions.filter(t => String(t.member_id) === String(mId)).reduce((a, b) => a + Number(b.amount), 0);
+      const due = window.currentTransactions.filter(t => String(t.member_id) === String(mId) && t.type !== 'ignored').reduce((a, b) => a + Number(b.amount), 0);
       const paid = window.currentPayments.filter(p => String(p.member_id) === String(mId)).reduce((a, b) => a + Number(b.amount), 0);
       $('payMemberId').value = m.id; $('payMemberName').textContent = m.name;
       $('payMemberTotal').textContent = `R$ ${due.toFixed(2)}`; $('payMemberAlreadyPaid').textContent = `R$ ${paid.toFixed(2)}`;
