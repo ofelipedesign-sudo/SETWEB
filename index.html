@@ -867,7 +867,6 @@
         const bankMap = {};
         filteredInvs.forEach(i => { bankMap[i.bank_name] = (bankMap[i.bank_name] || 0) + Number(i.total_amount); });
         
-        // Cores padrão para usuários e bancos
         const colors = ['#10b981', '#6366f1', '#f59e0b', '#ec4899', '#06b6d4', '#8b5cf6', '#ef4444', '#14b8a6', '#f97316'];
 
         let banks = [...new Set(filteredTrans.map(t => getTransactionDetails(t).bankName))];
@@ -925,6 +924,8 @@
                 tooltip: { 
                   displayColors: true,
                   boxPadding: 6,
+                  multiKeyBackground: 'transparent',
+                  boxBorderWidth: 0,
                   backgroundColor: '#0f172a', titleColor: '#f8fafc', bodyColor: '#cbd5e1', borderColor: '#1e293b', borderWidth: 1, padding: 10, cornerRadius: 10, 
                   callbacks: { 
                     labelColor: function(context) { 
@@ -963,6 +964,8 @@
                 tooltip: { 
                   displayColors: true,
                   boxPadding: 6,
+                  multiKeyBackground: 'transparent',
+                  boxBorderWidth: 0,
                   backgroundColor: '#0f172a', titleColor: '#f8fafc', bodyColor: '#e2e8f0', borderColor: '#1e293b', borderWidth: 1, padding: 10, cornerRadius: 10, 
                   callbacks: { 
                     labelColor: function(context) {
