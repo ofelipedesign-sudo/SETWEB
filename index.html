@@ -116,13 +116,19 @@
     </header>
 
     <main class="app-main-safe max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 py-4 w-full flex-1 flex flex-col gap-4">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-3 gap-2 overflow-x-auto custom-scrollbar">
-        <div class="flex items-center gap-2 shrink-0">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3 gap-2 flex-wrap sm:flex-nowrap">
+        <div class="flex items-center gap-2 shrink-0 overflow-x-auto custom-scrollbar w-full sm:w-auto pb-1 sm:pb-0">
           <button type="button" onclick="switchTab('dashboard')" id="tabNavDash" class="px-4 py-2 rounded-lg text-sm font-semibold transition bg-emerald-950/40 text-emerald-300 border border-emerald-800 flex items-center gap-2"><i class="ph-bold ph-chart-pie-slice"></i><span>Painel</span></button>
           <button type="button" onclick="switchTab('invoices')" id="tabNavInvoices" class="px-4 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800 flex items-center gap-2"><i class="ph-bold ph-credit-card"></i><span>Faturas</span><span id="badgeInvoicesCount" class="text-[11px] px-1.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 font-bold">0</span></button>
           <button type="button" onclick="switchTab('transactions')" id="tabNavTrans" class="px-4 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800 flex items-center gap-2"><i class="ph-bold ph-arrows-split"></i><span>Lançamentos & Rateio</span></button>
           <button type="button" onclick="switchTab('members')" id="tabNavMembers" class="px-4 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800 flex items-center gap-2"><i class="ph-bold ph-users"></i><span>Membros</span></button>
           <button type="button" onclick="switchTab('banks')" id="tabNavBanks" class="px-4 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800 flex items-center gap-2"><i class="ph-bold ph-bank"></i><span>Bancos & Cartões</span></button>
+        </div>
+        <div class="flex items-center gap-2 shrink-0 ml-auto bg-slate-900 border border-slate-800 p-1 rounded-xl">
+           <div class="w-7 h-7 rounded-lg bg-emerald-950/50 flex items-center justify-center text-emerald-400"><i class="ph-bold ph-calendar-blank"></i></div>
+           <select id="globalMonthFilter" onchange="applyGlobalMonthFilter()" class="bg-transparent text-slate-200 text-xs font-bold px-1 py-1 outline-none cursor-pointer">
+             <option value="all">Todos os Meses</option>
+           </select>
         </div>
       </div>
 
@@ -327,7 +333,7 @@
           <div class="flex flex-col gap-1.5"><label class="text-xs font-bold text-slate-300">Data de Vencimento:</label><select id="selectDueDate" onchange="generateMemberReportPreview()" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-white"><option value="10">Dia 10</option><option value="23">Dia 23</option></select></div>
         </div>
         
-        <div class="p-4 bg-emerald-900/60 border border-emerald-500/40 rounded-2xl flex flex-col gap-1 text-white"><span class="text-[10px] font-bold text-emerald-300 uppercase">Resumo da Fatura a Gerar</span><h3 id="bannerInvoicePeriod" class="text-base font-black">Outubro / 2026</h3><p id="bannerInvoiceUser" class="text-xs text-emerald-200 font-semibold">Usuário: ---</p></div>
+        <div class="p-4 bg-emerald-900/60 border border-emerald-500/40 rounded-2xl flex flex-col gap-1 text-white"><span class="text-[10px] font-bold text-emerald-300 uppercase">Resumo da Fatura a Gerar</span><h3 id="bannerInvoicePeriod" class="text-base font-black">...</h3><p id="bannerInvoiceUser" class="text-xs text-emerald-200 font-semibold">Usuário: ---</p></div>
         <div class="w-full grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           <button type="button" onclick="sendInvoiceEmail()" id="btnSendEmailDirect" class="w-full py-2.5 px-3 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl flex items-center justify-center gap-2"><i class="ph-bold ph-envelope text-base"></i><span>Enviar por Email</span></button>
           <button type="button" onclick="sendInvoiceWhatsApp()" class="w-full py-2.5 px-3 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl flex items-center justify-center gap-2"><i class="ph-bold ph-whatsapp-logo text-base"></i><span>Enviar por WhatsApp</span></button>
@@ -435,6 +441,7 @@
     window.currentPayments = [];
     window.pendingParsedInvoice = null;
     window.selectedTransactionToSplit = null;
+    window.currentGlobalMonth = 'all';
 
     let chartInvoices = null, chartSplit = null, currentProgress = 0, targetProgress = 0, progressRafId = null;
     const $ = id => document.getElementById(id);
@@ -598,30 +605,87 @@
         window.currentMembers = getVal(membRes);
         window.currentBanks = getVal(bankRes);
         window.currentPayments = getVal(payRes);
+        
+        updateGlobalMonthOptions();
         renderDashboard(); renderInvoicesList(); renderTransactionsList(); renderMembersList(); renderBanksList(); renderCharts();
       } catch (err) { console.warn('Erro loadAllData:', err); }
     };
+    
+    function updateGlobalMonthOptions() {
+      const select = $('globalMonthFilter');
+      if (!select) return;
+      const months = new Set();
+      window.currentInvoices.forEach(i => {
+        if (i.due_date) months.add(i.due_date.substring(0, 7));
+      });
+      window.currentTransactions.forEach(t => {
+        const info = getTransactionDetails(t);
+        if (info.date && info.date !== '-') months.add(info.date.substring(0, 7));
+      });
+      const sortedMonths = Array.from(months).sort((a, b) => b.localeCompare(a));
+      
+      let html = '<option value="all">Todos os Meses</option>';
+      sortedMonths.forEach(m => {
+        const [y, mm] = m.split('-');
+        const date = new Date(y, parseInt(mm)-1, 15);
+        const monthName = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+        const capitalized = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+        html += `<option value="${m}">${capitalized}</option>`;
+      });
+      
+      const currentVal = window.currentGlobalMonth || 'all';
+      select.innerHTML = html;
+      
+      if (sortedMonths.includes(currentVal)) {
+        select.value = currentVal;
+        window.currentGlobalMonth = currentVal;
+      } else {
+        select.value = sortedMonths.length > 0 ? sortedMonths[0] : 'all';
+        window.currentGlobalMonth = select.value;
+      }
+    }
+
+    window.applyGlobalMonthFilter = function() {
+      window.currentGlobalMonth = $('globalMonthFilter').value;
+      renderDashboard();
+      renderInvoicesList();
+      renderTransactionsList();
+      renderCharts();
+    };
 
     function renderDashboard() {
-      const openInvs = window.currentInvoices.filter(i => i.status === 'open');
+      const filterMonth = window.currentGlobalMonth;
+      const filteredInvs = window.currentInvoices.filter(i => filterMonth === 'all' || (i.due_date && i.due_date.startsWith(filterMonth)));
+      const filteredTrans = window.currentTransactions.filter(t => {
+          const info = getTransactionDetails(t);
+          return filterMonth === 'all' || (info.date && info.date.startsWith(filterMonth));
+      });
+
+      const openInvs = filteredInvs.filter(i => i.status === 'open');
       const openTotal = openInvs.reduce((a, b) => a + Number(b.total_amount), 0);
       $('cardOpenInvoices').textContent = 'R$ ' + openTotal.toFixed(2);
       $('cardOpenCount').textContent = `${openInvs.length} faturas pendentes`;
-      const transTotal = window.currentTransactions.reduce((a, b) => a + Number(b.amount), 0);
+      
+      const transTotal = filteredTrans.reduce((a, b) => a + Number(b.amount), 0);
       $('cardTotalTransactions').textContent = 'R$ ' + transTotal.toFixed(2);
-      $('cardTransCount').textContent = `${window.currentTransactions.length} itens catalogados`;
+      $('cardTransCount').textContent = `${filteredTrans.length} itens catalogados`;
+      
       $('cardTotalMembers').textContent = window.currentMembers.length;
       $('cardTotalBanks').textContent = window.currentBanks.length;
-      $('badgeInvoicesCount').textContent = window.currentInvoices.length;
+      $('badgeInvoicesCount').textContent = filteredInvs.length;
     }
 
     function renderInvoicesList() {
       const c = $('invoicesList'), emp = $('emptyInvoices');
       if (!c) return;
       c.innerHTML = '';
-      if (!window.currentInvoices.length) { emp?.classList.remove('hidden'); return; }
+      
+      const filterMonth = window.currentGlobalMonth;
+      const filtered = window.currentInvoices.filter(i => filterMonth === 'all' || (i.due_date && i.due_date.startsWith(filterMonth)));
+
+      if (!filtered.length) { emp?.classList.remove('hidden'); return; }
       emp?.classList.add('hidden');
-      window.currentInvoices.forEach(inv => {
+      filtered.forEach(inv => {
         const d = document.createElement('div');
         d.className = 'py-3 flex items-center justify-between gap-2';
         d.innerHTML = `<div class="flex items-center gap-3"><div class="w-9 h-9 rounded-xl bg-rose-950/60 text-rose-400 flex items-center justify-center font-bold text-sm"><i class="ph-bold ph-credit-card"></i></div><div><p class="text-xs font-bold text-white">${inv.bank_name}</p><p class="text-[10px] text-slate-400">Vencimento: ${inv.due_date}</p></div></div><div class="flex items-center gap-3"><span class="text-xs font-black text-rose-400">R$ ${Number(inv.total_amount).toFixed(2)}</span><button type="button" onclick="deleteSingleInvoice('${inv.id}')" class="p-1.5 text-slate-400 hover:text-rose-400"><i class="ph-bold ph-trash text-sm"></i></button></div>`;
@@ -679,18 +743,21 @@
       
       const searchVal = ($('searchTxInput')?.value || '').toLowerCase().trim();
       const filterVal = $('filterTxMember')?.value || 'all';
+      const globalFilter = window.currentGlobalMonth;
 
       const filteredTxs = window.currentTransactions.filter(t => {
         const info = getTransactionDetails(t);
         const matchesSearch = info.description.toLowerCase().includes(searchVal) || info.category.toLowerCase().includes(searchVal) || info.bankName.toLowerCase().includes(searchVal);
         let matchesFilter = true;
         if (filterVal === 'unassigned') matchesFilter = !t.member_id;
-        return matchesSearch && matchesFilter;
+        const matchesGlobalMonth = globalFilter === 'all' || (info.date && info.date.startsWith(globalFilter));
+        
+        return matchesSearch && matchesFilter && matchesGlobalMonth;
       });
 
       if (!filteredTxs.length) { 
         emp?.classList.remove('hidden'); 
-        emp.textContent = window.currentTransactions.length ? 'Nenhum lançamento corresponde à sua busca.' : 'Nenhum lançamento encontrado.';
+        emp.textContent = window.currentTransactions.length ? 'Nenhum lançamento corresponde aos filtros atuais.' : 'Nenhum lançamento encontrado.';
         return; 
       }
       emp?.classList.add('hidden');
@@ -750,8 +817,16 @@
 
     function renderCharts() {
       try {
+        const filterMonth = window.currentGlobalMonth;
+        const filteredInvs = window.currentInvoices.filter(i => filterMonth === 'all' || (i.due_date && i.due_date.startsWith(filterMonth)));
+        const filteredTrans = window.currentTransactions.filter(t => {
+          const info = getTransactionDetails(t);
+          return filterMonth === 'all' || (info.date && info.date.startsWith(filterMonth));
+        });
+
         const bankMap = {};
-        window.currentInvoices.forEach(i => { bankMap[i.bank_name] = (bankMap[i.bank_name] || 0) + Number(i.total_amount); });
+        filteredInvs.forEach(i => { bankMap[i.bank_name] = (bankMap[i.bank_name] || 0) + Number(i.total_amount); });
+        
         const c1 = $('chartInvoices');
         if (c1) {
           if (chartInvoices) chartInvoices.destroy();
@@ -793,7 +868,7 @@
 
         const memberMap = {};
         window.currentMembers.forEach(m => {
-          const s = window.currentTransactions
+          const s = filteredTrans
             .filter(t => String(t.member_id) === String(m.id))
             .filter(t => {
                 if (selectedBank === 'all') return true;
@@ -1129,10 +1204,24 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
       const mId = $('selectPdfMember').value;
       const m = window.currentMembers.find(x => String(x.id) === String(mId));
       if (!m) return;
-      const txs = window.currentTransactions.filter(t => String(t.member_id) === String(mId));
-      const now = new Date();
       
-      const periodStr = now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+      const globalFilter = window.currentGlobalMonth || 'all';
+      const txs = window.currentTransactions.filter(t => {
+          if (String(t.member_id) !== String(mId)) return false;
+          if (globalFilter !== 'all') {
+              const info = getTransactionDetails(t);
+              if (!info.date.startsWith(globalFilter)) return false;
+          }
+          return true;
+      });
+
+      let refDate = new Date();
+      if (globalFilter !== 'all') {
+          const [y, m] = globalFilter.split('-');
+          refDate = new Date(y, parseInt(m)-1, 15);
+      }
+      
+      const periodStr = refDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
       const formattedPeriod = periodStr.charAt(0).toUpperCase() + periodStr.slice(1);
       
       const dueDateDay = $('selectDueDate') ? $('selectDueDate').value : '10';
@@ -1189,7 +1278,7 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
               <strong>Vencimento:</strong> <span style="color: #e11d48; font-weight: bold;">${dueStr}</span><br>
               <strong>Transações:</strong> ${txs.length} lançamentos<br>
               <strong>Usuário:</strong> ${m.name}<br>
-              <strong>Gerado em:</strong> ${now.toLocaleDateString('pt-BR')}<br>
+              <strong>Gerado em:</strong> ${new Date().toLocaleDateString('pt-BR')}<br>
               <strong>Chave PIX:</strong> <span style="color: #2563eb; text-decoration: underline;">fp.danado16@gmail.com</span>
             </div>
           </div>
@@ -1231,7 +1320,7 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
           </table>
 
           <div style="text-align: center; font-size: 9px; color: #94a3b8; margin-top: 30px; border-top: 1px solid #f1f5f9; padding-top: 15px;">
-            Documento gerado pelo Sistema de Empréstimo Terceirizado (SET) em ${now.toLocaleDateString('pt-BR')} | PIX: fp.danado16@gmail.com
+            Documento gerado pelo Sistema de Empréstimo Terceirizado (SET) em ${new Date().toLocaleDateString('pt-BR')} | PIX: fp.danado16@gmail.com
             <div style="margin-top: 8px; font-weight: bold; color: #475569; font-size: 14px;">SET</div>
           </div>
         </div>
@@ -1242,7 +1331,16 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
       const mId = $('selectPdfMember').value;
       const m = window.currentMembers.find(x => String(x.id) === String(mId));
       if (!m) return;
-      const txs = window.currentTransactions.filter(t => String(t.member_id) === String(mId));
+      
+      const globalFilter = window.currentGlobalMonth || 'all';
+      const txs = window.currentTransactions.filter(t => {
+          if (String(t.member_id) !== String(mId)) return false;
+          if (globalFilter !== 'all') {
+              const info = getTransactionDetails(t);
+              if (!info.date.startsWith(globalFilter)) return false;
+          }
+          return true;
+      });
       
       let total = 0;
       let listTxt = '';
@@ -1262,8 +1360,12 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
         bankSummaryTxt += `* ${b}: R$ ${bankTotals[b].toFixed(2)}\n`;
       });
 
-      const now = new Date();
-      const periodStr = now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+      let refDate = new Date();
+      if (globalFilter !== 'all') {
+          const [y, mm] = globalFilter.split('-');
+          refDate = new Date(y, parseInt(mm)-1, 15);
+      }
+      const periodStr = refDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
       const formattedPeriod = periodStr.charAt(0).toUpperCase() + periodStr.slice(1);
 
       const dueDateDay = $('selectDueDate') ? $('selectDueDate').value : '10';
@@ -1281,7 +1383,16 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
       const m = window.currentMembers.find(x => String(x.id) === String(mId));
       if (!m || !m.email) return alert('Membro sem e-mail cadastrado.');
       
-      const txs = window.currentTransactions.filter(t => String(t.member_id) === String(mId));
+      const globalFilter = window.currentGlobalMonth || 'all';
+      const txs = window.currentTransactions.filter(t => {
+          if (String(t.member_id) !== String(mId)) return false;
+          if (globalFilter !== 'all') {
+              const info = getTransactionDetails(t);
+              if (!info.date.startsWith(globalFilter)) return false;
+          }
+          return true;
+      });
+      
       let total = 0;
       const bankTotals = {};
       
@@ -1299,8 +1410,12 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
       }
 
       const url = 'https://script.google.com/macros/s/AKfycbzB7GoExKRwmaYukAHJFuGG64HgURnJDIUMcrCJligEttcvI32U7Nk_lBud7DCE07mK7w/exec';
-      const now = new Date();
-      const periodStr = now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+      let refDate = new Date();
+      if (globalFilter !== 'all') {
+          const [y, mm] = globalFilter.split('-');
+          refDate = new Date(y, parseInt(mm)-1, 15);
+      }
+      const periodStr = refDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
       const formattedPeriod = periodStr.charAt(0).toUpperCase() + periodStr.slice(1);
       
       const dueDateDay = $('selectDueDate') ? $('selectDueDate').value : '10';
