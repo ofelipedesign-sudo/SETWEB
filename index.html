@@ -916,25 +916,26 @@
     function renderCharts() {
       try {
         const filterMonth = window.currentGlobalMonth;
-        const filteredInvs = window.currentInvoices.filter(invoiceMatchesGlobalFilter);
         const filteredTrans = window.currentTransactions.filter(transactionMatchesGlobalFilter);
 
-        const bankMap = {};
-        filteredInvs.forEach(i => { bankMap[i.bank_name] = (bankMap[i.bank_name] || 0) + Number(i.total_amount); });
-        
         // Cores padrão para usuários e bancos
         const colors = ['#10b981', '#6366f1', '#f59e0b', '#ec4899', '#06b6d4', '#8b5cf6', '#ef4444', '#14b8a6', '#f97316'];
 
+        // Levantar bancos únicos nas transações
         let banks = [...new Set(filteredTrans.map(t => getTransactionDetails(t).bankName))];
         if (banks.length === 0) banks = ['Sem dados'];
 
+        // Montar Datasets para Gráfico de Barras Empilhadas (Usuários por Banco) - SOMA APENAS POSITIVOS
         const barDatasets = [];
         window.currentMembers.forEach((m, i) => {
             const data = banks.map(b => {
                 if (b === 'Sem dados') return 0;
                 return filteredTrans
                     .filter(t => String(t.member_id) === String(m.id) && getTransactionDetails(t).bankName === b)
-                    .reduce((sum, t) => sum + Number(t.amount), 0);
+                    .reduce((sum, t) => {
+                        const amt = Number(getTransactionDetails(t).installmentAmount);
+                        return sum + (amt > 0 ? amt : 0);
+                    }, 0);
             });
             if (data.some(v => v > 0)) {
                 barDatasets.push({
@@ -947,11 +948,15 @@
             }
         });
 
+        // Capturar despesas Não Rateadas - SOMA APENAS POSITIVOS
         const unassignedData = banks.map(b => {
             if (b === 'Sem dados') return 0;
             return filteredTrans
                 .filter(t => !t.member_id && getTransactionDetails(t).bankName === b)
-                .reduce((sum, t) => sum + Number(t.amount), 0);
+                .reduce((sum, t) => {
+                    const amt = Number(getTransactionDetails(t).installmentAmount);
+                    return sum + (amt > 0 ? amt : 0);
+                }, 0);
         });
         if (unassignedData.some(v => v > 0)) {
             barDatasets.push({ label: 'Não Rateado', data: unassignedData, backgroundColor: '#475569', borderWidth: 0, maxBarThickness: 48 });
@@ -960,10 +965,14 @@
             barDatasets.push({ label: 'Sem dados', data: [0], backgroundColor: 'rgba(16, 185, 129, 0.18)', maxBarThickness: 48 });
         }
 
+        // Montar Dados para Gráfico de Rosca (Proporção Total de Bancos) - SOMA APENAS POSITIVOS
         const bankTotals = {};
         filteredTrans.forEach(t => {
-           const b = getTransactionDetails(t).bankName;
-           bankTotals[b] = (bankTotals[b] || 0) + Number(t.amount);
+           const info = getTransactionDetails(t);
+           const amt = Number(info.installmentAmount);
+           if (amt > 0) {
+               bankTotals[info.bankName] = (bankTotals[info.bankName] || 0) + amt;
+           }
         });
 
         const c1 = $('chartInvoices');
@@ -981,11 +990,11 @@
                   displayColors: true,
                   usePointStyle: true,
                   boxPadding: 6,
+                  multiKeyBackground: 'transparent',
+                  boxBorderWidth: 0,
                   backgroundColor: '#0f172a', titleColor: '#f8fafc', bodyColor: '#cbd5e1', borderColor: '#1e293b', borderWidth: 1, padding: 10, cornerRadius: 10, 
                   callbacks: { 
-                    labelPointStyle: function(context) {
-                        return { pointStyle: 'rectRounded', rotation: 0 };
-                    },
+                    labelPointStyle: function(context) { return { pointStyle: 'rectRounded', rotation: 0 }; },
                     labelColor: function(context) { 
                       const bgColor = Array.isArray(context.dataset.backgroundColor) ? context.dataset.backgroundColor[context.dataIndex] : context.dataset.backgroundColor;
                       return { borderColor: bgColor, backgroundColor: bgColor, borderWidth: 0 }; 
@@ -1024,11 +1033,11 @@
                   displayColors: true,
                   usePointStyle: true,
                   boxPadding: 6,
+                  multiKeyBackground: 'transparent',
+                  boxBorderWidth: 0,
                   backgroundColor: '#0f172a', titleColor: '#f8fafc', bodyColor: '#e2e8f0', borderColor: '#1e293b', borderWidth: 1, padding: 10, cornerRadius: 10, 
                   callbacks: { 
-                    labelPointStyle: function(context) {
-                        return { pointStyle: 'rectRounded', rotation: 0 };
-                    },
+                    labelPointStyle: function(context) { return { pointStyle: 'rectRounded', rotation: 0 }; },
                     labelColor: function(context) {
                         const bgColor = Array.isArray(context.dataset.backgroundColor) ? context.dataset.backgroundColor[context.dataIndex] : context.dataset.backgroundColor;
                         return { borderColor: bgColor, backgroundColor: bgColor, borderWidth: 0 };
@@ -1048,7 +1057,8 @@
       if (!file) return;
       const apiKey = localStorage.getItem('set_gemini_key') || '';
       if (!apiKey) { window.openConfigModal(); alert('Configure a chave Gemini API primeiro.'); e.target.value = ''; return; }
-      showLoading('A ler ficheiro...', 'A extrair texto da fatura', 20, 'A ler ficheiro');
+      
+      showLoading('A ler ficheiro...', 'A extrair texto da fatura', 15, 'A preparar documento...');
       try {
         let textContent = '';
         if (file.name.toLowerCase().endsWith('.pdf')) {
@@ -1060,12 +1070,14 @@
           }
         } else { textContent = await file.text(); }
         if (!textContent.trim()) throw new Error('Não foi possível extrair texto do arquivo.');
-        animateProgressTo(60, 'A analisar com Gemini IA');
+        
+        animateProgressTo(50, 'A analisar com Gemini (Isto demora uns segundos)...');
         const parsed = await window.parseInvoiceWithAI(textContent, apiKey);
         window.pendingParsedInvoice = parsed;
+        
         animateProgressTo(100, 'Concluído');
         addLog(`Fatura processada (${(parsed.items || []).length} itens)`);
-        setTimeout(() => { hideLoading(); window.showInvoiceAIModal(parsed); }, 300);
+        setTimeout(() => { hideLoading(); window.showInvoiceAIModal(parsed); }, 400);
       } catch (err) {
         hideLoading(); addLog('Erro ao processar fatura: ' + err.message); alert('Erro ao processar fatura: ' + err.message);
       } finally { e.target.value = ''; }
@@ -1077,36 +1089,37 @@
 Regras: 1."amount" e "installment_amount" = valor cobrado na fatura atual (negativo para créditos/estornos). 2.Se parcelado (ex: 02/10), "installment_current":2, "installment_total":10, "installment_display":"02/10", "total_value": amount * 10. 3.Se à vista, "installment_current":1, "installment_total":1, "installment_display":"01/01", "total_value": amount.
 TEXTO: ${pdfText.slice(0, 45000)}`;
 
-      let models = ['gemini-3.8-flash', 'gemini-3.8-pro', 'gemini-3-flash', 'gemini-2.5-flash'];
+      // Otimização de tempo: encontrar o modelo Flash mais atual diretamente
+      let targetModel = 'gemini-1.5-flash'; 
       try {
         const listResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
         if (listResp.ok) {
           const listData = await listResp.json();
-          const avail = (listData.models || []).filter(m => (m.supportedGenerationMethods || []).includes('generateContent') && m.name.includes('gemini')).map(m => m.name.replace(/^models\//, ''));
-          models = [...new Set([...models, ...avail.filter(n => n.includes('flash')), ...avail])];
-        }
-      } catch (e) {}
-
-      let lastErr = null;
-      for (const m of models) {
-        try {
-          const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${apiKey}`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.1, responseMimeType: 'application/json' } })
-          });
-          if (!resp.ok) {
-            const errBody = await resp.json().catch(() => ({}));
-            lastErr = new Error(errBody?.error?.message || `HTTP ${resp.status} ao consultar ${m}`);
-            continue;
+          const avail = (listData.models || [])
+            .map(m => m.name.replace(/^models\//, ''))
+            .filter(n => n.includes('flash') && n.includes('gemini'));
+          if (avail.length > 0) {
+            targetModel = avail.sort().reverse()[0]; 
           }
-          const data = await resp.json();
-          let raw = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').replace(/```json/gi, '').replace(/```/g, '').trim();
-          const jm = raw.match(/\{[\s\S]*\}/);
-          if (jm) raw = jm[0];
-          return JSON.parse(raw);
-        } catch (e) { lastErr = e; }
+        }
+      } catch (e) { console.warn('Uso de modelo fallback.'); }
+
+      // Chamada unitária e direta ao processamento final
+      const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${apiKey}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.1, responseMimeType: 'application/json' } })
+      });
+
+      if (!resp.ok) {
+        const errBody = await resp.json().catch(() => ({}));
+        throw new Error(errBody?.error?.message || `HTTP ${resp.status} - Falha na API Gemini.`);
       }
-      throw lastErr || new Error('Falha na comunicação com a chave Gemini.');
+
+      const data = await resp.json();
+      let raw = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').replace(/```json/gi, '').replace(/```/g, '').trim();
+      const jm = raw.match(/\{[\s\S]*\}/);
+      if (jm) raw = jm[0];
+      return JSON.parse(raw);
     };
 
     window.showInvoiceAIModal = function(data) {
