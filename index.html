@@ -159,8 +159,8 @@
             <div class="mt-2.5"><h3 id="cardOpenInvoices" class="text-2xl font-black text-rose-400 tracking-tight">R$ 0,00</h3><p id="cardOpenCount" class="text-[11px] text-slate-400 font-medium mt-0.5">0 faturas pendentes</p></div>
           </div>
           <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 shadow-sm flex flex-col justify-between">
-            <div class="flex items-center justify-between"><span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Lançamentos</span><div class="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-sm"><i class="ph-bold ph-receipt"></i></div></div>
-            <div class="mt-2.5"><h3 id="cardTotalTransactions" class="text-2xl font-black text-white tracking-tight">R$ 0,00</h3><p id="cardTransCount" class="text-[11px] text-slate-400 font-medium mt-0.5">0 itens catalogados</p></div>
+            <div class="flex items-center justify-between"><span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Despesas / Lançamentos</span><div class="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-sm"><i class="ph-bold ph-receipt"></i></div></div>
+            <div class="mt-2.5"><h3 id="cardTotalTransactions" class="text-2xl font-black text-white tracking-tight">R$ 0,00</h3><p id="cardTransCount" class="text-[10px] text-slate-400 font-medium mt-0.5">0 itens catalogados</p></div>
           </div>
           <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 shadow-sm flex flex-col justify-between">
             <div class="flex items-center justify-between"><span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Rateio Membros</span><div class="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-sm"><i class="ph-bold ph-users-three"></i></div></div>
@@ -629,6 +629,13 @@
         renderTransactionsList();
     };
 
+    window.deleteTransaction = async function(txId) {
+        if (!confirm('Deseja excluir este lançamento definitivamente? Isso não pode ser desfeito.')) return;
+        const { error } = await window.supabaseClient.from('transactions').delete().eq('id', txId);
+        if (error) return alert('Erro ao excluir lançamento: ' + error.message);
+        await window.loadAllData();
+    };
+
     window.loadAllData = async function() {
       if (!window.supabaseClient || !window.currentUser) return;
       try {
@@ -732,10 +739,18 @@
       $('cardOpenInvoices').textContent = 'R$ ' + openTotal.toFixed(2);
       $('cardOpenCount').textContent = `${openInvs.length} faturas pendentes`;
       
-      const transTotal = filteredTrans.reduce((a, b) => a + Number(b.amount || 0), 0);
+      let totalDespesas = 0;
+      let totalCreditos = 0;
       
-      $('cardTotalTransactions').textContent = 'R$ ' + transTotal.toFixed(2);
-      $('cardTransCount').textContent = `${filteredTrans.length} itens catalogados`;
+      filteredTrans.forEach(t => {
+          const info = getTransactionDetails(t);
+          const amt = Number(info.installmentAmount);
+          if (amt > 0) totalDespesas += amt;
+          else totalCreditos += amt;
+      });
+      
+      $('cardTotalTransactions').textContent = 'R$ ' + totalDespesas.toFixed(2);
+      $('cardTransCount').textContent = `${filteredTrans.length} itens (Créditos abatidos: R$ ${Math.abs(totalCreditos).toFixed(2)})`;
       
       $('cardTotalMembers').textContent = window.currentMembers.length;
       $('cardTotalBanks').textContent = window.currentBanks.length;
@@ -854,9 +869,9 @@
         });
         const valColor = info.totalValue < 0 ? 'text-emerald-400' : 'text-slate-100';
         const parcValColor = info.installmentAmount < 0 ? 'text-emerald-400' : 'text-rose-400';
-        rowsHtml += `<tr class="hover:bg-slate-800/40 transition"><td class="py-2.5 px-3 font-mono text-[11px] text-slate-300 whitespace-nowrap">${info.date}</td><td class="py-2.5 px-3 font-bold text-slate-100 min-w-[180px]">${info.description}</td><td class="py-2.5 px-3 whitespace-nowrap"><span class="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 text-[11px] font-medium border border-slate-700/70">${info.category}</span></td><td class="py-2.5 px-3 whitespace-nowrap"><span class="px-2 py-0.5 rounded-md bg-emerald-950/50 text-emerald-300 border border-emerald-800/60 text-[11px] font-semibold">${info.bankName}</span></td><td class="py-2.5 px-3 text-right font-bold ${valColor} whitespace-nowrap">R$ ${info.totalValue.toFixed(2)}</td><td class="py-2.5 px-3 text-center font-mono font-bold text-slate-300 whitespace-nowrap">${info.installmentTotal}</td><td class="py-2.5 px-3 text-center whitespace-nowrap"><span class="px-2 py-0.5 rounded bg-slate-800 text-amber-300 font-mono text-[11px] font-bold border border-slate-700">${info.installmentCurrent}/${info.installmentTotal}</span></td><td class="py-2.5 px-3 text-right font-black ${parcValColor} whitespace-nowrap">R$ ${info.installmentAmount.toFixed(2)}</td><td class="py-2.5 px-3 text-right whitespace-nowrap"><div class="flex items-center justify-end gap-1.5"><select onchange="assignSingleMember('${t.id}', this.value)" class="bg-slate-800 border border-slate-700 text-slate-200 text-[11px] font-semibold rounded-lg px-2 py-1.5 outline-none cursor-pointer">${opts}</select><button type="button" onclick="openSplitTransactionModal('${t.id}')" class="p-1.5 rounded-lg border border-slate-700 bg-slate-800 text-amber-400 hover:bg-slate-700" title="Dividir valor (Rateio)"><i class="ph-bold ph-scissors text-sm"></i></button></div></td></tr>`;
+        rowsHtml += `<tr class="hover:bg-slate-800/40 transition"><td class="py-2.5 px-3 font-mono text-[11px] text-slate-300 whitespace-nowrap">${info.date}</td><td class="py-2.5 px-3 font-bold text-slate-100 min-w-[180px]">${info.description}</td><td class="py-2.5 px-3 whitespace-nowrap"><span class="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 text-[11px] font-medium border border-slate-700/70">${info.category}</span></td><td class="py-2.5 px-3 whitespace-nowrap"><span class="px-2 py-0.5 rounded-md bg-emerald-950/50 text-emerald-300 border border-emerald-800/60 text-[11px] font-semibold">${info.bankName}</span></td><td class="py-2.5 px-3 text-right font-bold ${valColor} whitespace-nowrap">R$ ${info.totalValue.toFixed(2)}</td><td class="py-2.5 px-3 text-center font-mono font-bold text-slate-300 whitespace-nowrap">${info.installmentTotal}</td><td class="py-2.5 px-3 text-center whitespace-nowrap"><span class="px-2 py-0.5 rounded bg-slate-800 text-amber-300 font-mono text-[11px] font-bold border border-slate-700">${info.installmentCurrent}/${info.installmentTotal}</span></td><td class="py-2.5 px-3 text-right font-black ${parcValColor} whitespace-nowrap">R$ ${info.installmentAmount.toFixed(2)}</td><td class="py-2.5 px-3 text-right whitespace-nowrap"><div class="flex items-center justify-end gap-1.5"><select onchange="assignSingleMember('${t.id}', this.value)" class="bg-slate-800 border border-slate-700 text-slate-200 text-[11px] font-semibold rounded-lg px-2 py-1.5 outline-none cursor-pointer">${opts}</select><button type="button" onclick="openSplitTransactionModal('${t.id}')" class="p-1.5 rounded-lg border border-slate-700 bg-slate-800 text-amber-400 hover:bg-slate-700 transition" title="Dividir valor (Rateio)"><i class="ph-bold ph-scissors text-sm"></i></button><button type="button" onclick="deleteTransaction('${t.id}')" class="p-1.5 rounded-lg border border-slate-700 bg-slate-800 text-rose-400 hover:bg-rose-900/40 transition" title="Excluir Lançamento"><i class="ph-bold ph-trash text-sm"></i></button></div></td></tr>`;
       });
-      c.innerHTML = `<div class="overflow-x-auto custom-scrollbar"><table class="w-full text-left border-collapse text-xs"><thead><tr class="border-b border-slate-800 text-[11px] font-bold text-slate-400 uppercase tracking-wider bg-slate-950/50"><th class="py-2.5 px-3 whitespace-nowrap">Data</th><th class="py-2.5 px-3">Descrição</th><th class="py-2.5 px-3 whitespace-nowrap">Categoria</th><th class="py-2.5 px-3 whitespace-nowrap">Banco</th><th class="py-2.5 px-3 text-right whitespace-nowrap">Valor</th><th class="py-2.5 px-3 text-center whitespace-nowrap">Parcelas</th><th class="py-2.5 px-3 text-center whitespace-nowrap">Parcela Atual</th><th class="py-2.5 px-3 text-right whitespace-nowrap">Valor Parcela</th><th class="py-2.5 px-3 text-right whitespace-nowrap">Rateio</th></tr></thead><tbody class="divide-y divide-slate-800/80">${rowsHtml}</tbody></table></div>`;
+      c.innerHTML = `<div class="overflow-x-auto custom-scrollbar"><table class="w-full text-left border-collapse text-xs"><thead><tr class="border-b border-slate-800 text-[11px] font-bold text-slate-400 uppercase tracking-wider bg-slate-950/50"><th class="py-2.5 px-3 whitespace-nowrap">Data</th><th class="py-2.5 px-3">Descrição</th><th class="py-2.5 px-3 whitespace-nowrap">Categoria</th><th class="py-2.5 px-3 whitespace-nowrap">Banco</th><th class="py-2.5 px-3 text-right whitespace-nowrap">Valor</th><th class="py-2.5 px-3 text-center whitespace-nowrap">Parcelas</th><th class="py-2.5 px-3 text-center whitespace-nowrap">Parcela Atual</th><th class="py-2.5 px-3 text-right whitespace-nowrap">Valor Parcela</th><th class="py-2.5 px-3 text-right whitespace-nowrap">Rateio & Ações</th></tr></thead><tbody class="divide-y divide-slate-800/80">${rowsHtml}</tbody></table></div>`;
     }
 
     function renderMembersList() {
@@ -907,6 +922,7 @@
         const bankMap = {};
         filteredInvs.forEach(i => { bankMap[i.bank_name] = (bankMap[i.bank_name] || 0) + Number(i.total_amount); });
         
+        // Cores padrão para usuários e bancos
         const colors = ['#10b981', '#6366f1', '#f59e0b', '#ec4899', '#06b6d4', '#8b5cf6', '#ef4444', '#14b8a6', '#f97316'];
 
         let banks = [...new Set(filteredTrans.map(t => getTransactionDetails(t).bankName))];
@@ -963,13 +979,16 @@
                 legend: { display: true, position: 'top', labels: { color: '#94a3b8', usePointStyle: true, boxWidth: 8, font: { size: 10, weight: '600' } } }, 
                 tooltip: { 
                   displayColors: true,
+                  usePointStyle: true,
                   boxPadding: 6,
-                  multiKeyBackground: 'transparent',
-                  boxBorderWidth: 0,
                   backgroundColor: '#0f172a', titleColor: '#f8fafc', bodyColor: '#cbd5e1', borderColor: '#1e293b', borderWidth: 1, padding: 10, cornerRadius: 10, 
                   callbacks: { 
+                    labelPointStyle: function(context) {
+                        return { pointStyle: 'rectRounded', rotation: 0 };
+                    },
                     labelColor: function(context) { 
-                      return { borderColor: 'transparent', backgroundColor: context.dataset.backgroundColor, borderWidth: 0, borderRadius: 4 }; 
+                      const bgColor = Array.isArray(context.dataset.backgroundColor) ? context.dataset.backgroundColor[context.dataIndex] : context.dataset.backgroundColor;
+                      return { borderColor: bgColor, backgroundColor: bgColor, borderWidth: 0 }; 
                     },
                     label: ctx => ` ${ctx.dataset.label}: R$ ` + Number(ctx.parsed.y || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
                   } 
@@ -1003,14 +1022,16 @@
                 legend: { position: 'top', labels: { color: '#94a3b8', usePointStyle: true, pointStyle: 'circle', boxWidth: 8, padding: 14, font: { size: 11, weight: '600' } } },
                 tooltip: { 
                   displayColors: true,
+                  usePointStyle: true,
                   boxPadding: 6,
-                  multiKeyBackground: 'transparent',
-                  boxBorderWidth: 0,
                   backgroundColor: '#0f172a', titleColor: '#f8fafc', bodyColor: '#e2e8f0', borderColor: '#1e293b', borderWidth: 1, padding: 10, cornerRadius: 10, 
                   callbacks: { 
+                    labelPointStyle: function(context) {
+                        return { pointStyle: 'rectRounded', rotation: 0 };
+                    },
                     labelColor: function(context) {
                         const bgColor = Array.isArray(context.dataset.backgroundColor) ? context.dataset.backgroundColor[context.dataIndex] : context.dataset.backgroundColor;
-                        return { borderColor: 'transparent', backgroundColor: bgColor, borderWidth: 0, borderRadius: 4 };
+                        return { borderColor: bgColor, backgroundColor: bgColor, borderWidth: 0 };
                     },
                     label: ctx => ` R$ ${Number(ctx.parsed || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
                   } 
