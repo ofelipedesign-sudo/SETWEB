@@ -929,20 +929,23 @@
         const barDatasets = [];
         window.currentMembers.forEach((m, i) => {
             const data = banks.map(b => {
-                if (b === 'Sem dados') return 0;
-                return filteredTrans
+                if (b === 'Sem dados') return null; // Previne que o 0 assuma espaço se houver minBarLength
+                const totalVal = filteredTrans
                     .filter(t => String(t.member_id) === String(m.id) && getTransactionDetails(t).bankName === b)
                     .reduce((sum, t) => {
                         const amt = Number(getTransactionDetails(t).installmentAmount);
                         return sum + (amt > 0 ? amt : 0);
                     }, 0);
+                return totalVal > 0 ? totalVal : null;
             });
-            if (data.some(v => v > 0)) {
+            if (data.some(v => v !== null)) {
                 barDatasets.push({
                     label: m.name,
                     data: data,
                     backgroundColor: colors[i % colors.length],
-                    borderWidth: 0,
+                    borderColor: '#0f172a', // Cor igual ao fundo do gráfico para separar as fatias
+                    borderWidth: 2,         // Espessura do separador visual
+                    minBarLength: 5,        // Garante altura mínima para valores pequenos serem clicáveis
                     maxBarThickness: 48
                 });
             }
@@ -950,16 +953,25 @@
 
         // Capturar despesas Não Rateadas - SOMA APENAS POSITIVOS
         const unassignedData = banks.map(b => {
-            if (b === 'Sem dados') return 0;
-            return filteredTrans
+            if (b === 'Sem dados') return null;
+            const totalVal = filteredTrans
                 .filter(t => !t.member_id && getTransactionDetails(t).bankName === b)
                 .reduce((sum, t) => {
                     const amt = Number(getTransactionDetails(t).installmentAmount);
                     return sum + (amt > 0 ? amt : 0);
                 }, 0);
+            return totalVal > 0 ? totalVal : null;
         });
-        if (unassignedData.some(v => v > 0)) {
-            barDatasets.push({ label: 'Não Rateado', data: unassignedData, backgroundColor: '#475569', borderWidth: 0, maxBarThickness: 48 });
+        if (unassignedData.some(v => v !== null)) {
+            barDatasets.push({ 
+                label: 'Não Rateado', 
+                data: unassignedData, 
+                backgroundColor: '#475569', 
+                borderColor: '#0f172a', 
+                borderWidth: 2, 
+                minBarLength: 5, 
+                maxBarThickness: 48 
+            });
         }
         if (barDatasets.length === 0) {
             barDatasets.push({ label: 'Sem dados', data: [0], backgroundColor: 'rgba(16, 185, 129, 0.18)', maxBarThickness: 48 });
@@ -1089,7 +1101,6 @@
 Regras: 1."amount" e "installment_amount" = valor cobrado na fatura atual (negativo para créditos/estornos). 2.Se parcelado (ex: 02/10), "installment_current":2, "installment_total":10, "installment_display":"02/10", "total_value": amount * 10. 3.Se à vista, "installment_current":1, "installment_total":1, "installment_display":"01/01", "total_value": amount.
 TEXTO: ${pdfText.slice(0, 45000)}`;
 
-      // Otimização de tempo: encontrar o modelo Flash mais atual diretamente
       let targetModel = 'gemini-1.5-flash'; 
       try {
         const listResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
@@ -1104,7 +1115,6 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
         }
       } catch (e) { console.warn('Uso de modelo fallback.'); }
 
-      // Chamada unitária e direta ao processamento final
       const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${apiKey}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.1, responseMimeType: 'application/json' } })
