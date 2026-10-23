@@ -732,10 +732,7 @@
       $('cardOpenInvoices').textContent = 'R$ ' + openTotal.toFixed(2);
       $('cardOpenCount').textContent = `${openInvs.length} faturas pendentes`;
       
-      const transTotal = filteredTrans.reduce((a, b) => {
-          const info = getTransactionDetails(b);
-          return a + Number(info.installmentAmount);
-      }, 0);
+      const transTotal = filteredTrans.reduce((a, b) => a + Number(b.amount || 0), 0);
       
       $('cardTotalTransactions').textContent = 'R$ ' + transTotal.toFixed(2);
       $('cardTransCount').textContent = `${filteredTrans.length} itens catalogados`;
