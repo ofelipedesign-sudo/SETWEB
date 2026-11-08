@@ -96,6 +96,7 @@
               <div class="py-1">
                 <button type="button" onclick="triggerInvoiceUpload(); closeSetMenuDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium rounded-lg hover:bg-slate-800 flex items-center gap-2"><i class="ph-bold ph-file-arrow-up text-emerald-400"></i><span>Importar Fatura</span></button>
                 <button type="button" onclick="switchTab('transactions'); closeSetMenuDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium rounded-lg hover:bg-slate-800 flex items-center gap-2"><i class="ph-bold ph-scissors text-amber-400"></i><span>Dividir / Ratear Transações</span></button>
+                <button type="button" onclick="switchTab('fees'); closeSetMenuDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium rounded-lg hover:bg-slate-800 flex items-center gap-2"><i class="ph-bold ph-receipt text-amber-300"></i><span>Juros e taxas por fatura</span></button>
                 <button type="button" onclick="switchTab('members'); closeSetMenuDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium rounded-lg hover:bg-slate-800 flex items-center gap-2"><i class="ph-bold ph-users text-indigo-400"></i><span>Catalogar Membros / Usuários</span></button>
                 <button type="button" onclick="openGenerateMemberPdfModal(); closeSetMenuDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium rounded-lg hover:bg-slate-800 flex items-center gap-2"><i class="ph-bold ph-file-pdf text-rose-400"></i><span>Gerar Fatura Individual (PDF)</span></button>
               </div>
@@ -268,6 +269,26 @@
         </div>
       </div>
 
+      <!-- ABA: JUROS E TAXAS -->
+      <div id="viewFees" class="flex flex-col gap-4 hidden">
+        <div class="bg-slate-900 rounded-2xl border border-slate-800 p-4 shadow-sm">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-slate-800 pb-3">
+            <div><h4 class="text-sm font-bold text-white">Juros e taxas por fatura</h4><p class="text-[11px] text-slate-400">Rateio separado, exclusivo para encargos, juros, IOF e tarifas da fatura selecionada.</p></div>
+            <div class="min-w-[220px]">
+              <label for="feesInvoiceSelect" class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Selecionar fatura</label>
+              <select id="feesInvoiceSelect" onchange="renderFeesAllocation()" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-slate-200 outline-none focus:border-amber-500"><option value="">Carregando faturas...</option></select>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
+            <div class="rounded-xl bg-slate-950/70 border border-slate-800 p-3"><div class="text-[10px] text-slate-400">Total de juros e taxas</div><div id="feesTotalAmount" class="text-lg font-black text-amber-300">R$ 0,00</div></div>
+            <div class="rounded-xl bg-slate-950/70 border border-slate-800 p-3"><div class="text-[10px] text-slate-400">Lançamentos identificados</div><div id="feesItemsCount" class="text-lg font-black text-white">0</div></div>
+            <div class="rounded-xl bg-slate-950/70 border border-slate-800 p-3"><div class="text-[10px] text-slate-400">Pendentes de rateio</div><div id="feesPendingCount" class="text-lg font-black text-rose-400">0</div></div>
+          </div>
+          <div id="feesTransactionsList" class="divide-y divide-slate-800"></div>
+          <div id="emptyFeesTransactions" class="p-8 text-center text-slate-400 text-xs">Selecione uma fatura para visualizar seus juros e taxas.</div>
+        </div>
+      </div>
+
       <!-- ABA 4: MEMBROS -->
       <div id="viewMembers" class="flex flex-col gap-4 hidden">
         <div class="bg-slate-900 rounded-2xl border border-slate-800 p-4 shadow-sm">
@@ -323,8 +344,10 @@
           <span class="text-[11px] text-slate-400">Total Devido: <strong id="payMemberTotal" class="text-rose-400">R$ 0,00</strong></span>
           <span class="text-[11px] text-slate-400">Já Pago: <strong id="payMemberAlreadyPaid" class="text-emerald-400">R$ 0,00</strong></span>
         </div>
-        <div><label class="block text-[11px] font-bold text-slate-300 mb-1">Valor do Pagamento (R$)</label><input type="number" step="0.01" id="payAmountInput" placeholder="0.00" class="w-full px-3 py-2 text-sm font-bold rounded-xl border border-slate-700 bg-slate-800 text-white"></div>
-        <div><label class="block text-[11px] font-bold text-slate-300 mb-1">Promessa de Pagamento (Data Limite)</label><input type="date" id="payPromiseDate" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-white"><p class="text-[10px] text-slate-400 mt-1">Na data informada, será enviado um lembrete automático de cobrança.</p></div>
+        <div><label class="block text-[11px] font-bold text-slate-300 mb-1">Valor (R$)</label><input type="number" min="0.01" step="0.01" id="payAmountInput" placeholder="0.00" class="w-full px-3 py-2 text-sm font-bold rounded-xl border border-slate-700 bg-slate-800 text-white"></div>
+        <div><label class="block text-[11px] font-bold text-slate-300 mb-1">Situação</label><select id="payRecordStatus" onchange="updatePaymentStatusFields()" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-white"><option value="promised">Prometido — ainda não pago</option><option value="paid">Pago — débito recebido</option></select></div>
+        <div id="payPromiseDateWrap"><label class="block text-[11px] font-bold text-slate-300 mb-1">Data prevista para pagamento</label><input type="date" id="payPromiseDate" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-white"><p class="text-[10px] text-slate-400 mt-1">A promessa não reduz o saldo devedor. O valor só será contabilizado após marcar como pago.</p></div>
+        <div id="payPendingPromises" class="hidden border-t border-slate-800 pt-3"><p class="text-[11px] font-bold text-slate-300 mb-2">Promessas já registradas</p><div id="payPendingPromisesList" class="flex flex-col gap-2"></div></div>
         <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800"><button type="button" onclick="closePaymentModal()" class="px-3 py-1.5 text-xs text-slate-400">Cancelar</button><button type="button" onclick="savePaymentRecord()" class="px-4 py-2 text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white rounded-xl">Guardar</button></div>
       </div>
     </div>
@@ -605,7 +628,7 @@
     function hideLoading() { cancelAnimationFrame(progressRafId); progressRafId = null; $('modalLoading').classList.add('hidden'); }
 
     window.switchTab = function(tab) {
-      ['dashboard', 'invoices', 'transactions', 'members', 'banks'].forEach(t => {
+      ['dashboard', 'invoices', 'transactions', 'fees', 'members', 'banks'].forEach(t => {
         $('view' + t.charAt(0).toUpperCase() + t.slice(1))?.classList.add('hidden');
       });
       $('view' + tab.charAt(0).toUpperCase() + tab.slice(1))?.classList.remove('hidden');
@@ -617,6 +640,7 @@
           : "px-4 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800 flex items-center gap-2";
       });
       if (tab === 'dashboard') renderCharts();
+      if (tab === 'fees') renderFeesAllocation();
     };
 
     window.toggleSetMenuDropdown = function() { $('setMenuDropdown')?.classList.toggle('hidden'); };
@@ -655,7 +679,7 @@
         window.currentPayments = getVal(payRes);
         
         updateGlobalFilters();
-        renderDashboard(); renderInvoicesList(); renderTransactionsList(); renderMembersList(); renderBanksList(); renderCharts();
+        renderDashboard(); renderInvoicesList(); renderTransactionsList(); renderFeesAllocation(); renderMembersList(); renderBanksList(); renderCharts();
       } catch (err) { console.warn('Erro loadAllData:', err); }
     };
     
@@ -727,8 +751,66 @@
       renderDashboard();
       renderInvoicesList();
       renderTransactionsList();
+      renderFeesAllocation();
       renderCharts();
     };
+
+    // Registro com promise_date = promessa pendente; sem promise_date = pagamento recebido.
+    function isPaymentConfirmed(p) { return !p.promise_date; }
+    function getMemberPaidTotal(memberId) {
+      return window.currentPayments
+        .filter(p => String(p.member_id) === String(memberId) && isPaymentConfirmed(p))
+        .reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    }
+    function renderPendingPromises(memberId) {
+      const wrap = $('payPendingPromises');
+      const list = $('payPendingPromisesList');
+      if (!wrap || !list) return;
+      const pending = window.currentPayments
+        .filter(p => String(p.member_id) === String(memberId) && p.promise_date)
+        .sort((a, b) => new Date(a.promise_date) - new Date(b.promise_date));
+      list.innerHTML = '';
+      wrap.classList.toggle('hidden', pending.length === 0);
+      pending.forEach(p => {
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between gap-2 rounded-lg bg-slate-800/70 border border-slate-700 p-2';
+        const dueDate = new Date(p.promise_date + 'T00:00:00').toLocaleDateString('pt-BR');
+        row.innerHTML = `<div class="min-w-0"><div class="text-xs font-bold text-amber-300">R$ ${Number(p.amount || 0).toFixed(2)}</div><div class="text-[10px] text-slate-400">Previsto para ${dueDate}</div></div><button type="button" class="shrink-0 px-2 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-[10px] font-bold text-white">Marcar como pago</button>`;
+        row.querySelector('button').addEventListener('click', () => window.confirmPromisePaid(p.id));
+        list.appendChild(row);
+      });
+    }
+
+    window.confirmPromisePaid = async function(paymentId) {
+      if (!confirm('Confirmar que este valor foi efetivamente recebido? O saldo devedor será atualizado.')) return;
+      const { error } = await window.supabaseClient.from('payments')
+        .update({ promise_date: null, date: new Date().toISOString().split('T')[0] })
+        .eq('id', paymentId).eq('user_id', window.currentUser.id);
+      if (error) return alert('Não foi possível confirmar o pagamento: ' + error.message);
+      await window.loadAllData();
+      const memberId = $('payMemberId')?.value;
+      if (memberId) {
+        const member = window.currentMembers.find(m => String(m.id) === String(memberId));
+        if (member) {
+          const due = window.currentTransactions.filter(t => String(t.member_id) === String(memberId) && t.type !== 'ignored').reduce((a,b) => a + Number(b.amount), 0);
+          const paid = getMemberPaidTotal(memberId);
+          $('payMemberTotal').textContent = `R$ ${due.toFixed(2)}`;
+          $('payMemberAlreadyPaid').textContent = `R$ ${paid.toFixed(2)}`;
+          $('payAmountInput').value = Math.max(0, due - paid).toFixed(2);
+          renderPendingPromises(memberId);
+        }
+      }
+      alert('Pagamento confirmado com sucesso.');
+    };
+
+    window.updatePaymentStatusFields = function() {
+      const status = $('payRecordStatus')?.value || 'promised';
+      const wrap = $('payPromiseDateWrap');
+      const dateInput = $('payPromiseDate');
+      if (wrap) wrap.classList.toggle('hidden', status === 'paid');
+      if (dateInput) dateInput.required = status === 'promised';
+    };
+
 
     function renderDashboard() {
       const filteredInvs = window.currentInvoices.filter(invoiceMatchesGlobalFilter);
@@ -765,7 +847,7 @@
       let overdueCount = 0;
       window.currentMembers.forEach(m => {
           const due = window.currentTransactions.filter(t => String(t.member_id) === String(m.id) && t.type !== 'ignored').reduce((a,b) => a + Number(b.amount), 0);
-          const paid = window.currentPayments.filter(p => String(p.member_id) === String(m.id)).reduce((a,b) => a + Number(b.amount), 0);
+          const paid = getMemberPaidTotal(m.id);
           const rem = due - paid;
           if (rem > 0) {
               const promise = window.currentPayments.filter(p => String(p.member_id) === String(m.id) && p.promise_date).sort((a,b) => new Date(b.promise_date) - new Date(a.promise_date))[0]?.promise_date;
@@ -854,6 +936,63 @@
       };
     }
 
+    // Classificação isolada: somente lançamentos que representam juros/encargos/taxas.
+    // Aceita categorias atuais e categorias antigas (ex.: Encargos), além de descrições típicas.
+    function isFeeTransaction(t) {
+      const category = String(t.category || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+      const description = String(t.description || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+      const categoryMatch = /juros|taxas?|encargos|tarifas?/.test(category);
+      const descriptionMatch = /\b(iof|juros|multa|mora|anuidade|tarifa|encargo|taxa|rotativo)\b/.test(description);
+      return Boolean(t.invoice_id) && (categoryMatch || descriptionMatch);
+    }
+
+    window.renderFeesAllocation = function() {
+      const select = $('feesInvoiceSelect');
+      const list = $('feesTransactionsList');
+      const empty = $('emptyFeesTransactions');
+      if (!select || !list || !empty) return;
+
+      const invoices = window.currentInvoices.filter(invoiceMatchesGlobalFilter);
+      const previous = select.value;
+      select.innerHTML = '<option value="">Selecione uma fatura</option>' + invoices.map(inv => {
+        const due = inv.due_date ? new Date(inv.due_date + 'T12:00:00').toLocaleDateString('pt-BR') : 'Sem vencimento';
+        const label = `${inv.bank_name || 'Cartão'} • ${due} • R$ ${Number(inv.total_amount || 0).toFixed(2)}`;
+        return `<option value="${inv.id}">${label}</option>`;
+      }).join('');
+      const selected = invoices.some(inv => String(inv.id) === String(previous)) ? String(previous) : (invoices[0] ? String(invoices[0].id) : '');
+      select.value = selected;
+
+      list.innerHTML = '';
+      if (!selected) {
+        $('feesTotalAmount').textContent = 'R$ 0,00'; $('feesItemsCount').textContent = '0'; $('feesPendingCount').textContent = '0';
+        empty.textContent = 'Nenhuma fatura disponível no período selecionado.'; empty.classList.remove('hidden'); return;
+      }
+
+      const feeRows = window.currentTransactions.filter(t => String(t.invoice_id) === selected && isFeeTransaction(t));
+      const total = feeRows.reduce((sum, t) => sum + Number(t.amount || 0), 0);
+      const pending = feeRows.filter(t => !t.member_id && t.type !== 'ignored').length;
+      $('feesTotalAmount').textContent = `R$ ${total.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2})}`;
+      $('feesItemsCount').textContent = String(feeRows.length);
+      $('feesPendingCount').textContent = String(pending);
+
+      if (!feeRows.length) {
+        empty.textContent = 'Esta fatura não possui lançamentos identificados como juros ou taxas. Confira se os encargos foram importados com categoria ou descrição correspondente.';
+        empty.classList.remove('hidden'); return;
+      }
+      empty.classList.add('hidden');
+
+      feeRows.forEach(t => {
+        const info = getTransactionDetails(t);
+        let opts = `<option value="" ${!t.member_id ? 'selected' : ''}>Pendente de rateio</option>`;
+        opts += `<option value="ignore" ${t.type === 'ignored' ? 'selected' : ''}>Não ratear</option>`;
+        window.currentMembers.forEach(m => { opts += `<option value="${m.id}" ${String(t.member_id) === String(m.id) ? 'selected' : ''}>${m.name}</option>`; });
+        const row = document.createElement('div');
+        row.className = 'py-3 flex flex-col lg:flex-row lg:items-center justify-between gap-3';
+        row.innerHTML = `<div class="min-w-0 flex-1"><div class="text-xs font-bold text-white">${info.description}</div><div class="text-[10px] text-slate-400 mt-1">${info.date} · ${info.bankName} · ${info.category}</div></div><div class="flex items-center gap-2 flex-wrap"><span class="text-sm font-black text-amber-300 whitespace-nowrap">R$ ${Number(info.installmentAmount).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</span><select aria-label="Responsável pelo rateio de juros e taxas" onchange="assignSingleMember('${t.id}', this.value); renderFeesAllocation();" class="bg-slate-800 border border-slate-700 text-slate-200 text-[11px] font-semibold rounded-lg px-2 py-2 outline-none min-w-[145px]">${opts}</select><button type="button" onclick="openSplitTransactionModal('${t.id}')" class="p-2 rounded-lg border border-slate-700 bg-slate-800 text-amber-400 hover:bg-slate-700" title="Ratear somente este encargo entre dois membros"><i class="ph-bold ph-scissors"></i></button><button type="button" onclick="deleteTransaction('${t.id}')" class="p-2 rounded-lg border border-slate-700 bg-slate-800 text-rose-400 hover:bg-rose-900/40" title="Excluir lançamento"><i class="ph-bold ph-trash"></i></button></div>`;
+        list.appendChild(row);
+      });
+    };
+
     function renderTransactionsList() {
       const c = $('transactionsList'), emp = $('emptyTransactions');
       if (!c) return;
@@ -910,7 +1049,7 @@
       emp?.classList.add('hidden');
       window.currentMembers.forEach(m => {
         const due = window.currentTransactions.filter(t => String(t.member_id) === String(m.id) && t.type !== 'ignored').reduce((a, b) => a + Number(b.amount), 0);
-        const paid = window.currentPayments.filter(p => String(p.member_id) === String(m.id)).reduce((a, b) => a + Number(b.amount), 0);
+        const paid = getMemberPaidTotal(m.id);
         const rem = due - paid;
         const promise = window.currentPayments.filter(p => String(p.member_id) === String(m.id) && p.promise_date).sort((a, b) => new Date(b.promise_date) - new Date(a.promise_date))[0]?.promise_date;
         let badge = `<span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-bold">Sem débitos</span>`;
@@ -919,7 +1058,8 @@
           else if (paid > 0) badge = `<span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-800 font-bold">Parcial (Falta R$ ${rem.toFixed(2)})</span>`;
           else badge = `<span class="text-[10px] px-2 py-0.5 rounded-full bg-rose-950 text-rose-300 border border-rose-800 font-bold">Pendente</span>`;
         }
-        const promHtml = promise ? `<div class="text-[10px] text-amber-400 font-semibold mt-1"><i class="ph-bold ph-calendar-blank"></i> Promessa: ${new Date(promise + 'T00:00:00').toLocaleDateString('pt-BR')}</div>` : '';
+        const latestPromise = window.currentPayments.filter(p => String(p.member_id) === String(m.id) && p.promise_date).sort((a, b) => new Date(b.promise_date) - new Date(a.promise_date))[0];
+        const promHtml = latestPromise ? `<div class="text-[10px] text-amber-400 font-semibold mt-1"><i class="ph-bold ph-calendar-blank"></i> Prometido: R$ ${Number(latestPromise.amount || 0).toFixed(2)} até ${new Date(latestPromise.promise_date + 'T00:00:00').toLocaleDateString('pt-BR')} · Não pago</div>` : '';
         const d = document.createElement('div');
         d.className = 'p-4 rounded-xl border border-slate-800 bg-slate-900/60 flex flex-col justify-between gap-2.5';
         d.innerHTML = `<div class="flex items-start justify-between gap-2"><div class="flex items-center gap-3"><div class="w-9 h-9 rounded-full bg-indigo-950 text-indigo-300 flex items-center justify-center font-bold text-xs">${(m.name || 'US').slice(0, 2).toUpperCase()}</div><div><h5 class="text-xs font-bold text-white">${m.name}</h5><span class="text-[10px] text-slate-400 block">${m.email || 'Sem e-mail'}</span></div></div><div class="flex items-center gap-1"><button type="button" onclick="openPaymentModal('${m.id}')" class="p-1.5 text-slate-400 hover:text-emerald-400"><i class="ph-bold ph-money text-sm"></i></button><button type="button" onclick="openEditMemberModal('${m.id}')" class="p-1.5 text-slate-400 hover:text-emerald-400"><i class="ph-bold ph-pencil-simple text-sm"></i></button></div></div><div>${badge}${promHtml}</div><div class="pt-2 border-t border-slate-800 flex flex-col gap-1 text-xs"><div class="flex justify-between text-slate-400"><span>Total Devido:</span><span class="font-bold text-white">R$ ${due.toFixed(2)}</span></div><div class="flex justify-between text-slate-400"><span>Pago:</span><span class="font-bold text-emerald-400">R$ ${paid.toFixed(2)}</span></div><div class="flex justify-between font-bold pt-1 border-t border-slate-800/60"><span class="text-slate-300">Restante:</span><span class="text-rose-400">R$ ${rem > 0 ? rem.toFixed(2) : '0.00'}</span></div></div>`;
@@ -1106,7 +1246,7 @@
 
     window.parseInvoiceWithAI = async function(pdfText, apiKey) {
       const prompt = `Analise o texto da fatura bancária / cartão de crédito e retorne APENAS um JSON válido no formato abaixo, preenchendo todas as informações de cada transação (Data, Descrição, Categoria, Banco, Valor, Parcelas, Parcela Atual, Valor Parcela):
-{"bank_name":"Nome do Banco","due_date":"YYYY-MM-DD","total_amount":0.00,"items":[{"date":"YYYY-MM-DD","description":"string","category":"Supermercado|Alimentação|Transporte|Saúde|Lazer|Compras|Assinaturas|Financiamentos|Encargos|Créditos|Outros","bank_name":"Nome do Banco","amount":0.00,"total_value":0.00,"installment_total":1,"installment_current":1,"installment_display":"01/01","installment_amount":0.00}]}
+{"bank_name":"Nome do Banco","due_date":"YYYY-MM-DD","total_amount":0.00,"items":[{"date":"YYYY-MM-DD","description":"string","category":"Supermercado|Alimentação|Transporte|Saúde|Lazer|Compras|Assinaturas|Financiamentos|Juros e taxas|Encargos|Créditos|Outros","bank_name":"Nome do Banco","amount":0.00,"total_value":0.00,"installment_total":1,"installment_current":1,"installment_display":"01/01","installment_amount":0.00}]}
 REGRAS OBRIGATÓRIAS PARA PARCELAS: 1. Copie a numeração exatamente como aparece na coluna "Parcela" da fatura. Exemplo: se a fatura mostra 02/12, retorne installment_current=2, installment_total=12 e installment_display="02/12". 2. O primeiro número é SEMPRE a parcela atual desta compra; o segundo é o total contratado. Nunca calcule o primeiro número pela data, pelo mês, pelo vencimento, pela ordem dos itens ou pelas parcelas que faltam. 3. Não confunda parcela atual com parcelas restantes. 4. Se a fatura não informar a numeração, use installment_current=1 e installment_total=1, sem inventar. 5. "amount" e "installment_amount" são o valor cobrado nesta fatura (negativo para créditos/estornos). 6. Para compra parcelada, "total_value" é o valor total contratado somente se puder ser calculado com segurança; caso contrário use amount * installment_total. Para compra à vista, installment_current=1, installment_total=1, installment_display="01/01" e total_value=amount. Confira cada item individualmente antes de responder.
 TEXTO: ${pdfText.slice(0, 45000)}`;
 
@@ -1259,7 +1399,7 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
           tx.type = typeVal; 
       }
       
-      renderDashboard(); renderMembersList(); renderCharts();
+      renderDashboard(); renderMembersList(); renderFeesAllocation(); renderCharts();
     };
 
     window.openSplitTransactionModal = function(txId) {
@@ -1620,20 +1760,38 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
       const m = window.currentMembers.find(x => String(x.id) === String(mId));
       if (!m) return;
       const due = window.currentTransactions.filter(t => String(t.member_id) === String(mId) && t.type !== 'ignored').reduce((a, b) => a + Number(b.amount), 0);
-      const paid = window.currentPayments.filter(p => String(p.member_id) === String(mId)).reduce((a, b) => a + Number(b.amount), 0);
+      const paid = getMemberPaidTotal(mId);
       $('payMemberId').value = m.id; $('payMemberName').textContent = m.name;
       $('payMemberTotal').textContent = `R$ ${due.toFixed(2)}`; $('payMemberAlreadyPaid').textContent = `R$ ${paid.toFixed(2)}`;
-      $('payAmountInput').value = Math.max(0, due - paid).toFixed(2); $('payPromiseDate').value = '';
+      $('payAmountInput').value = Math.max(0, due - paid).toFixed(2);
+      $('payRecordStatus').value = 'promised'; $('payPromiseDate').value = '';
+      window.updatePaymentStatusFields();
+      renderPendingPromises(mId);
       $('modalPayment').classList.remove('hidden');
     };
 
     window.closePaymentModal = function() { $('modalPayment').classList.add('hidden'); };
 
     window.savePaymentRecord = async function() {
-      const mId = $('payMemberId').value, amount = parseFloat($('payAmountInput').value) || 0, promiseDate = $('payPromiseDate').value || null;
-      const { error } = await window.supabaseClient.from('payments').insert([{ user_id: window.currentUser.id, member_id: mId, amount, date: new Date().toISOString().split('T')[0], promise_date: promiseDate }]);
+      const mId = $('payMemberId').value;
+      const amount = Number(String($('payAmountInput').value || '').replace(',', '.'));
+      const status = $('payRecordStatus').value;
+      const promiseDate = status === 'promised' ? ($('payPromiseDate').value || null) : null;
+      if (!mId) return alert('Selecione um membro.');
+      if (!Number.isFinite(amount) || amount <= 0) return alert('Informe um valor válido maior que zero.');
+      if (status === 'promised' && !promiseDate) return alert('Informe a data prevista para pagamento.');
+      const record = {
+        user_id: window.currentUser.id,
+        member_id: mId,
+        amount,
+        date: new Date().toISOString().split('T')[0],
+        promise_date: promiseDate
+      };
+      const { error } = await window.supabaseClient.from('payments').insert([record]);
       if (error) return alert('Erro ao salvar: ' + error.message);
-      window.closePaymentModal(); await window.loadAllData();
+      window.closePaymentModal();
+      await window.loadAllData();
+      alert(status === 'paid' ? 'Pagamento registrado como recebido.' : 'Promessa registrada. O débito continua pendente até a confirmação do pagamento.');
     };
 
     window.openNewMemberModal = function() { $('inputMemberName').value = ''; $('inputMemberEmail').value = ''; $('inputMemberPhone').value = ''; $('modalNewMember').classList.remove('hidden'); };
