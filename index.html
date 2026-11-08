@@ -122,6 +122,7 @@
           <button type="button" onclick="switchTab('dashboard')" id="tabNavDash" class="px-4 py-2 rounded-lg text-sm font-semibold transition bg-emerald-950/40 text-emerald-300 border border-emerald-800 flex items-center gap-2"><i class="ph-bold ph-chart-pie-slice"></i><span>Painel</span></button>
           <button type="button" onclick="switchTab('invoices')" id="tabNavInvoices" class="px-4 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800 flex items-center gap-2"><i class="ph-bold ph-credit-card"></i><span>Faturas</span><span id="badgeInvoicesCount" class="text-[11px] px-1.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 font-bold">0</span></button>
           <button type="button" onclick="switchTab('transactions')" id="tabNavTrans" class="px-4 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800 flex items-center gap-2"><i class="ph-bold ph-arrows-split"></i><span>Lançamentos & Rateio</span></button>
+          <button type="button" onclick="switchTab('fees')" id="tabNavFees" class="px-4 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800 flex items-center gap-2"><i class="ph-bold ph-receipt text-amber-300"></i><span>Juros e Taxas</span></button>
           <button type="button" onclick="switchTab('members')" id="tabNavMembers" class="px-4 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800 flex items-center gap-2"><i class="ph-bold ph-users"></i><span>Membros</span></button>
           <button type="button" onclick="switchTab('banks')" id="tabNavBanks" class="px-4 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800 flex items-center gap-2"><i class="ph-bold ph-bank"></i><span>Bancos & Cartões</span></button>
         </div>
@@ -632,7 +633,7 @@
         $('view' + t.charAt(0).toUpperCase() + t.slice(1))?.classList.add('hidden');
       });
       $('view' + tab.charAt(0).toUpperCase() + tab.slice(1))?.classList.remove('hidden');
-      const mapBtn = { dashboard: 'tabNavDash', invoices: 'tabNavInvoices', transactions: 'tabNavTrans', members: 'tabNavMembers', banks: 'tabNavBanks' };
+      const mapBtn = { dashboard: 'tabNavDash', invoices: 'tabNavInvoices', transactions: 'tabNavTrans', fees: 'tabNavFees', members: 'tabNavMembers', banks: 'tabNavBanks' };
       Object.keys(mapBtn).forEach(k => {
         const b = $(mapBtn[k]);
         if (b) b.className = (k === tab)
@@ -775,11 +776,26 @@
         const row = document.createElement('div');
         row.className = 'flex items-center justify-between gap-2 rounded-lg bg-slate-800/70 border border-slate-700 p-2';
         const dueDate = new Date(p.promise_date + 'T00:00:00').toLocaleDateString('pt-BR');
-        row.innerHTML = `<div class="min-w-0"><div class="text-xs font-bold text-amber-300">R$ ${Number(p.amount || 0).toFixed(2)}</div><div class="text-[10px] text-slate-400">Previsto para ${dueDate}</div></div><button type="button" class="shrink-0 px-2 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-[10px] font-bold text-white">Marcar como pago</button>`;
-        row.querySelector('button').addEventListener('click', () => window.confirmPromisePaid(p.id));
+        row.innerHTML = `<div class="min-w-0"><div class="text-xs font-bold text-amber-300">R$ ${Number(p.amount || 0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</div><div class="text-[10px] text-slate-400">Previsto para ${dueDate}</div></div><div class="flex items-center gap-1.5 shrink-0"><button type="button" class="btn-confirm-promise px-2 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-[10px] font-bold text-white">Marcar como pago</button><button type="button" class="btn-delete-promise p-1.5 rounded-lg border border-rose-900/60 bg-rose-950/40 hover:bg-rose-900/60 text-rose-300" title="Excluir promessa" aria-label="Excluir promessa"><i class="ph-bold ph-trash"></i></button></div>`;
+        row.querySelector('.btn-confirm-promise').addEventListener('click', () => window.confirmPromisePaid(p.id));
+        row.querySelector('.btn-delete-promise').addEventListener('click', () => window.deletePaymentPromise(p.id));
         list.appendChild(row);
       });
     }
+
+    window.deletePaymentPromise = async function(paymentId) {
+      if (!confirm('Excluir esta promessa de pagamento? Esta ação não pode ser desfeita.')) return;
+      const { error } = await window.supabaseClient.from('payments')
+        .delete()
+        .eq('id', paymentId)
+        .eq('user_id', window.currentUser.id)
+        .not('promise_date', 'is', null);
+      if (error) return alert('Não foi possível excluir a promessa: ' + error.message);
+      await window.loadAllData();
+      const memberId = $('payMemberId')?.value;
+      if (memberId) renderPendingPromises(memberId);
+      alert('Promessa excluída.');
+    };
 
     window.confirmPromisePaid = async function(paymentId) {
       if (!confirm('Confirmar que este valor foi efetivamente recebido? O saldo devedor será atualizado.')) return;
