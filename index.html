@@ -807,30 +807,49 @@
       const date = t.date || (inv && inv.due_date) || '-';
       const category = t.category || 'Outros';
       const description = t.description || 'Lançamento';
-      let installmentCurrent = 1, installmentTotal = t.installment_total ? Number(t.installment_total) : 1;
-      const rawInfo = String(t.installment_info || t.installment_display || '').trim();
-      const slashMatch = rawInfo.match(/(\d{1,2})\s*\/\s*(\d{1,2})/);
-      if (slashMatch) {
-        installmentCurrent = parseInt(slashMatch[1], 10) || 1;
-        installmentTotal = parseInt(slashMatch[2], 10) || installmentTotal || 1;
-      } else if (/^\d+$/.test(rawInfo)) {
-        installmentCurrent = parseInt(rawInfo, 10) || 1;
-      } else {
-        const dm = description.match(/(?:parc(?:ela)?\.?\s*)?(\d{1,2})\s*(?:\/|de)\s*(\d{1,2})\b/i);
-        if (dm) {
-          const c = parseInt(dm[1], 10), tot = parseInt(dm[2], 10);
-          if (c >= 1 && tot >= c && tot <= 99) { installmentCurrent = c; installmentTotal = tot; }
+      // A parcela exibida deve ser o índice da compra na fatura (ex.: 02/12),
+      // e não a quantidade de parcelas restantes nem uma projeção baseada na data.
+      let installmentCurrent = 1;
+      let installmentTotal = Number(t.installment_total) || 1;
+      const explicitDisplay = String(t.installment_display || '').trim();
+      const storedInfo = String(t.installment_info || '').trim();
+      const descriptionMatch = description.match(/(?:parc(?:ela)?\.?\s*)?(\d{1,2})\s*(?:\/|de)\s*(\d{1,2})\b/i);
+      const displayMatch = (explicitDisplay.match(/(\d{1,2})\s*\/\s*(\d{1,2})/) ||
+                            storedInfo.match(/(\d{1,2})\s*\/\s*(\d{1,2})/) ||
+                            descriptionMatch);
+      if (displayMatch) {
+        const current = parseInt(displayMatch[1], 10);
+        const total = parseInt(displayMatch[2], 10);
+        if (current >= 1 && total >= current && total <= 99) {
+          installmentCurrent = current;
+          installmentTotal = total;
         }
+      } else {
+        const explicitCurrent = Number(t.installment_current);
+        const storedCurrent = /^\d+$/.test(storedInfo) ? Number(storedInfo) : NaN;
+        installmentCurrent = Number.isInteger(explicitCurrent) && explicitCurrent >= 1
+          ? explicitCurrent
+          : (Number.isInteger(storedCurrent) && storedCurrent >= 1 ? storedCurrent : 1);
       }
-      if (t.installment_current) installmentCurrent = Number(t.installment_current) || installmentCurrent;
-      if (!installmentTotal || installmentTotal < installmentCurrent) installmentTotal = Math.max(1, installmentCurrent);
+      if (!Number.isInteger(installmentTotal) || installmentTotal < installmentCurrent || installmentTotal > 99) {
+        installmentTotal = Math.max(1, installmentCurrent);
+      }
       const installmentAmount = (t.installment_amount !== undefined && t.installment_amount !== null) ? Number(t.installment_amount) : amount;
       const totalValue = (t.total_value !== undefined && t.total_value !== null)
         ? Number(t.total_value)
         : (installmentTotal > 1 && amount > 0 ? Number((installmentAmount * installmentTotal).toFixed(2)) : amount);
+      // Quantidade de parcelas ainda a vencer, contando a parcela desta linha
+      // quando sua data é futura. Ex.: 9/10 com vencimento futuro = 2 a vencer.
+      const todayIso = new Date().toISOString().split('T')[0];
+      const isFutureInstallment = /^\d{4}-\d{2}-\d{2}$/.test(String(date)) && String(date) > todayIso;
+      const installmentsDue = isFutureInstallment && installmentTotal > 1
+        ? Math.max(0, installmentTotal - installmentCurrent + 1)
+        : 0;
+
       return {
         date, description, category, bankName, totalValue, installmentTotal, installmentCurrent,
         installmentDisplay: `${String(installmentCurrent).padStart(2, '0')}/${String(installmentTotal).padStart(2, '0')}`,
+        installmentsDue,
         installmentAmount
       };
     }
@@ -875,9 +894,12 @@
         const valColor = info.totalValue < 0 ? 'text-emerald-400' : 'text-slate-100';
         const parcValColor = info.installmentAmount < 0 ? 'text-emerald-400' : 'text-rose-400';
         
-        rowsHtml += `<tr class="hover:bg-slate-800/40 transition ${lineOpacity}"><td class="py-2.5 px-3 font-mono text-[11px] text-slate-300 whitespace-nowrap">${info.date}</td><td class="py-2.5 px-3 font-bold text-slate-100 min-w-[180px]">${info.description}</td><td class="py-2.5 px-3 whitespace-nowrap"><span class="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 text-[11px] font-medium border border-slate-700/70">${info.category}</span></td><td class="py-2.5 px-3 whitespace-nowrap"><span class="px-2 py-0.5 rounded-md bg-emerald-950/50 text-emerald-300 border border-emerald-800/60 text-[11px] font-semibold">${info.bankName}</span></td><td class="py-2.5 px-3 text-right font-bold ${valColor} whitespace-nowrap">R$ ${info.totalValue.toFixed(2)}</td><td class="py-2.5 px-3 text-center font-mono font-bold text-slate-300 whitespace-nowrap">${info.installmentTotal}</td><td class="py-2.5 px-3 text-center whitespace-nowrap"><span class="px-2 py-0.5 rounded bg-slate-800 text-amber-300 font-mono text-[11px] font-bold border border-slate-700">${info.installmentCurrent}/${info.installmentTotal}</span></td><td class="py-2.5 px-3 text-right font-black ${parcValColor} whitespace-nowrap">R$ ${info.installmentAmount.toFixed(2)}</td><td class="py-2.5 px-3 text-right whitespace-nowrap"><div class="flex items-center justify-end gap-1.5"><select onchange="assignSingleMember('${t.id}', this.value)" class="bg-slate-800 border border-slate-700 text-slate-200 text-[11px] font-semibold rounded-lg px-2 py-1.5 outline-none cursor-pointer">${opts}</select><button type="button" onclick="openSplitTransactionModal('${t.id}')" class="p-1.5 rounded-lg border border-slate-700 bg-slate-800 text-amber-400 hover:bg-slate-700 transition" title="Dividir valor (Rateio)"><i class="ph-bold ph-scissors text-sm"></i></button><button type="button" onclick="deleteTransaction('${t.id}')" class="p-1.5 rounded-lg border border-slate-700 bg-slate-800 text-rose-400 hover:bg-rose-900/40 transition" title="Excluir Lançamento"><i class="ph-bold ph-trash text-sm"></i></button></div></td></tr>`;
+        const dueBadge = info.installmentsDue > 0
+          ? `<span class="ml-1 text-[9px] px-1.5 py-0.5 rounded bg-amber-950/60 text-amber-300 border border-amber-800/60 font-semibold">${info.installmentsDue} a vencer</span>`
+          : '';
+        rowsHtml += `<tr class="hover:bg-slate-800/40 transition ${lineOpacity}"><td class="py-2.5 px-3 font-mono text-[11px] text-slate-300 whitespace-nowrap">${info.date}</td><td class="py-2.5 px-3 font-bold text-slate-100 min-w-[180px]">${info.description}</td><td class="py-2.5 px-3 whitespace-nowrap"><span class="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 text-[11px] font-medium border border-slate-700/70">${info.category}</span></td><td class="py-2.5 px-3 whitespace-nowrap"><span class="px-2 py-0.5 rounded-md bg-emerald-950/50 text-emerald-300 border border-emerald-800/60 text-[11px] font-semibold">${info.bankName}</span></td><td class="py-2.5 px-3 text-right font-bold ${valColor} whitespace-nowrap">R$ ${info.totalValue.toFixed(2)}</td><td class="py-2.5 px-3 text-center font-mono font-bold text-slate-300 whitespace-nowrap">${info.installmentTotal}</td><td class="py-2.5 px-3 text-center whitespace-nowrap"><span class="px-2 py-0.5 rounded bg-slate-800 text-amber-300 font-mono text-[11px] font-bold border border-slate-700">${info.installmentCurrent}/${info.installmentTotal}</span>${dueBadge}</td><td class="py-2.5 px-3 text-right font-black ${parcValColor} whitespace-nowrap">R$ ${info.installmentAmount.toFixed(2)}</td><td class="py-2.5 px-3 text-right whitespace-nowrap"><div class="flex items-center justify-end gap-1.5"><select onchange="assignSingleMember('${t.id}', this.value)" class="bg-slate-800 border border-slate-700 text-slate-200 text-[11px] font-semibold rounded-lg px-2 py-1.5 outline-none cursor-pointer">${opts}</select><button type="button" onclick="openSplitTransactionModal('${t.id}')" class="p-1.5 rounded-lg border border-slate-700 bg-slate-800 text-amber-400 hover:bg-slate-700 transition" title="Dividir valor (Rateio)"><i class="ph-bold ph-scissors text-sm"></i></button><button type="button" onclick="deleteTransaction('${t.id}')" class="p-1.5 rounded-lg border border-slate-700 bg-slate-800 text-rose-400 hover:bg-rose-900/40 transition" title="Excluir Lançamento"><i class="ph-bold ph-trash text-sm"></i></button></div></td></tr>`;
       });
-      c.innerHTML = `<div class="overflow-x-auto custom-scrollbar"><table class="w-full text-left border-collapse text-xs"><thead><tr class="border-b border-slate-800 text-[11px] font-bold text-slate-400 uppercase tracking-wider bg-slate-950/50"><th class="py-2.5 px-3 whitespace-nowrap">Data</th><th class="py-2.5 px-3">Descrição</th><th class="py-2.5 px-3 whitespace-nowrap">Categoria</th><th class="py-2.5 px-3 whitespace-nowrap">Banco</th><th class="py-2.5 px-3 text-right whitespace-nowrap">Valor</th><th class="py-2.5 px-3 text-center whitespace-nowrap">Parcelas</th><th class="py-2.5 px-3 text-center whitespace-nowrap">Parcela Atual</th><th class="py-2.5 px-3 text-right whitespace-nowrap">Valor Parcela</th><th class="py-2.5 px-3 text-right whitespace-nowrap">Rateio & Ações</th></tr></thead><tbody class="divide-y divide-slate-800/80">${rowsHtml}</tbody></table></div>`;
+      c.innerHTML = `<div class="overflow-x-auto custom-scrollbar"><table class="w-full text-left border-collapse text-xs"><thead><tr class="border-b border-slate-800 text-[11px] font-bold text-slate-400 uppercase tracking-wider bg-slate-950/50"><th class="py-2.5 px-3 whitespace-nowrap">Data</th><th class="py-2.5 px-3">Descrição</th><th class="py-2.5 px-3 whitespace-nowrap">Categoria</th><th class="py-2.5 px-3 whitespace-nowrap">Banco</th><th class="py-2.5 px-3 text-right whitespace-nowrap">Valor</th><th class="py-2.5 px-3 text-center whitespace-nowrap">Parcelas</th><th class="py-2.5 px-3 text-center whitespace-nowrap">Parcela / A vencer</th><th class="py-2.5 px-3 text-right whitespace-nowrap">Valor Parcela</th><th class="py-2.5 px-3 text-right whitespace-nowrap">Rateio & Ações</th></tr></thead><tbody class="divide-y divide-slate-800/80">${rowsHtml}</tbody></table></div>`;
     }
 
     function renderMembersList() {
@@ -1085,7 +1107,7 @@
     window.parseInvoiceWithAI = async function(pdfText, apiKey) {
       const prompt = `Analise o texto da fatura bancária / cartão de crédito e retorne APENAS um JSON válido no formato abaixo, preenchendo todas as informações de cada transação (Data, Descrição, Categoria, Banco, Valor, Parcelas, Parcela Atual, Valor Parcela):
 {"bank_name":"Nome do Banco","due_date":"YYYY-MM-DD","total_amount":0.00,"items":[{"date":"YYYY-MM-DD","description":"string","category":"Supermercado|Alimentação|Transporte|Saúde|Lazer|Compras|Assinaturas|Financiamentos|Encargos|Créditos|Outros","bank_name":"Nome do Banco","amount":0.00,"total_value":0.00,"installment_total":1,"installment_current":1,"installment_display":"01/01","installment_amount":0.00}]}
-Regras: 1."amount" e "installment_amount" = valor cobrado na fatura atual (negativo para créditos/estornos). 2.Se parcelado (ex: 02/10), "installment_current":2, "installment_total":10, "installment_display":"02/10", "total_value": amount * 10. 3.Se à vista, "installment_current":1, "installment_total":1, "installment_display":"01/01", "total_value": amount.
+REGRAS OBRIGATÓRIAS PARA PARCELAS: 1. Copie a numeração exatamente como aparece na coluna "Parcela" da fatura. Exemplo: se a fatura mostra 02/12, retorne installment_current=2, installment_total=12 e installment_display="02/12". 2. O primeiro número é SEMPRE a parcela atual desta compra; o segundo é o total contratado. Nunca calcule o primeiro número pela data, pelo mês, pelo vencimento, pela ordem dos itens ou pelas parcelas que faltam. 3. Não confunda parcela atual com parcelas restantes. 4. Se a fatura não informar a numeração, use installment_current=1 e installment_total=1, sem inventar. 5. "amount" e "installment_amount" são o valor cobrado nesta fatura (negativo para créditos/estornos). 6. Para compra parcelada, "total_value" é o valor total contratado somente se puder ser calculado com segurança; caso contrário use amount * installment_total. Para compra à vista, installment_current=1, installment_total=1, installment_display="01/01" e total_value=amount. Confira cada item individualmente antes de responder.
 TEXTO: ${pdfText.slice(0, 45000)}`;
 
       // Modelo fixo de texto. Não consultar /models e nunca escolher o último
