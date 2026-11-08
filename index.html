@@ -957,8 +957,26 @@
     function isFeeTransaction(t) {
       const category = String(t.category || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
       const description = String(t.description || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-      const categoryMatch = /juros|taxas?|encargos|tarifas?/.test(category);
-      const descriptionMatch = /\b(iof|juros|multa|mora|anuidade|tarifa|encargo|taxa|rotativo)\b/.test(description);
+      // Abrange encargos cobrados pelo emissor do cartão/banco, mesmo quando
+      // a descrição vem abreviada ou não contém literalmente "juros" ou "taxa".
+      const categoryMatch = /juros|taxas?|encargos?|tarifas?|iof|mora|multa|servicos bancarios/.test(category);
+      const bankChargePatterns = [
+        /\biof\b/, /\bjuros?\b/, /\bmora\b/, /\bmulta\b/,
+        /\benc(?:argo)?s?\.?\s*(?:financ|financeir|rotativ)/,
+        /\bencargos?\s+(?:financeiros?|do\s+rotativo|de\s+atraso)\b/,
+        /\btarifas?\b/, /\btaxa(?:s)?\b/, /\banuidade\b/,
+        /\brotativo\b/, /\bcredito\s+rotativo\b/,
+        /\bparcelamento\s+(?:da\s+)?fatura\b/, /\bparcel(?:a|amento)\s+com\s+juros\b/,
+        /\bsaque\s+(?:credito|cartao)\b/, /\bsaque\s+na\s+funcao\s+credito\b/,
+        /\badiantamento\s+(?:a\s+)?depositante\b/,
+        /\bavaliacao\s+emergencial(?:\s+de\s+credito)?\b/,
+        /\bservicos?\s+bancarios?\b/, /\bservico\s+de\s+cartao\b/,
+        /\bmanutencao\s+(?:de\s+)?cartao\b/, /\bsegunda\s+via\b/,
+        /\btransacao\s+internacional\b/, /\bconversao\s+de\s+moeda\b/,
+        /\bcompra\s+internacional\b/, /\bencargo\s+sobre\s+compra\b/,
+        /\bseguro\s+(?:cartao|credito|protecao)\b/
+      ];
+      const descriptionMatch = bankChargePatterns.some(pattern => pattern.test(description));
       return Boolean(t.invoice_id) && (categoryMatch || descriptionMatch);
     }
 
@@ -1264,6 +1282,15 @@
       const prompt = `Analise o texto da fatura bancária / cartão de crédito e retorne APENAS um JSON válido no formato abaixo, preenchendo todas as informações de cada transação (Data, Descrição, Categoria, Banco, Valor, Parcelas, Parcela Atual, Valor Parcela):
 {"bank_name":"Nome do Banco","due_date":"YYYY-MM-DD","total_amount":0.00,"items":[{"date":"YYYY-MM-DD","description":"string","category":"Supermercado|Alimentação|Transporte|Saúde|Lazer|Compras|Assinaturas|Financiamentos|Juros e taxas|Encargos|Créditos|Outros","bank_name":"Nome do Banco","amount":0.00,"total_value":0.00,"installment_total":1,"installment_current":1,"installment_display":"01/01","installment_amount":0.00}]}
 REGRAS OBRIGATÓRIAS PARA PARCELAS: 1. Copie a numeração exatamente como aparece na coluna "Parcela" da fatura. Exemplo: se a fatura mostra 02/12, retorne installment_current=2, installment_total=12 e installment_display="02/12". 2. O primeiro número é SEMPRE a parcela atual desta compra; o segundo é o total contratado. Nunca calcule o primeiro número pela data, pelo mês, pelo vencimento, pela ordem dos itens ou pelas parcelas que faltam. 3. Não confunda parcela atual com parcelas restantes. 4. Se a fatura não informar a numeração, use installment_current=1 e installment_total=1, sem inventar. 5. "amount" e "installment_amount" são o valor cobrado nesta fatura (negativo para créditos/estornos). 6. Para compra parcelada, "total_value" é o valor total contratado somente se puder ser calculado com segurança; caso contrário use amount * installment_total. Para compra à vista, installment_current=1, installment_total=1, installment_display="01/01" e total_value=amount. Confira cada item individualmente antes de responder.
+
+REGRA CRÍTICA — EXTRAÇÃO COMPLETA DE ENCARGOS DO BANCO/EMISSOR:
+7. NÃO extraia apenas compras. Percorra TODAS as linhas e seções da fatura, inclusive "Lançamentos", "Encargos", "Serviços", "Tarifas", "Resumo", "Compras", "Outros lançamentos" e páginas finais. Não ignore cobranças pequenas, linhas isoladas ou itens que não sejam compras.
+8. Inclua como itens individuais TODOS os valores cobrados pelo banco, instituição financeira ou emissor do cartão, classificando-os como "Juros e taxas". Isso inclui, quando aparecerem: IOF (diário, adicional, internacional ou crédito), juros do rotativo, juros de mora, juros por atraso, multa por atraso, encargos financeiros, encargos de financiamento, encargos do crédito rotativo, tarifa de anuidade, tarifa de cartão, tarifa de saque, tarifa de avaliação emergencial de crédito, tarifa de serviços, manutenção, segunda via, parcelamento de fatura, juros de parcelamento, encargos sobre compras internacionais, conversão de moeda e seguros/serviços cobrados pelo próprio banco relacionados ao cartão.
+9. Preserve a descrição original da fatura, inclusive abreviações (ex.: "ENC FINANC ROTATIVO", "IOF DIARIO", "JUROS MORA", "MULTA ATRASO"). Não agrupe várias cobranças em uma linha e não some encargos diferentes. Cada linha bancária deve virar um item separado com seu valor e data.
+10. Diferencie cobranças do banco de compras em estabelecimentos. Uma compra em loja, mercado, aplicativo ou prestador NÃO é taxa bancária apenas porque aparece na fatura. Só classifique em "Juros e taxas" quando a cobrança for do banco/emissor ou representar imposto/encargo financeiro da operação do cartão.
+11. Não descarte linhas de encargos por não terem número de parcela. Para taxas, IOF, juros, mora e multas, use installment_current=1, installment_total=1, installment_display="01/01" e installment_amount igual ao valor da linha.
+12. Faça uma conferência final: compare todas as linhas monetárias da fatura com os objetos em "items". Se houver uma linha de tarifa, IOF, juros, mora, multa ou serviço bancário que não foi incluída, inclua antes de retornar o JSON. Não invente valores ausentes nem duplique lançamentos.
+
 TEXTO: ${pdfText.slice(0, 45000)}`;
 
       // Modelo fixo de texto. Não consultar /models e nunca escolher o último
