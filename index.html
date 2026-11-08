@@ -1088,28 +1088,36 @@
 Regras: 1."amount" e "installment_amount" = valor cobrado na fatura atual (negativo para créditos/estornos). 2.Se parcelado (ex: 02/10), "installment_current":2, "installment_total":10, "installment_display":"02/10", "total_value": amount * 10. 3.Se à vista, "installment_current":1, "installment_total":1, "installment_display":"01/01", "total_value": amount.
 TEXTO: ${pdfText.slice(0, 45000)}`;
 
-      let targetModel = 'gemini-1.5-flash'; 
-      try {
-        const listResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-        if (listResp.ok) {
-          const listData = await listResp.json();
-          const avail = (listData.models || [])
-            .map(m => m.name.replace(/^models\//, ''))
-            .filter(n => n.includes('flash') && n.includes('gemini'));
-          if (avail.length > 0) {
-            targetModel = avail.sort().reverse()[0]; 
-          }
-        }
-      } catch (e) { console.warn('Uso de modelo fallback.'); }
-
-      const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${apiKey}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.1, responseMimeType: 'application/json' } })
+      // Modelo fixo de texto. Não consultar /models e nunca escolher o último
+      // modelo alfabeticamente: isso podia selecionar modelos Omni de vídeo.
+      // Gemini 3.8 Flash é um modelo estável para análise de texto/documentos.
+      const targetModel = 'gemini-3.8-flash';
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${encodeURIComponent(apiKey)}`;
+      const resp = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.1, responseMimeType: 'application/json' }
+        })
       });
 
       if (!resp.ok) {
         const errBody = await resp.json().catch(() => ({}));
-        throw new Error(errBody?.error?.message || `HTTP ${resp.status} - Falha na API Gemini.`);
+        const apiMessage = errBody?.error?.message || `HTTP ${resp.status} - Falha na API Gemini.`;
+        const apiStatus = errBody?.error?.status || '';
+        if (resp.status === 429 || apiStatus === 'RESOURCE_EXHAUSTED') {
+          throw new Error(
+            `A cota do Gemini para o projeto desta chave está esgotada ou zerada. ` +
+            `O script agora usa ${targetModel}, sem selecionar modelos de vídeo. ` +
+            `Se o erro persistir, confira os limites ativos e o faturamento do projeto no Google AI Studio. ` +
+            `Trocar apenas a chave por outra do mesmo projeto não aumenta a cota. Detalhe: ${apiMessage}`
+          );
+        }
+        if (resp.status === 400 || resp.status === 404) {
+          throw new Error(`O modelo ${targetModel} não está disponível para esta chave/projeto ou a solicitação foi recusada. Confira o acesso ao modelo no Google AI Studio. Detalhe: ${apiMessage}`);
+        }
+        throw new Error(apiMessage);
       }
 
       const data = await resp.json();
