@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#0f172a">
+  <meta name="theme-color" content="#09090b">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="SET Web">
   <title>SET Web - Sistema de Faturas & Rateio</title>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='100%25' x2='100%25' y2='0%25'%3E%3Cstop offset='0%25' stop-color='%23059669'/%3E%3Cstop offset='100%25' stop-color='%2334d399'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='url(%23g)'/%3E%3Cpath d='M18 16a2 2 0 0 1 2-2h24a2 2 0 0 1 2 2v34l-4.67-3.5-4.66 3.5-4.67-3.5-4.67 3.5-4.66-3.5L18 50V16zm8 10h12v3H26v-3zm0 8h12v3H26v-3z' fill='%23ffffff'/%3E%3C/svg%3E">
-  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='100%25' x2='100%25' y2='0%25'%3E%3Cstop offset='0%25' stop-color='%23059669'/%3E%3Cstop offset='100%25' stop-color='%2334d399'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='url(%23g)'/%3E%3Cpath d='M18 16a2 2 0 0 1 2-2h24a2 2 0 0 1 2 2v34l-4.67-3.5-4.66 3.5-4.67-3.5-4.67 3.5-4.66-3.5L18 50V16zm8 10h12v3H26v-3zm0 8h12v3H26v-3z' fill='%23ffffff'/%3E%3C/svg%3E">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%2310b981'/%3E%3Cpath d='M18 16a2 2 0 0 1 2-2h24a2 2 0 0 1 2 2v34l-4.67-3.5-4.66 3.5-4.67-3.5-4.67 3.5-4.66-3.5L18 50V16zm8 10h12v3H26v-3zm0 8h12v3H26v-3z' fill='%23ffffff'/%3E%3C/svg%3E">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%2310b981'/%3E%3Cpath d='M18 16a2 2 0 0 1 2-2h24a2 2 0 0 1 2 2v34l-4.67-3.5-4.66 3.5-4.67-3.5-4.67 3.5-4.66-3.5L18 50V16zm8 10h12v3H26v-3zm0 8h12v3H26v-3z' fill='%23ffffff'/%3E%3C/svg%3E">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -31,462 +31,739 @@
     };
   </script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
     :root { --sat: env(safe-area-inset-top, 0px); --sab: env(safe-area-inset-bottom, 0px); }
-    html, body { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; min-height: 100vh; min-height: 100dvh; }
-    .app-header-safe { padding-top: max(12px, calc(var(--sat) + 8px)); }
-    .app-bottom-nav-safe { padding-bottom: max(10px, calc(var(--sab) + 12px)); }
-    .app-main-safe { padding-bottom: max(95px, calc(var(--sab) + 105px)); }
+    html, body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; min-height: 100vh; min-height: 100dvh; background-color: #09090b; color: #f4f4f5; }
+    .tabular-nums { font-variant-numeric: tabular-nums; }
+    .app-header-safe { padding-top: max(0px, var(--sat)); }
+    .app-bottom-nav-safe { padding-bottom: max(10px, calc(var(--sab) + 10px)); }
+    .app-main-safe { padding-bottom: max(88px, calc(var(--sab) + 92px)); }
     .app-modal-sheet { padding-bottom: max(20px, calc(var(--sab) + 24px)) !important; max-height: calc(90dvh - var(--sat)); }
-    .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #334155; border-radius: 9999px; }
+    .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #27272a; border-radius: 9999px; }
     @keyframes shimmerBar { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-    .animate-shimmer { background: linear-gradient(90deg, #10b981 0%, #34d399 25%, #6ee7b7 50%, #34d399 75%, #10b981 100%); background-size: 200% 100%; animation: shimmerBar 2s linear infinite; }
+    .animate-shimmer { background: linear-gradient(90deg, #10b981 0%, #34d399 50%, #10b981 100%); background-size: 200% 100%; animation: shimmerBar 2s linear infinite; }
     @media print { body * { visibility: hidden; } #printArea, #printArea * { visibility: visible; } #printArea { position: absolute; left: 0; top: 0; width: 100%; } }
+
+    /* === PREMIUM MOTION & SURFACE SYSTEM === */
+    @keyframes ambientBreath {
+      0%, 100% { opacity: 0.85; transform: translateY(0px) scale(1); }
+      50% { opacity: 1; transform: translateY(6px) scale(1.03); }
+    }
+    .ambient-top-glow {
+      background:
+        radial-gradient(ellipse 65% 48% at 32% -10%, rgba(16, 185, 129, 0.14), transparent 65%),
+        radial-gradient(ellipse 55% 42% at 74% -12%, rgba(99, 102, 241, 0.10), transparent 65%);
+      pointer-events: none;
+      animation: ambientBreath 10s ease-in-out infinite;
+    }
+
+    /* Tab transition: crisp slide + fade + subtle scale */
+    @keyframes tabEnter {
+      from { opacity: 0; transform: translateY(16px) scale(0.992); filter: blur(2px); }
+      to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+    }
+    .tab-animate-in {
+      animation: tabEnter 340ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    /* Staggered card & row entrance */
+    @keyframes cardEnter {
+      from { opacity: 0; transform: translateY(14px) scale(0.985); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .stagger-item {
+      animation: cardEnter 400ms cubic-bezier(0.22, 1, 0.36, 1) both;
+      animation-delay: calc(var(--stagger-i, 0) * 60ms);
+    }
+
+    /* Sidebar sliding indicator pill with emerald accent bar */
+    #sidebarNavPill {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      border-radius: 0.55rem;
+      background: linear-gradient(90deg, rgba(16, 185, 129, 0.12) 0%, rgba(39, 39, 42, 0.92) 32%, rgba(39, 39, 42, 0.85) 100%);
+      border: 1px solid rgba(63, 63, 70, 0.75);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1), height 240ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms ease;
+      pointer-events: none;
+      z-index: 0;
+    }
+    #sidebarNavPill::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 22%;
+      bottom: 22%;
+      width: 3px;
+      border-radius: 0 3px 3px 0;
+      background: #10b981;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.8);
+    }
+
+    /* Mouse-tracking spotlight + subtle lift on cards */
+    .spotlight-card {
+      position: relative;
+      overflow: hidden;
+      transition: border-color 220ms ease, background-color 220ms ease, transform 240ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 240ms ease;
+    }
+    .spotlight-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: radial-gradient(340px circle at var(--mouse-x, -999px) var(--mouse-y, -999px), rgba(16, 185, 129, 0.13), rgba(255, 255, 255, 0.04) 40%, transparent 70%);
+      opacity: 0;
+      transition: opacity 260ms ease;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .spotlight-card::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      padding: 1px;
+      background: radial-gradient(240px circle at var(--mouse-x, -999px) var(--mouse-y, -999px), rgba(52, 211, 153, 0.45), transparent 65%);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      opacity: 0;
+      transition: opacity 260ms ease;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .spotlight-card:hover::before,
+    .spotlight-card:hover::after {
+      opacity: 1;
+    }
+    .spotlight-card:hover {
+      border-color: rgba(82, 82, 91, 0.9);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 28px -10px rgba(0, 0, 0, 0.65);
+    }
+    .spotlight-card > * {
+      position: relative;
+      z-index: 2;
+    }
+
+    /* Tactile micro-interaction */
+    button:not(:disabled) {
+      transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 140ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms ease, opacity 160ms ease;
+    }
+    button:not(:disabled):active {
+      transform: scale(0.96);
+    }
+
+    /* Fluid modals & dropdowns */
+    @keyframes modalBackdropIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes modalCardIn {
+      from { opacity: 0; transform: translateY(16px) scale(0.96); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .modal-backdrop:not(.hidden) {
+      animation: modalBackdropIn 200ms ease-out both;
+    }
+    .modal-backdrop:not(.hidden) > div {
+      animation: modalCardIn 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    @keyframes dropdownIn {
+      from { opacity: 0; transform: translateY(-6px) scale(0.96); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    #setMenuDropdown:not(.hidden) {
+      transform-origin: top right;
+      animation: dropdownIn 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    /* Skeleton shimmer */
+    @keyframes skeletonPulse {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    .skeleton-bar {
+      display: inline-block;
+      border-radius: 0.375rem;
+      background: linear-gradient(90deg, #18181b 0%, #27272a 50%, #18181b 100%);
+      background-size: 200% 100%;
+      animation: skeletonPulse 1.4s ease-in-out infinite;
+    }
+
+    /* Toast notifications */
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateX(24px) scale(0.96); }
+      to { opacity: 1; transform: translateX(0) scale(1); }
+    }
+    @keyframes toastOut {
+      from { opacity: 1; transform: translateX(0) scale(1); }
+      to { opacity: 0; transform: translateX(24px) scale(0.96); }
+    }
+    .toast-enter { animation: toastIn 280ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+    .toast-exit { animation: toastOut 200ms ease-in forwards; }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 antialiased min-h-screen transition-colors duration-200 select-none">
+<body class="bg-[#09090b] text-zinc-100 antialiased min-h-screen select-none">
 
   <!-- 1. TELA DE AUTENTICAÇÃO -->
-  <div id="authScreen" class="min-h-[100dvh] w-full flex flex-col justify-center items-center px-4 py-8 bg-slate-950">
-    <div class="w-full max-w-sm flex flex-col gap-5">
+  <div id="authScreen" class="min-h-[100dvh] w-full flex flex-col justify-center items-center px-4 py-8 bg-[#09090b]">
+    <div class="w-full max-w-sm flex flex-col gap-6">
       <div class="text-center">
-        <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center text-white mx-auto shadow-lg shadow-brand-500/20 mb-3.5"><i class="ph-bold ph-receipt text-3xl"></i></div>
-        <h2 class="text-2xl font-black tracking-tight text-white">SET Web</h2>
-        <p class="text-xs text-slate-400 mt-1">Gestão Completa de Cartões & Rateio de Despesas</p>
+        <div class="w-11 h-11 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mx-auto mb-3.5">
+          <i class="ph ph-receipt text-2xl"></i>
+        </div>
+        <h2 class="text-xl font-semibold tracking-tight text-zinc-100">SET Web</h2>
+        <p class="text-xs text-zinc-500 mt-1">Gestão de Faturas e Rateio de Despesas</p>
       </div>
-      <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-7 shadow-xl flex flex-col gap-4">
-        <div class="flex border border-slate-700/80 rounded-xl p-1 bg-slate-800/80 text-xs font-semibold">
-          <button type="button" id="tabAuthLogin" onclick="setAuthMode('login')" class="flex-1 py-2.5 rounded-lg bg-slate-700 text-white shadow-sm transition">Entrar</button>
-          <button type="button" id="tabAuthRegister" onclick="setAuthMode('register')" class="flex-1 py-2.5 rounded-lg text-slate-400 transition">Criar Conta</button>
+      <div class="bg-[#111114] border border-zinc-800/80 rounded-xl p-6 shadow-xl flex flex-col gap-4">
+        <div class="flex border border-zinc-800 rounded-lg p-1 bg-zinc-950 text-xs font-medium">
+          <button type="button" id="tabAuthLogin" onclick="setAuthMode('login')" class="flex-1 py-2 rounded-md bg-zinc-800 text-zinc-100 shadow-sm transition">Entrar</button>
+          <button type="button" id="tabAuthRegister" onclick="setAuthMode('register')" class="flex-1 py-2 rounded-md text-zinc-400 hover:text-zinc-200 transition">Criar Conta</button>
         </div>
         <form id="formAuth" onsubmit="return handleAuthSubmit(event);" class="flex flex-col gap-4">
-          <div><label class="block text-xs font-bold text-slate-300 mb-1.5">E-mail</label><input type="email" id="authEmail" required placeholder="seu@email.com" class="w-full px-3.5 py-3 text-sm rounded-xl border border-slate-700 bg-slate-800 text-white focus:outline-none focus:border-brand-500 transition"></div>
-          <div><label class="block text-xs font-bold text-slate-300 mb-1.5">Senha</label><input type="password" id="authPassword" required minlength="6" placeholder="Mínimo 6 caracteres" class="w-full px-3.5 py-3 text-sm rounded-xl border border-slate-700 bg-slate-800 text-white focus:outline-none focus:border-brand-500 transition"></div>
-          <div id="authErrorMsg" class="hidden text-[11px] font-bold text-rose-400 text-center bg-rose-950/30 border border-rose-900/50 p-2.5 rounded-xl"></div>
-          <button type="submit" id="btnAuthSubmit" class="w-full mt-1 py-3.5 text-sm font-bold rounded-xl bg-brand-600 hover:bg-brand-700 active:scale-[0.99] text-white shadow-md shadow-brand-600/25 transition">Aceder ao SET</button>
+          <div>
+            <label class="block text-xs font-medium text-zinc-400 mb-1.5">E-mail</label>
+            <input type="email" id="authEmail" required placeholder="seu@email.com" class="w-full px-3 py-2.5 text-sm rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600 transition">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-zinc-400 mb-1.5">Senha</label>
+            <input type="password" id="authPassword" required minlength="6" placeholder="Mínimo 6 caracteres" class="w-full px-3 py-2.5 text-sm rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600 transition">
+          </div>
+          <div id="authErrorMsg" class="hidden text-xs font-medium text-rose-400 text-center bg-rose-950/30 border border-rose-900/50 p-2.5 rounded-lg"></div>
+          <button type="submit" id="btnAuthSubmit" class="w-full mt-1 py-2.5 text-sm font-medium rounded-lg bg-zinc-100 hover:bg-white text-zinc-950 transition">Aceder ao SET</button>
         </form>
       </div>
-      <div class="flex items-center justify-center gap-2 text-xs text-slate-400">
-        <button type="button" onclick="toggleTheme()" class="hover:text-slate-200 transition flex items-center gap-1 font-semibold"><i class="ph-bold ph-circle-half"></i><span>Alternar tema</span></button>
+      <div class="flex items-center justify-center gap-2 text-xs text-zinc-500">
+        <button type="button" onclick="toggleTheme()" class="hover:text-zinc-300 transition flex items-center gap-1.5"><i class="ph ph-circle-half"></i><span>Alternar tema</span></button>
       </div>
     </div>
   </div>
 
   <!-- 2. APLICAÇÃO PRINCIPAL -->
-  <div id="appContainer" class="hidden min-h-screen flex flex-col">
-    <header class="app-header-safe bg-slate-900 border-b border-slate-800 sticky top-0 z-30">
-      <div class="max-w-7xl mx-auto px-4 pb-3 flex items-center justify-between gap-2">
-        <div class="flex items-center space-x-2.5">
-          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center text-white shadow-md shadow-brand-500/20"><i class="ph-bold ph-receipt text-xl"></i></div>
-          <div>
-            <div class="flex items-center gap-1.5">
-              <h1 class="text-lg font-bold tracking-tight text-white leading-none">SET Web</h1>
-              <span class="text-[9px] font-semibold uppercase px-1.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800">Sistema Oficial</span>
-            </div>
-            <p class="text-[11px] text-slate-400 mt-0.5 hidden sm:block">Gestão de Cartões, Faturas & Empréstimos</p>
-          </div>
-        </div>
-        <div class="flex items-center gap-2">
-          <button type="button" onclick="triggerInvoiceUpload()" class="px-3.5 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white flex items-center gap-1.5 shadow-sm transition"><i class="ph-bold ph-sparkle text-amber-300 text-sm"></i><span>Importar Fatura IA</span></button>
-          <input type="file" id="pdfFileInput" accept=".pdf,.csv,.ofx" onchange="handleFileSelected(event)" class="hidden">
-          <div class="relative">
-            <button type="button" onclick="toggleSetMenuDropdown()" id="btnSetMenu" class="px-3 py-2 text-xs font-bold rounded-xl bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-200 flex items-center gap-1.5 transition"><i class="ph-bold ph-list"></i><span class="hidden sm:inline">Menu Funções</span><i class="ph-bold ph-caret-down text-[10px]"></i></button>
-            <div id="setMenuDropdown" class="hidden absolute right-0 mt-2 w-72 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-2 z-50 divide-y divide-slate-800">
-              <div class="py-1">
-                <button type="button" onclick="triggerInvoiceUpload(); closeSetMenuDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium rounded-lg hover:bg-slate-800 flex items-center gap-2"><i class="ph-bold ph-file-arrow-up text-emerald-400"></i><span>Importar Fatura</span></button>
-                <button type="button" onclick="switchTab('transactions'); closeSetMenuDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium rounded-lg hover:bg-slate-800 flex items-center gap-2"><i class="ph-bold ph-scissors text-amber-400"></i><span>Dividir / Ratear Transações</span></button>
-                <button type="button" onclick="switchTab('fees'); closeSetMenuDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium rounded-lg hover:bg-slate-800 flex items-center gap-2"><i class="ph-bold ph-receipt text-amber-300"></i><span>Juros e taxas por fatura</span></button>
-                <button type="button" onclick="switchTab('members'); closeSetMenuDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium rounded-lg hover:bg-slate-800 flex items-center gap-2"><i class="ph-bold ph-users text-indigo-400"></i><span>Catalogar Membros / Usuários</span></button>
-                <button type="button" onclick="openGenerateMemberPdfModal(); closeSetMenuDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium rounded-lg hover:bg-slate-800 flex items-center gap-2"><i class="ph-bold ph-file-pdf text-rose-400"></i><span>Gerar Fatura Individual (PDF)</span></button>
-              </div>
-              <div class="py-1">
-                <button type="button" onclick="loadAllData(); closeSetMenuDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium rounded-lg hover:bg-slate-800 flex items-center gap-2"><i class="ph-bold ph-arrows-clockwise text-blue-400"></i><span>Atualizar Painel (Sincronizar)</span></button>
-                <button type="button" onclick="exportCSV(); closeSetMenuDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium rounded-lg hover:bg-slate-800 flex items-center gap-2"><i class="ph-bold ph-table text-emerald-400"></i><span>Relatórios / Exportar CSV</span></button>
-                <button type="button" onclick="openLogsModal(); closeSetMenuDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium rounded-lg hover:bg-slate-800 flex items-center gap-2"><i class="ph-bold ph-terminal text-slate-400"></i><span>Ver / Limpar Logs</span></button>
-              </div>
-              <div class="py-1">
-                <button type="button" onclick="openResetInvoicesModal(); closeSetMenuDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium text-rose-400 rounded-lg hover:bg-rose-950/40 flex items-center gap-2"><i class="ph-bold ph-trash"></i><span>Resetar Transações & Faturas</span></button>
-                <button type="button" onclick="openConfigModal(); closeSetMenuDropdown();" class="w-full text-left px-3 py-2 text-xs font-medium rounded-lg hover:bg-slate-800 flex items-center gap-2"><i class="ph-bold ph-gear text-slate-300"></i><span>Configurações & Chave Gemini</span></button>
-              </div>
-            </div>
-          </div>
-          <button type="button" onclick="signOut()" class="p-2 text-rose-400 hover:text-rose-300 rounded-lg transition" title="Terminar Sessão"><i class="ph-bold ph-sign-out text-lg"></i></button>
-        </div>
-      </div>
-    </header>
+  <div id="appContainer" class="hidden min-h-screen flex bg-[#09090b] relative overflow-x-clip">
+    <div class="ambient-top-glow fixed inset-x-0 top-0 h-80 z-0"></div>
 
-    <main class="app-main-safe max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 py-4 w-full flex-1 flex flex-col gap-4">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-3 gap-2 flex-wrap sm:flex-nowrap">
-        <div class="flex items-center gap-2 shrink-0 overflow-x-auto custom-scrollbar w-full sm:w-auto pb-1 sm:pb-0">
-          <button type="button" onclick="switchTab('dashboard')" id="tabNavDash" class="px-4 py-2 rounded-lg text-sm font-semibold transition bg-emerald-950/40 text-emerald-300 border border-emerald-800 flex items-center gap-2"><i class="ph-bold ph-chart-pie-slice"></i><span>Painel</span></button>
-          <button type="button" onclick="switchTab('invoices')" id="tabNavInvoices" class="px-4 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800 flex items-center gap-2"><i class="ph-bold ph-credit-card"></i><span>Faturas</span><span id="badgeInvoicesCount" class="text-[11px] px-1.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 font-bold">0</span></button>
-          <button type="button" onclick="switchTab('transactions')" id="tabNavTrans" class="px-4 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800 flex items-center gap-2"><i class="ph-bold ph-arrows-split"></i><span>Lançamentos & Rateio</span></button>
-          <button type="button" onclick="switchTab('fees')" id="tabNavFees" class="px-4 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800 flex items-center gap-2"><i class="ph-bold ph-receipt text-amber-300"></i><span>Juros e Taxas</span></button>
-          <button type="button" onclick="switchTab('members')" id="tabNavMembers" class="px-4 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800 flex items-center gap-2"><i class="ph-bold ph-users"></i><span>Membros</span></button>
-          <button type="button" onclick="switchTab('banks')" id="tabNavBanks" class="px-4 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800 flex items-center gap-2"><i class="ph-bold ph-bank"></i><span>Bancos & Cartões</span></button>
+    <!-- SIDEBAR DESKTOP -->
+    <aside class="hidden md:flex md:flex-col w-60 shrink-0 border-r border-zinc-800/80 bg-[#0c0c0e]/95 backdrop-blur-md sticky top-0 h-screen z-20">
+      <div class="h-14 px-4 flex items-center justify-between border-b border-zinc-800/80">
+        <div class="flex items-center gap-2.5">
+          <div class="w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+            <i class="ph ph-receipt text-base"></i>
+          </div>
+          <span class="text-sm font-semibold tracking-tight text-zinc-100">SET Web</span>
         </div>
-        
-        <!-- Filtro Global de Mês e Ano -->
-        <div class="flex items-center gap-2 shrink-0 ml-auto bg-slate-900 border border-slate-800 p-1 rounded-xl">
-           <div class="w-7 h-7 rounded-lg bg-emerald-950/50 flex items-center justify-center text-emerald-400"><i class="ph-bold ph-calendar-blank"></i></div>
-           
-           <select id="globalMonthFilter" onchange="applyGlobalFilter()" class="bg-transparent text-slate-200 text-xs font-bold px-1 py-1 outline-none cursor-pointer">
-             <option value="all" class="bg-slate-900 text-slate-200">Mês (Todos)</option>
-             <option value="01" class="bg-slate-900 text-slate-200">Janeiro</option>
-             <option value="02" class="bg-slate-900 text-slate-200">Fevereiro</option>
-             <option value="03" class="bg-slate-900 text-slate-200">Março</option>
-             <option value="04" class="bg-slate-900 text-slate-200">Abril</option>
-             <option value="05" class="bg-slate-900 text-slate-200">Maio</option>
-             <option value="06" class="bg-slate-900 text-slate-200">Junho</option>
-             <option value="07" class="bg-slate-900 text-slate-200">Julho</option>
-             <option value="08" class="bg-slate-900 text-slate-200">Agosto</option>
-             <option value="09" class="bg-slate-900 text-slate-200">Setembro</option>
-             <option value="10" class="bg-slate-900 text-slate-200">Outubro</option>
-             <option value="11" class="bg-slate-900 text-slate-200">Novembro</option>
-             <option value="12" class="bg-slate-900 text-slate-200">Dezembro</option>
-           </select>
-           
-           <select id="globalYearFilter" onchange="applyGlobalFilter()" class="bg-transparent text-slate-200 text-xs font-bold px-1 py-1 outline-none cursor-pointer border-l border-slate-700 pl-2 ml-1">
-             <option value="all" class="bg-slate-900 text-slate-200">Ano (Todos)</option>
-           </select>
-        </div>
+        <span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-zinc-900 text-zinc-500 border border-zinc-800">v1.2</span>
       </div>
 
-      <!-- ABA 1: PAINEL -->
-      <div id="viewDashboard" class="flex flex-col gap-4">
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-          <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 shadow-sm flex flex-col justify-between">
-            <div class="flex items-center justify-between"><span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Faturas em Aberto</span><div class="w-7 h-7 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center text-sm"><i class="ph-bold ph-clock"></i></div></div>
-            <div class="mt-2.5"><h3 id="cardOpenInvoices" class="text-2xl font-black text-rose-400 tracking-tight">R$ 0,00</h3><p id="cardOpenCount" class="text-[11px] text-slate-400 font-medium mt-0.5">0 faturas pendentes</p></div>
-          </div>
-          <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 shadow-sm flex flex-col justify-between">
-            <div class="flex items-center justify-between"><span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Despesas / Lançamentos</span><div class="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-sm"><i class="ph-bold ph-receipt"></i></div></div>
-            <div class="mt-2.5"><h3 id="cardTotalTransactions" class="text-2xl font-black text-white tracking-tight">R$ 0,00</h3><p id="cardTransCount" class="text-[10px] text-slate-400 font-medium mt-0.5">0 itens catalogados</p></div>
-          </div>
-          <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 shadow-sm flex flex-col justify-between">
-            <div class="flex items-center justify-between"><span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Rateio Membros</span><div class="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-sm"><i class="ph-bold ph-users-three"></i></div></div>
-            <div class="mt-2.5"><h3 id="cardTotalMembers" class="text-2xl font-black text-indigo-400 tracking-tight">0</h3><p class="text-[11px] text-slate-400 font-medium mt-0.5">Pessoas cadastradas</p></div>
-          </div>
-          <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 shadow-sm flex flex-col justify-between">
-            <div class="flex items-center justify-between"><span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Bancos Ativos</span><div class="w-7 h-7 rounded-lg bg-teal-500/10 text-teal-400 flex items-center justify-center text-sm"><i class="ph-bold ph-bank"></i></div></div>
-            <div class="mt-2.5"><h3 id="cardTotalBanks" class="text-2xl font-black text-teal-400 tracking-tight">0</h3><p class="text-[11px] text-slate-400 font-medium mt-0.5">Instituições cadastradas</p></div>
-          </div>
+      <nav class="flex-1 px-3 py-4 flex flex-col gap-1 overflow-y-auto custom-scrollbar">
+        <div id="sidebarNavList" class="relative flex flex-col gap-1">
+          <div id="sidebarNavPill" style="opacity: 0; height: 36px;"></div>
+          <button type="button" onclick="switchTab('dashboard')" id="tabNavDash" class="relative z-10 w-full px-3 py-2 rounded-lg text-[13px] font-medium text-zinc-100 flex items-center justify-between gap-2">
+            <span class="flex items-center gap-2.5"><i class="ph ph-squares-four text-base"></i><span>Painel</span></span>
+          </button>
+          <button type="button" onclick="switchTab('invoices')" id="tabNavInvoices" class="relative z-10 w-full px-3 py-2 rounded-lg text-[13px] font-medium text-zinc-400 hover:text-zinc-100 flex items-center justify-between gap-2">
+            <span class="flex items-center gap-2.5"><i class="ph ph-credit-card text-base"></i><span>Faturas</span></span>
+            <span id="badgeInvoicesCount" class="text-[11px] px-1.5 py-0.5 rounded bg-zinc-800/90 text-zinc-300 tabular-nums">0</span>
+          </button>
+          <button type="button" onclick="switchTab('transactions')" id="tabNavTrans" class="relative z-10 w-full px-3 py-2 rounded-lg text-[13px] font-medium text-zinc-400 hover:text-zinc-100 flex items-center justify-between gap-2">
+            <span class="flex items-center gap-2.5"><i class="ph ph-arrows-split text-base"></i><span>Lançamentos</span></span>
+          </button>
+          <button type="button" onclick="switchTab('fees')" id="tabNavFees" class="relative z-10 w-full px-3 py-2 rounded-lg text-[13px] font-medium text-zinc-400 hover:text-zinc-100 flex items-center justify-between gap-2">
+            <span class="flex items-center gap-2.5"><i class="ph ph-percent text-base"></i><span>Juros e Taxas</span></span>
+          </button>
+          <button type="button" onclick="switchTab('members')" id="tabNavMembers" class="relative z-10 w-full px-3 py-2 rounded-lg text-[13px] font-medium text-zinc-400 hover:text-zinc-100 flex items-center justify-between gap-2">
+            <span class="flex items-center gap-2.5"><i class="ph ph-users text-base"></i><span>Membros</span></span>
+          </button>
+          <button type="button" onclick="switchTab('banks')" id="tabNavBanks" class="relative z-10 w-full px-3 py-2 rounded-lg text-[13px] font-medium text-zinc-400 hover:text-zinc-100 flex items-center justify-between gap-2">
+            <span class="flex items-center gap-2.5"><i class="ph ph-bank text-base"></i><span>Bancos & Cartões</span></span>
+          </button>
         </div>
 
-        <!-- Alertas Inteligentes (Central) -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <!-- Card 1: Lançamentos Não Rateados -->
-            <div class="bg-amber-950/20 border border-amber-500/30 rounded-2xl p-4 flex flex-col justify-between shadow-sm relative overflow-hidden">
-                <div class="flex items-start justify-between mb-2">
-                    <div class="flex items-center gap-2.5">
-                        <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center"><i class="ph-bold ph-warning-circle text-lg"></i></div>
-                        <div><h4 class="text-sm font-bold text-amber-400">Rateio Pendente</h4><p class="text-[10px] text-amber-500/70">Itens sem usuário atribuído</p></div>
-                    </div>
-                    <span id="alertUnassignedCount" class="text-xl font-black text-amber-400">0</span>
-                </div>
-                <button type="button" onclick="goToUnassigned()" class="mt-2 w-full py-2 bg-amber-900/40 hover:bg-amber-900/60 text-amber-300 text-xs font-bold rounded-xl transition border border-amber-500/20">Resolver Agora</button>
-            </div>
+        <div class="mt-5 pt-4 border-t border-zinc-800/70 flex flex-col gap-1">
+          <span class="px-3 mb-1 text-[10px] font-medium uppercase tracking-wider text-zinc-600">Ferramentas</span>
+          <button type="button" onclick="openGenerateMemberPdfModal()" class="w-full px-3 py-1.5 rounded-lg text-[12px] text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900 flex items-center gap-2.5 transition"><i class="ph ph-file-pdf text-sm"></i><span>Fatura Individual (PDF)</span></button>
+          <button type="button" onclick="exportCSV()" class="w-full px-3 py-1.5 rounded-lg text-[12px] text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900 flex items-center gap-2.5 transition"><i class="ph ph-download-simple text-sm"></i><span>Exportar CSV</span></button>
+          <button type="button" onclick="openLogsModal()" class="w-full px-3 py-1.5 rounded-lg text-[12px] text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900 flex items-center gap-2.5 transition"><i class="ph ph-terminal text-sm"></i><span>Logs do Sistema</span></button>
+          <button type="button" onclick="openConfigModal()" class="w-full px-3 py-1.5 rounded-lg text-[12px] text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900 flex items-center gap-2.5 transition"><i class="ph ph-gear text-sm"></i><span>Configurações</span></button>
+        </div>
+      </nav>
 
-            <!-- Card 2: Inadimplência / Promessas -->
-            <div class="bg-rose-950/20 border border-rose-500/30 rounded-2xl p-4 flex flex-col justify-between shadow-sm relative overflow-hidden">
-                <div class="flex items-start justify-between mb-2">
-                    <div class="flex items-center gap-2.5">
-                        <div class="w-8 h-8 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center"><i class="ph-bold ph-calendar-x text-lg"></i></div>
-                        <div><h4 class="text-sm font-bold text-rose-400">Cobranças Atrasadas</h4><p class="text-[10px] text-rose-500/70">Promessas de pagamento expiradas</p></div>
-                    </div>
-                    <span id="alertOverdueCount" class="text-xl font-black text-rose-400">0</span>
-                </div>
-                <button type="button" onclick="switchTab('members')" class="mt-2 w-full py-2 bg-rose-900/40 hover:bg-rose-900/60 text-rose-300 text-xs font-bold rounded-xl transition border border-rose-500/20">Ver Membros</button>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div class="lg:col-span-2 bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 shadow-sm flex flex-col justify-between">
-            <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2.5">
-              <div><h4 class="text-xs sm:text-sm font-bold text-slate-100">Gastos por Banco / Cartão</h4><p class="text-[10px] text-slate-400">Composição de consumo por usuário</p></div>
-              <span class="text-[10px] font-mono font-bold text-slate-500 uppercase">Valores em R$</span>
-            </div>
-            <div class="h-64 relative w-full"><canvas id="chartInvoices"></canvas></div>
-          </div>
-          <div class="bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 shadow-sm flex flex-col justify-between">
-            <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2.5">
-              <div><h4 class="text-xs sm:text-sm font-bold text-slate-100">Composição Geral</h4><p class="text-[10px] text-slate-400">Proporção de gastos entre todos os bancos</p></div>
-            </div>
-            <div class="h-64 relative flex items-center justify-center w-full"><canvas id="chartSplit"></canvas></div>
+      <!-- Rodapé do Usuário na Sidebar -->
+      <div class="p-3 border-t border-zinc-800/80 flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div id="sidebarUserInitials" class="w-7 h-7 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-200 flex items-center justify-center text-[11px] font-semibold shrink-0">US</div>
+          <div class="min-w-0">
+            <div id="sidebarUserName" class="text-xs font-medium text-zinc-200 truncate">Usuário</div>
+            <div id="sidebarUserEmail" class="text-[10px] text-zinc-500 truncate">---</div>
           </div>
         </div>
-        
-        <!-- Rodapé do Painel -->
-        <div class="mt-2 pt-4 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] text-slate-500 font-medium">
-          <div class="flex items-center gap-2">
-            <span class="relative flex h-2 w-2">
-              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            <span>Sistema online e sincronizado com base de dados</span>
-          </div>
-          <div class="flex items-center gap-3">
-            <span>SET Web v1.0</span>
-            <span class="w-1 h-1 rounded-full bg-slate-700"></span>
-            <span class="flex items-center gap-1"><i class="ph-bold ph-sparkle text-amber-500/70"></i> IA Powered</span>
-          </div>
-        </div>
+        <button type="button" onclick="signOut()" class="p-1.5 rounded-md text-zinc-500 hover:text-rose-400 hover:bg-zinc-900 transition shrink-0" title="Terminar Sessão"><i class="ph ph-sign-out text-base"></i></button>
       </div>
+    </aside>
 
-      <!-- ABA 2: FATURAS -->
-      <div id="viewInvoices" class="flex flex-col gap-4 hidden">
-        <div class="bg-slate-900 rounded-2xl border border-slate-800 p-4 shadow-sm">
-          <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
-            <div><h4 class="text-sm font-bold text-white">Faturas Importadas</h4><p class="text-xs text-slate-400">Controlo de encerramento e histórico</p></div>
-            <button type="button" onclick="openResetInvoicesModal()" class="px-3 py-1.5 text-xs font-bold rounded-xl bg-rose-950/50 text-rose-400 border border-rose-900/60 hover:bg-rose-900 transition flex items-center gap-1.5"><i class="ph-bold ph-trash"></i><span>Zerar Faturas</span></button>
-          </div>
-          <div id="invoicesList" class="divide-y divide-slate-800"></div>
-          <div id="emptyInvoices" class="p-8 text-center text-slate-400 text-xs">Nenhuma fatura registada.</div>
-        </div>
-      </div>
+    <!-- ÁREA DE CONTEÚDO -->
+    <div class="flex-1 flex flex-col min-w-0 relative z-10">
+      <!-- TOP BAR -->
+      <header class="app-header-safe sticky top-0 z-30 bg-[#09090b]/90 backdrop-blur-md border-b border-zinc-800/80">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 min-h-14 py-2 flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+          <div class="flex items-center gap-3 min-w-0">
+            <!-- Logo mobile -->
+            <div class="md:hidden w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0"><i class="ph ph-receipt text-base"></i></div>
+            <h1 id="currentPageTitle" class="text-base font-semibold tracking-tight text-zinc-100 truncate">Painel</h1>
 
-      <!-- ABA 3: LANÇAMENTOS & RATEIO -->
-      <div id="viewTransactions" class="flex flex-col gap-4 hidden">
-        <div class="bg-slate-900 rounded-2xl border border-slate-800 p-4 shadow-sm">
-          <div class="flex flex-col gap-3 mb-3 border-b border-slate-800 pb-3">
-            <div class="flex items-center justify-between">
-              <div><h4 class="text-sm font-bold text-white">Lançamentos Conciliados & Rateio</h4><p class="text-[11px] text-slate-400">Atribua a transação a um usuário ou divida o valor.</p></div>
-              <button type="button" onclick="openGenerateMemberPdfModal()" class="px-3 py-1.5 text-xs font-bold rounded-xl bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700 flex items-center gap-1 shrink-0"><i class="ph-bold ph-file-pdf text-rose-400"></i><span class="hidden sm:inline">Gerar Fatura</span></button>
-            </div>
-            <div class="flex items-center gap-2">
-              <div class="relative flex-1">
-                <i class="ph-bold ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"></i>
-                <input type="text" id="searchTxInput" onkeyup="renderTransactionsList()" placeholder="Buscar estabelecimento..." class="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-white focus:outline-none focus:border-brand-500 transition">
-              </div>
-              <select id="filterTxMember" onchange="renderTransactionsList()" class="px-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-slate-300 focus:outline-none focus:border-brand-500 cursor-pointer outline-none">
-                <option value="all" class="bg-slate-900 text-white">Todos os itens</option>
-                <option value="unassigned" class="bg-slate-900 text-white">🔴 Não Rateados</option>
+            <!-- Filtro Global de Período -->
+            <div class="flex items-center gap-1 bg-[#111114] border border-zinc-800 rounded-lg px-2 py-1 ml-1">
+              <i class="ph ph-calendar-blank text-zinc-500 text-xs mr-0.5"></i>
+              <select id="globalMonthFilter" onchange="applyGlobalFilter()" class="bg-transparent text-zinc-200 text-xs font-medium outline-none cursor-pointer">
+                <option value="all" class="bg-zinc-900 text-zinc-200">Todos os meses</option>
+                <option value="01" class="bg-zinc-900 text-zinc-200">Janeiro</option>
+                <option value="02" class="bg-zinc-900 text-zinc-200">Fevereiro</option>
+                <option value="03" class="bg-zinc-900 text-zinc-200">Março</option>
+                <option value="04" class="bg-zinc-900 text-zinc-200">Abril</option>
+                <option value="05" class="bg-zinc-900 text-zinc-200">Maio</option>
+                <option value="06" class="bg-zinc-900 text-zinc-200">Junho</option>
+                <option value="07" class="bg-zinc-900 text-zinc-200">Julho</option>
+                <option value="08" class="bg-zinc-900 text-zinc-200">Agosto</option>
+                <option value="09" class="bg-zinc-900 text-zinc-200">Setembro</option>
+                <option value="10" class="bg-zinc-900 text-zinc-200">Outubro</option>
+                <option value="11" class="bg-zinc-900 text-zinc-200">Novembro</option>
+                <option value="12" class="bg-zinc-900 text-zinc-200">Dezembro</option>
+              </select>
+              <select id="globalYearFilter" onchange="applyGlobalFilter()" class="bg-transparent text-zinc-200 text-xs font-medium outline-none cursor-pointer border-l border-zinc-800 pl-2 ml-1">
+                <option value="all" class="bg-zinc-900 text-zinc-200">Todos os anos</option>
               </select>
             </div>
           </div>
-          <div id="transactionsList" class="divide-y divide-slate-800"></div>
-          <div id="emptyTransactions" class="p-8 text-center text-slate-400 text-xs">Nenhum lançamento encontrado.</div>
-        </div>
-      </div>
 
-      <!-- ABA: JUROS E TAXAS -->
-      <div id="viewFees" class="flex flex-col gap-4 hidden">
-        <div class="bg-slate-900 rounded-2xl border border-slate-800 p-4 shadow-sm">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-slate-800 pb-3">
-            <div><h4 class="text-sm font-bold text-white">Juros e taxas por fatura</h4><p class="text-[11px] text-slate-400">Rateio separado, exclusivo para encargos, juros, IOF e tarifas da fatura selecionada.</p></div>
-            <div class="min-w-[220px]">
-              <label for="feesInvoiceSelect" class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Selecionar fatura</label>
-              <select id="feesInvoiceSelect" onchange="renderFeesAllocation()" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-slate-200 outline-none focus:border-amber-500"><option value="">Carregando faturas...</option></select>
+          <div class="flex items-center gap-2 shrink-0">
+            <button type="button" onclick="loadAllData().then(() => showToast('Dados sincronizados.', 'success'))" class="p-2 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900 border border-transparent hover:border-zinc-800 transition" title="Sincronizar dados"><i class="ph ph-arrows-clockwise text-base"></i></button>
+
+            <button type="button" onclick="triggerInvoiceUpload()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-zinc-100 hover:bg-white text-zinc-950 flex items-center gap-1.5 transition">
+              <i class="ph ph-upload-simple text-sm"></i>
+              <span>Importar Fatura</span>
+            </button>
+            <input type="file" id="pdfFileInput" accept=".pdf,.csv,.ofx" onchange="handleFileSelected(event)" class="hidden">
+
+            <div class="relative">
+              <button type="button" onclick="toggleSetMenuDropdown()" id="btnSetMenu" class="p-2 rounded-lg bg-[#111114] border border-zinc-800 hover:bg-zinc-800 text-zinc-300 flex items-center gap-1 transition" title="Mais ações">
+                <i class="ph ph-dots-three-vertical text-base"></i>
+              </button>
+              <div id="setMenuDropdown" class="hidden absolute right-0 mt-2 w-64 bg-[#111114] border border-zinc-800 rounded-xl shadow-2xl p-1.5 z-50 divide-y divide-zinc-800/80">
+                <div class="py-1">
+                  <button type="button" onclick="triggerInvoiceUpload(); closeSetMenuDropdown();" class="w-full text-left px-3 py-2 text-xs text-zinc-200 rounded-lg hover:bg-zinc-800/80 flex items-center gap-2"><i class="ph ph-upload-simple text-zinc-400"></i><span>Importar Fatura</span></button>
+                  <button type="button" onclick="switchTab('transactions'); closeSetMenuDropdown();" class="w-full text-left px-3 py-2 text-xs text-zinc-200 rounded-lg hover:bg-zinc-800/80 flex items-center gap-2"><i class="ph ph-scissors text-zinc-400"></i><span>Dividir / Ratear Transações</span></button>
+                  <button type="button" onclick="switchTab('fees'); closeSetMenuDropdown();" class="w-full text-left px-3 py-2 text-xs text-zinc-200 rounded-lg hover:bg-zinc-800/80 flex items-center gap-2"><i class="ph ph-percent text-zinc-400"></i><span>Juros e taxas por fatura</span></button>
+                  <button type="button" onclick="switchTab('banks'); closeSetMenuDropdown();" class="w-full text-left px-3 py-2 text-xs text-zinc-200 rounded-lg hover:bg-zinc-800/80 flex items-center gap-2"><i class="ph ph-bank text-zinc-400"></i><span>Bancos & Cartões</span></button>
+                  <button type="button" onclick="openGenerateMemberPdfModal(); closeSetMenuDropdown();" class="w-full text-left px-3 py-2 text-xs text-zinc-200 rounded-lg hover:bg-zinc-800/80 flex items-center gap-2"><i class="ph ph-file-pdf text-zinc-400"></i><span>Gerar Fatura Individual (PDF)</span></button>
+                </div>
+                <div class="py-1">
+                  <button type="button" onclick="loadAllData(); closeSetMenuDropdown();" class="w-full text-left px-3 py-2 text-xs text-zinc-200 rounded-lg hover:bg-zinc-800/80 flex items-center gap-2"><i class="ph ph-arrows-clockwise text-zinc-400"></i><span>Atualizar Painel</span></button>
+                  <button type="button" onclick="exportCSV(); closeSetMenuDropdown();" class="w-full text-left px-3 py-2 text-xs text-zinc-200 rounded-lg hover:bg-zinc-800/80 flex items-center gap-2"><i class="ph ph-download-simple text-zinc-400"></i><span>Exportar CSV</span></button>
+                  <button type="button" onclick="openLogsModal(); closeSetMenuDropdown();" class="w-full text-left px-3 py-2 text-xs text-zinc-200 rounded-lg hover:bg-zinc-800/80 flex items-center gap-2"><i class="ph ph-terminal text-zinc-400"></i><span>Ver / Limpar Logs</span></button>
+                </div>
+                <div class="py-1">
+                  <button type="button" onclick="openConfigModal(); closeSetMenuDropdown();" class="w-full text-left px-3 py-2 text-xs text-zinc-200 rounded-lg hover:bg-zinc-800/80 flex items-center gap-2"><i class="ph ph-gear text-zinc-400"></i><span>Configurações & Chave API</span></button>
+                  <button type="button" onclick="openResetInvoicesModal(); closeSetMenuDropdown();" class="w-full text-left px-3 py-2 text-xs text-rose-400 rounded-lg hover:bg-rose-950/40 flex items-center gap-2"><i class="ph ph-trash"></i><span>Resetar Transações & Faturas</span></button>
+                  <button type="button" onclick="signOut(); closeSetMenuDropdown();" class="md:hidden w-full text-left px-3 py-2 text-xs text-rose-400 rounded-lg hover:bg-rose-950/40 flex items-center gap-2"><i class="ph ph-sign-out"></i><span>Terminar Sessão</span></button>
+                </div>
+              </div>
             </div>
           </div>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
-            <div class="rounded-xl bg-slate-950/70 border border-slate-800 p-3"><div class="text-[10px] text-slate-400">Total de juros e taxas</div><div id="feesTotalAmount" class="text-lg font-black text-amber-300">R$ 0,00</div></div>
-            <div class="rounded-xl bg-slate-950/70 border border-slate-800 p-3"><div class="text-[10px] text-slate-400">Lançamentos identificados</div><div id="feesItemsCount" class="text-lg font-black text-white">0</div></div>
-            <div class="rounded-xl bg-slate-950/70 border border-slate-800 p-3"><div class="text-[10px] text-slate-400">Pendentes de rateio</div><div id="feesPendingCount" class="text-lg font-black text-rose-400">0</div></div>
-          </div>
-          <div id="feesTransactionsList" class="divide-y divide-slate-800"></div>
-          <div id="emptyFeesTransactions" class="p-8 text-center text-slate-400 text-xs">Selecione uma fatura para visualizar seus juros e taxas.</div>
         </div>
-      </div>
+      </header>
 
-      <!-- ABA 4: MEMBROS -->
-      <div id="viewMembers" class="flex flex-col gap-4 hidden">
-        <div class="bg-slate-900 rounded-2xl border border-slate-800 p-4 shadow-sm">
-          <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
-            <div><h4 class="text-sm font-bold text-white">Membros & Controlo de Pagamentos</h4><p class="text-xs text-slate-400">Registe pagamentos, agende promessas e acompanhe pendências</p></div>
-            <button type="button" onclick="openNewMemberModal()" class="px-3 py-1.5 text-xs font-bold rounded-xl bg-brand-600 text-white hover:bg-brand-700">+ Novo Membro</button>
-          </div>
-          <div id="membersList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"></div>
-          <div id="emptyMembers" class="p-8 text-center text-slate-400 text-xs">Nenhum membro cadastrado.</div>
-        </div>
-      </div>
+      <main class="app-main-safe max-w-7xl mx-auto px-4 sm:px-6 py-5 w-full flex-1 flex flex-col gap-5">
 
-      <!-- ABA 5: BANCOS & CARTÕES -->
-      <div id="viewBanks" class="flex flex-col gap-4 hidden">
-        <div class="bg-slate-900 rounded-2xl border border-slate-800 p-4 shadow-sm">
-          <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
-            <div><h4 class="text-sm font-bold text-white">Bancos & Cartões Registados</h4><p class="text-xs text-slate-400">Instituições financeiras integradas</p></div>
-            <button type="button" onclick="openNewBankModal()" class="px-3 py-1.5 text-xs font-bold rounded-xl bg-brand-600 text-white hover:bg-brand-700">+ Novo Banco</button>
+        <!-- ABA 1: PAINEL -->
+        <div id="viewDashboard" class="flex flex-col gap-5">
+          <!-- 4 KPI Cards -->
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+            <div class="spotlight-card stagger-item bg-[#111114] p-4 rounded-xl border border-zinc-800/80 flex flex-col justify-between gap-2" style="--stagger-i: 0;">
+              <span class="text-xs font-medium text-zinc-400">Faturas em Aberto</span>
+              <div>
+                <h3 id="cardOpenInvoices" class="text-2xl font-semibold text-zinc-100 tracking-tight tabular-nums">R$ 0,00</h3>
+                <p id="cardOpenCount" class="text-[11px] text-zinc-500 mt-1">0 pendentes</p>
+              </div>
+            </div>
+            <div class="spotlight-card stagger-item bg-[#111114] p-4 rounded-xl border border-zinc-800/80 flex flex-col justify-between gap-2" style="--stagger-i: 1;">
+              <span class="text-xs font-medium text-zinc-400">Total em Despesas</span>
+              <div>
+                <h3 id="cardTotalTransactions" class="text-2xl font-semibold text-zinc-100 tracking-tight tabular-nums">R$ 0,00</h3>
+                <p id="cardTransCount" class="text-[11px] text-zinc-500 mt-1">0 lançamentos</p>
+              </div>
+            </div>
+            <div class="spotlight-card stagger-item bg-[#111114] p-4 rounded-xl border border-zinc-800/80 flex flex-col justify-between gap-2" style="--stagger-i: 2;">
+              <span class="text-xs font-medium text-zinc-400">Membros Rateados</span>
+              <div>
+                <div class="flex items-baseline gap-1.5">
+                  <h3 id="cardTotalMembers" class="text-2xl font-semibold text-zinc-100 tracking-tight tabular-nums">0</h3>
+                  <span class="text-xs text-zinc-500">cadastrados</span>
+                </div>
+                <p class="text-[11px] text-zinc-500 mt-1">Participantes ativos</p>
+              </div>
+            </div>
+            <div class="spotlight-card stagger-item bg-[#111114] p-4 rounded-xl border border-zinc-800/80 flex flex-col justify-between gap-2" style="--stagger-i: 3;">
+              <span class="text-xs font-medium text-zinc-400">Bancos Conectados</span>
+              <div>
+                <div class="flex items-baseline gap-1.5">
+                  <h3 id="cardTotalBanks" class="text-2xl font-semibold text-zinc-100 tracking-tight tabular-nums">0</h3>
+                  <span class="text-xs text-zinc-500">instituições</span>
+                </div>
+                <p class="text-[11px] text-zinc-500 mt-1">Cartões configurados</p>
+              </div>
+            </div>
           </div>
-          <div id="banksList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"></div>
-          <div id="emptyBanks" class="p-8 text-center text-slate-400 text-xs">Nenhum banco registado.</div>
+
+          <!-- Faixa Compacta de Alertas (só aparece quando há pendências) -->
+          <div id="alertBannersContainer" class="hidden flex flex-col gap-2">
+            <div id="alertBannerUnassigned" class="hidden bg-[#141418] border border-zinc-800/90 rounded-xl px-4 py-2.5 flex items-center justify-between gap-3 flex-wrap">
+              <div class="flex items-center gap-2.5 text-xs text-zinc-300">
+                <i class="ph ph-warning text-amber-400 text-base shrink-0"></i>
+                <span><strong id="alertUnassignedCount" class="text-zinc-100 tabular-nums">0</strong> lançamentos pendentes de rateio.</span>
+              </div>
+              <button type="button" onclick="goToUnassigned()" class="px-3 py-1 text-xs font-medium bg-zinc-800 hover:bg-zinc-700 text-zinc-100 rounded-md border border-zinc-700/70 transition">Resolver pendências</button>
+            </div>
+            <div id="alertBannerOverdue" class="hidden bg-[#141418] border border-rose-900/50 rounded-xl px-4 py-2.5 flex items-center justify-between gap-3 flex-wrap">
+              <div class="flex items-center gap-2.5 text-xs text-zinc-300">
+                <i class="ph ph-calendar-x text-rose-400 text-base shrink-0"></i>
+                <span><strong id="alertOverdueCount" class="text-rose-400 tabular-nums">0</strong> cobranças com promessa de pagamento atrasada.</span>
+              </div>
+              <button type="button" onclick="switchTab('members')" class="px-3 py-1 text-xs font-medium bg-zinc-800 hover:bg-zinc-700 text-zinc-100 rounded-md border border-zinc-700/70 transition">Ver membros</button>
+            </div>
+          </div>
+
+          <!-- Gráficos -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div class="spotlight-card lg:col-span-2 bg-[#111114] p-5 rounded-xl border border-zinc-800/80 flex flex-col justify-between">
+              <div class="flex items-center justify-between mb-4">
+                <div>
+                  <h4 class="text-sm font-medium text-zinc-100">Gastos por Banco / Cartão</h4>
+                  <p class="text-[11px] text-zinc-500 mt-0.5">Distribuição de consumo por membro</p>
+                </div>
+                <span class="text-[11px] text-zinc-500">Valores em R$</span>
+              </div>
+              <div class="h-64 relative w-full"><canvas id="chartInvoices"></canvas></div>
+            </div>
+            <div class="spotlight-card bg-[#111114] p-5 rounded-xl border border-zinc-800/80 flex flex-col justify-between gap-4">
+              <div>
+                <h4 class="text-sm font-medium text-zinc-100">Composição Geral</h4>
+                <p class="text-[11px] text-zinc-500 mt-0.5">Proporção por cartão</p>
+              </div>
+              <div class="h-44 relative flex items-center justify-center w-full"><canvas id="chartSplit"></canvas></div>
+              <div id="chartSplitLegend" class="flex flex-col divide-y divide-zinc-800/60 pt-1"></div>
+            </div>
+          </div>
+
+          <!-- Últimos Lançamentos -->
+          <div class="spotlight-card stagger-item bg-[#111114] rounded-xl border border-zinc-800/80 overflow-hidden" style="--stagger-i: 4;">
+            <div class="px-4 py-3 border-b border-zinc-800/80 flex items-center justify-between">
+              <h4 class="text-sm font-medium text-zinc-100">Últimos Lançamentos</h4>
+              <button type="button" onclick="switchTab('transactions')" class="text-xs text-zinc-400 hover:text-zinc-100 transition flex items-center gap-1"><span>Ver todos</span><i class="ph ph-arrow-right text-xs"></i></button>
+            </div>
+            <div class="overflow-x-auto custom-scrollbar">
+              <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr class="border-b border-zinc-800/80 text-[11px] font-medium text-zinc-500 bg-zinc-950/40">
+                    <th class="py-2.5 px-4 whitespace-nowrap">Data</th>
+                    <th class="py-2.5 px-4">Estabelecimento</th>
+                    <th class="py-2.5 px-4 whitespace-nowrap">Categoria</th>
+                    <th class="py-2.5 px-4 whitespace-nowrap">Cartão</th>
+                    <th class="py-2.5 px-4 text-right whitespace-nowrap">Valor</th>
+                    <th class="py-2.5 px-4 text-right whitespace-nowrap">Rateio</th>
+                  </tr>
+                </thead>
+                <tbody id="dashboardRecentTxBody" class="divide-y divide-zinc-800/60"></tbody>
+              </table>
+            </div>
+            <div id="dashboardRecentTxEmpty" class="hidden p-8 text-center text-zinc-500 text-xs">Nenhum lançamento no período selecionado.</div>
+          </div>
         </div>
-      </div>
-    </main>
+
+        <!-- ABA 2: FATURAS -->
+        <div id="viewInvoices" class="flex flex-col gap-4 hidden">
+          <div class="bg-[#111114] rounded-xl border border-zinc-800/80 p-5">
+            <div class="flex items-center justify-between mb-4 border-b border-zinc-800/80 pb-3">
+              <div>
+                <h4 class="text-sm font-medium text-zinc-100">Faturas Importadas</h4>
+                <p class="text-xs text-zinc-500 mt-0.5">Histórico e controle de encerramento</p>
+              </div>
+              <button type="button" onclick="openResetInvoicesModal()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-zinc-900 text-rose-400 border border-zinc-800 hover:bg-rose-950/40 hover:border-rose-900/60 transition flex items-center gap-1.5"><i class="ph ph-trash"></i><span>Zerar Faturas</span></button>
+            </div>
+            <div id="invoicesList" class="divide-y divide-zinc-800/70"></div>
+            <div id="emptyInvoices" class="p-8 text-center text-zinc-500 text-xs">Nenhuma fatura registada.</div>
+          </div>
+        </div>
+
+        <!-- ABA 3: LANÇAMENTOS & RATEIO -->
+        <div id="viewTransactions" class="flex flex-col gap-4 hidden">
+          <div class="bg-[#111114] rounded-xl border border-zinc-800/80 p-5">
+            <div class="flex flex-col gap-3 mb-4 border-b border-zinc-800/80 pb-4">
+              <div class="flex items-center justify-between gap-2">
+                <div>
+                  <h4 class="text-sm font-medium text-zinc-100">Lançamentos Conciliados & Rateio</h4>
+                  <p class="text-xs text-zinc-500 mt-0.5">Atribua a transação a um membro ou divida o valor.</p>
+                </div>
+                <button type="button" onclick="openGenerateMemberPdfModal()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-zinc-900 text-zinc-200 border border-zinc-800 hover:bg-zinc-800 flex items-center gap-1.5 shrink-0 transition"><i class="ph ph-file-pdf text-zinc-400"></i><span class="hidden sm:inline">Gerar Fatura PDF</span></button>
+              </div>
+              <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                <div class="relative flex-1 min-w-[200px]">
+                  <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"></i>
+                  <input type="text" id="searchTxInput" onkeyup="renderTransactionsList()" placeholder="Buscar estabelecimento, categoria ou banco..." class="w-full pl-9 pr-3 py-2 text-xs rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600 transition">
+                </div>
+                <select id="filterTxMember" onchange="renderTransactionsList()" class="px-3 py-2 text-xs rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-300 focus:outline-none focus:border-zinc-600 cursor-pointer outline-none">
+                  <option value="all" class="bg-zinc-900 text-zinc-100">Todos os itens</option>
+                  <option value="unassigned" class="bg-zinc-900 text-zinc-100">Pendentes de rateio</option>
+                </select>
+              </div>
+            </div>
+            <div id="transactionsList"></div>
+            <div id="emptyTransactions" class="p-8 text-center text-zinc-500 text-xs">Nenhum lançamento encontrado.</div>
+          </div>
+        </div>
+
+        <!-- ABA: JUROS E TAXAS -->
+        <div id="viewFees" class="flex flex-col gap-4 hidden">
+          <div class="bg-[#111114] rounded-xl border border-zinc-800/80 p-5">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-zinc-800/80 pb-4">
+              <div>
+                <h4 class="text-sm font-medium text-zinc-100">Juros e taxas por fatura</h4>
+                <p class="text-xs text-zinc-500 mt-0.5">Rateio separado para encargos, juros, IOF e tarifas.</p>
+              </div>
+              <div class="min-w-[240px]">
+                <label for="feesInvoiceSelect" class="block text-[11px] font-medium text-zinc-500 mb-1">Fatura selecionada</label>
+                <select id="feesInvoiceSelect" onchange="renderFeesAllocation()" class="w-full px-3 py-2 text-xs rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-200 outline-none focus:border-zinc-600"><option value="">Carregando faturas...</option></select>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+              <div class="rounded-lg bg-zinc-950/70 border border-zinc-800/80 p-3.5"><div class="text-[11px] text-zinc-500">Total de juros e taxas</div><div id="feesTotalAmount" class="text-lg font-semibold text-amber-400 tabular-nums mt-0.5">R$ 0,00</div></div>
+              <div class="rounded-lg bg-zinc-950/70 border border-zinc-800/80 p-3.5"><div class="text-[11px] text-zinc-500">Lançamentos identificados</div><div id="feesItemsCount" class="text-lg font-semibold text-zinc-100 tabular-nums mt-0.5">0</div></div>
+              <div class="rounded-lg bg-zinc-950/70 border border-zinc-800/80 p-3.5"><div class="text-[11px] text-zinc-500">Pendentes de rateio</div><div id="feesPendingCount" class="text-lg font-semibold text-rose-400 tabular-nums mt-0.5">0</div></div>
+            </div>
+            <div id="feesTransactionsList" class="divide-y divide-zinc-800/70"></div>
+            <div id="emptyFeesTransactions" class="p-8 text-center text-zinc-500 text-xs">Selecione uma fatura para visualizar seus juros e taxas.</div>
+          </div>
+        </div>
+
+        <!-- ABA 4: MEMBROS -->
+        <div id="viewMembers" class="flex flex-col gap-4 hidden">
+          <div class="bg-[#111114] rounded-xl border border-zinc-800/80 p-5">
+            <div class="flex items-center justify-between mb-4 border-b border-zinc-800/80 pb-3">
+              <div>
+                <h4 class="text-sm font-medium text-zinc-100">Membros & Controle de Pagamentos</h4>
+                <p class="text-xs text-zinc-500 mt-0.5">Registe pagamentos, promessas e acompanhe saldos</p>
+              </div>
+              <button type="button" onclick="openNewMemberModal()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-zinc-100 text-zinc-950 hover:bg-white transition">+ Novo Membro</button>
+            </div>
+            <div id="membersList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5"></div>
+            <div id="emptyMembers" class="p-8 text-center text-zinc-500 text-xs">Nenhum membro cadastrado.</div>
+          </div>
+        </div>
+
+        <!-- ABA 5: BANCOS & CARTÕES -->
+        <div id="viewBanks" class="flex flex-col gap-4 hidden">
+          <div class="bg-[#111114] rounded-xl border border-zinc-800/80 p-5">
+            <div class="flex items-center justify-between mb-4 border-b border-zinc-800/80 pb-3">
+              <div>
+                <h4 class="text-sm font-medium text-zinc-100">Bancos & Cartões</h4>
+                <p class="text-xs text-zinc-500 mt-0.5">Instituições financeiras cadastradas</p>
+              </div>
+              <button type="button" onclick="openNewBankModal()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-zinc-100 text-zinc-950 hover:bg-white transition">+ Novo Banco</button>
+            </div>
+            <div id="banksList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5"></div>
+            <div id="emptyBanks" class="p-8 text-center text-zinc-500 text-xs">Nenhum banco registado.</div>
+          </div>
+        </div>
+      </main>
+    </div>
 
     <!-- BARRA MOBILE -->
-    <nav class="app-bottom-nav-safe sm:hidden fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-lg border-t border-slate-800 z-40 px-3 pt-2 flex items-center justify-around shadow-2xl">
-      <button type="button" onclick="switchTab('dashboard')" class="flex flex-col items-center gap-1 text-emerald-400"><i class="ph-bold ph-chart-pie-slice text-xl"></i><span class="text-[10px] font-bold">Painel</span></button>
-      <button type="button" onclick="switchTab('invoices')" class="flex flex-col items-center gap-1 text-slate-500"><i class="ph-bold ph-credit-card text-xl"></i><span class="text-[10px] font-medium">Faturas</span></button>
-      <button type="button" onclick="triggerInvoiceUpload()" class="w-12 h-12 -mt-5 rounded-full bg-brand-600 text-white flex items-center justify-center shadow-lg border-4 border-slate-950"><i class="ph-bold ph-sparkle text-xl text-amber-300"></i></button>
-      <button type="button" onclick="switchTab('transactions')" class="flex flex-col items-center gap-1 text-slate-500"><i class="ph-bold ph-arrows-split text-xl"></i><span class="text-[10px] font-medium">Rateio</span></button>
-      <button type="button" onclick="switchTab('members')" class="flex flex-col items-center gap-1 text-slate-500"><i class="ph-bold ph-users text-xl"></i><span class="text-[10px] font-medium">Membros</span></button>
+    <nav class="app-bottom-nav-safe md:hidden fixed bottom-0 left-0 right-0 bg-[#0c0c0e]/95 backdrop-blur-lg border-t border-zinc-800/80 z-40 px-3 pt-2 flex items-center justify-around">
+      <button type="button" id="mobNavDash" onclick="switchTab('dashboard')" class="flex flex-col items-center gap-1 text-zinc-100"><i class="ph ph-squares-four text-xl"></i><span class="text-[10px] font-medium">Painel</span></button>
+      <button type="button" id="mobNavInvoices" onclick="switchTab('invoices')" class="flex flex-col items-center gap-1 text-zinc-500"><i class="ph ph-credit-card text-xl"></i><span class="text-[10px] font-medium">Faturas</span></button>
+      <button type="button" onclick="triggerInvoiceUpload()" class="w-11 h-11 -mt-4 rounded-full bg-zinc-100 text-zinc-950 flex items-center justify-center shadow-lg border-4 border-[#09090b]"><i class="ph ph-upload-simple text-lg"></i></button>
+      <button type="button" id="mobNavTrans" onclick="switchTab('transactions')" class="flex flex-col items-center gap-1 text-zinc-500"><i class="ph ph-arrows-split text-xl"></i><span class="text-[10px] font-medium">Rateio</span></button>
+      <button type="button" id="mobNavMembers" onclick="switchTab('members')" class="flex flex-col items-center gap-1 text-zinc-500"><i class="ph ph-users text-xl"></i><span class="text-[10px] font-medium">Membros</span></button>
     </nav>
 
     <!-- MODAIS -->
-    <div id="modalLoading" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
-      <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-2xl flex flex-col items-center gap-4">
-        <div class="relative w-16 h-16 flex items-center justify-center"><div class="w-16 h-16 border-4 border-emerald-500/20 border-t-emerald-400 rounded-full animate-spin"></div><i class="ph-bold ph-sparkle text-amber-300 text-2xl absolute animate-pulse"></i></div>
-        <div><h3 id="loadingTitle" class="text-sm font-bold text-white">Processando com IA...</h3><p id="loadingSubtext" class="text-xs text-slate-400 mt-1">A analisar extrato e lançamentos da fatura</p></div>
+    <div id="modalLoading" class="modal-backdrop fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+      <div class="bg-[#111114] border border-zinc-800 rounded-2xl p-6 sm:p-7 max-w-sm w-full text-center shadow-2xl flex flex-col items-center gap-4">
+        <div class="w-10 h-10 border-2 border-zinc-800 border-t-zinc-100 rounded-full animate-spin"></div>
+        <div>
+          <h3 id="loadingTitle" class="text-sm font-medium text-zinc-100">Processando fatura...</h3>
+          <p id="loadingSubtext" class="text-xs text-zinc-500 mt-1">A extrair dados e lançamentos</p>
+        </div>
         <div class="w-full flex flex-col gap-1.5 mt-1">
-          <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden p-0.5 border border-slate-700/60"><div id="loadingProgressBar" class="animate-shimmer h-full rounded-full transition-all duration-150" style="width: 0%;"></div></div>
-          <div class="flex justify-between items-center px-1 text-[10px] text-slate-400 font-bold font-mono"><span id="loadingStepLabel" class="font-sans font-semibold">A iniciar...</span><span id="loadingPercentLabel">0%</span></div>
+          <div class="w-full bg-zinc-900 h-2 rounded-full overflow-hidden border border-zinc-800"><div id="loadingProgressBar" class="animate-shimmer h-full rounded-full transition-all duration-150" style="width: 0%;"></div></div>
+          <div class="flex justify-between items-center px-0.5 text-[11px] text-zinc-400 tabular-nums"><span id="loadingStepLabel">A iniciar...</span><span id="loadingPercentLabel">0%</span></div>
         </div>
       </div>
     </div>
 
-    <div id="modalPayment" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
-      <div class="app-modal-sheet bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-800 flex flex-col gap-4">
-        <div class="flex items-center justify-between border-b border-slate-800 pb-2"><div class="flex items-center gap-2"><i class="ph-bold ph-money text-emerald-400 text-lg"></i><h3 class="text-sm font-bold text-white">Registar Pagamento & Promessa</h3></div><button type="button" onclick="closePaymentModal()" class="p-1 text-slate-400 hover:text-white"><i class="ph-bold ph-x text-lg"></i></button></div>
+    <div id="modalPayment" class="modal-backdrop fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+      <div class="app-modal-sheet bg-[#111114] rounded-t-2xl sm:rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-zinc-800 flex flex-col gap-4 overflow-y-auto custom-scrollbar">
+        <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+          <h3 class="text-sm font-medium text-zinc-100">Pagamento & Promessa</h3>
+          <button type="button" onclick="closePaymentModal()" class="p-1 text-zinc-400 hover:text-zinc-100"><i class="ph ph-x text-lg"></i></button>
+        </div>
         <input type="hidden" id="payMemberId">
-        <div class="p-3 bg-slate-800/50 rounded-xl border border-slate-700 flex flex-col gap-1">
-          <span id="payMemberName" class="text-xs font-bold text-white">---</span>
-          <span class="text-[11px] text-slate-400">Total Devido: <strong id="payMemberTotal" class="text-rose-400">R$ 0,00</strong></span>
-          <span class="text-[11px] text-slate-400">Já Pago: <strong id="payMemberAlreadyPaid" class="text-emerald-400">R$ 0,00</strong></span>
+        <div class="p-3 bg-zinc-950 rounded-xl border border-zinc-800 flex flex-col gap-1">
+          <span id="payMemberName" class="text-xs font-medium text-zinc-100">---</span>
+          <span class="text-xs text-zinc-400 tabular-nums">Total Devido: <strong id="payMemberTotal" class="text-rose-400">R$ 0,00</strong></span>
+          <span class="text-xs text-zinc-400 tabular-nums">Já Pago: <strong id="payMemberAlreadyPaid" class="text-emerald-400">R$ 0,00</strong></span>
         </div>
-        <div><label class="block text-[11px] font-bold text-slate-300 mb-1">Valor (R$)</label><input type="number" min="0.01" step="0.01" id="payAmountInput" placeholder="0.00" class="w-full px-3 py-2 text-sm font-bold rounded-xl border border-slate-700 bg-slate-800 text-white"></div>
-        <div><label class="block text-[11px] font-bold text-slate-300 mb-1">Situação</label><select id="payRecordStatus" onchange="updatePaymentStatusFields()" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-white"><option value="promised">Prometido — ainda não pago</option><option value="paid">Pago — débito recebido</option></select></div>
-        <div id="payPromiseDateWrap"><label class="block text-[11px] font-bold text-slate-300 mb-1">Data prevista para pagamento</label><input type="date" id="payPromiseDate" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-white"><p class="text-[10px] text-slate-400 mt-1">A promessa não reduz o saldo devedor. O valor só será contabilizado após marcar como pago.</p></div>
-        <div id="payPendingPromises" class="hidden border-t border-slate-800 pt-3"><p class="text-[11px] font-bold text-slate-300 mb-2">Promessas já registradas</p><div id="payPendingPromisesList" class="flex flex-col gap-2"></div></div>
-        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800"><button type="button" onclick="closePaymentModal()" class="px-3 py-1.5 text-xs text-slate-400">Cancelar</button><button type="button" onclick="savePaymentRecord()" class="px-4 py-2 text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white rounded-xl">Guardar</button></div>
+        <div><label class="block text-xs font-medium text-zinc-400 mb-1">Valor (R$)</label><input type="number" min="0.01" step="0.01" id="payAmountInput" placeholder="0.00" class="w-full px-3 py-2 text-sm font-medium tabular-nums rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-100"></div>
+        <div><label class="block text-xs font-medium text-zinc-400 mb-1">Situação</label><select id="payRecordStatus" onchange="updatePaymentStatusFields()" class="w-full px-3 py-2 text-xs rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-100"><option value="promised">Prometido — ainda não pago</option><option value="paid">Pago — débito recebido</option></select></div>
+        <div id="payPromiseDateWrap"><label class="block text-xs font-medium text-zinc-400 mb-1">Data prevista para pagamento</label><input type="date" id="payPromiseDate" class="w-full px-3 py-2 text-xs rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-100"><p class="text-[11px] text-zinc-500 mt-1">A promessa não reduz o saldo devedor até ser marcada como paga.</p></div>
+        <div id="payPendingPromises" class="hidden border-t border-zinc-800 pt-3"><p class="text-xs font-medium text-zinc-300 mb-2">Promessas registradas</p><div id="payPendingPromisesList" class="flex flex-col gap-2"></div></div>
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-zinc-800"><button type="button" onclick="closePaymentModal()" class="px-3 py-1.5 text-xs text-zinc-400 hover:text-zinc-200">Cancelar</button><button type="button" onclick="savePaymentRecord()" class="px-4 py-2 text-xs font-medium bg-zinc-100 hover:bg-white text-zinc-950 rounded-lg">Guardar</button></div>
       </div>
     </div>
 
-    <div id="modalSplitTransaction" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
-      <div class="app-modal-sheet bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-800 flex flex-col gap-4">
-        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-          <div class="flex items-center gap-2"><div class="w-8 h-8 rounded-lg bg-emerald-950 text-emerald-400 flex items-center justify-center"><i class="ph-bold ph-scissors text-lg"></i></div><div><h3 class="text-sm font-bold text-white">Dividir Transação (Rateio)</h3><p class="text-[11px] text-slate-400">Distribua o valor entre dois usuários</p></div></div>
-          <button type="button" onclick="closeSplitModal()" class="p-1 text-slate-400 hover:text-white"><i class="ph-bold ph-x text-lg"></i></button>
+    <div id="modalSplitTransaction" class="modal-backdrop fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+      <div class="app-modal-sheet bg-[#111114] rounded-t-2xl sm:rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-zinc-800 flex flex-col gap-4">
+        <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+          <div><h3 class="text-sm font-medium text-zinc-100">Dividir Transação</h3><p class="text-xs text-zinc-500">Distribua o valor entre dois membros</p></div>
+          <button type="button" onclick="closeSplitModal()" class="p-1 text-zinc-400 hover:text-zinc-100"><i class="ph ph-x text-lg"></i></button>
         </div>
-        <div class="p-4 bg-emerald-950/20 border border-emerald-500/30 rounded-2xl flex flex-col gap-1.5">
-          <span id="splitTxDesc" class="text-xs font-black text-emerald-400 uppercase"></span>
-          <div class="flex flex-wrap items-center gap-3 text-[11px] text-slate-300"><span id="splitTxDate">---</span><span id="splitTxBank">---</span><span id="splitTxCategory">---</span><span id="splitTxInstallments" class="text-amber-300 font-mono font-bold">---</span></div>
-          <h4 id="splitTxTotal" class="text-2xl font-black text-emerald-400 mt-1">R$ 0,00</h4>
+        <div class="p-4 bg-zinc-950 border border-zinc-800 rounded-xl flex flex-col gap-1.5">
+          <span id="splitTxDesc" class="text-xs font-medium text-zinc-100 uppercase"></span>
+          <div class="flex flex-wrap items-center gap-3 text-[11px] text-zinc-400"><span id="splitTxDate">---</span><span id="splitTxBank">---</span><span id="splitTxCategory">---</span><span id="splitTxInstallments" class="text-zinc-300 tabular-nums">---</span></div>
+          <h4 id="splitTxTotal" class="text-2xl font-semibold text-zinc-100 tabular-nums mt-1">R$ 0,00</h4>
         </div>
         <div class="grid grid-cols-2 gap-3">
-          <div><label class="block text-[11px] text-slate-300 font-semibold mb-1">Usuário 1</label><select id="splitMember1" onchange="recalculateSplit()" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-white"></select></div>
-          <div><label class="block text-[11px] text-slate-300 font-semibold mb-1">Usuário 2</label><select id="splitMember2" onchange="recalculateSplit()" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-white"></select></div>
+          <div><label class="block text-xs text-zinc-400 mb-1">Membro 1</label><select id="splitMember1" onchange="recalculateSplit()" class="w-full px-3 py-2 text-xs rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-100"></select></div>
+          <div><label class="block text-xs text-zinc-400 mb-1">Membro 2</label><select id="splitMember2" onchange="recalculateSplit()" class="w-full px-3 py-2 text-xs rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-100"></select></div>
         </div>
         <div class="flex items-center gap-3">
-          <span class="text-xs font-mono text-slate-400">0%</span>
-          <input type="range" id="splitSlider" min="0" max="100" value="50" oninput="onSplitSliderChange(this.value)" class="w-full accent-emerald-500 cursor-pointer h-2 bg-slate-800 rounded-lg">
-          <span class="text-xs font-mono text-slate-400">100%</span>
-          <div class="flex items-center gap-1 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1"><input type="number" id="splitNumberInput" min="0" max="100" value="50" oninput="onSplitInputChange(this.value)" class="w-10 bg-transparent text-xs font-bold text-white text-center"><span class="text-xs text-slate-400 font-bold">%</span></div>
+          <span class="text-xs tabular-nums text-zinc-500">0%</span>
+          <input type="range" id="splitSlider" min="0" max="100" value="50" oninput="onSplitSliderChange(this.value)" class="w-full accent-emerald-500 cursor-pointer h-1.5 bg-zinc-800 rounded-lg">
+          <span class="text-xs tabular-nums text-zinc-500">100%</span>
+          <div class="flex items-center gap-1 bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1"><input type="number" id="splitNumberInput" min="0" max="100" value="50" oninput="onSplitInputChange(this.value)" class="w-10 bg-transparent text-xs font-medium text-zinc-100 text-center tabular-nums"><span class="text-xs text-zinc-500">%</span></div>
         </div>
         <div class="grid grid-cols-2 gap-3">
-          <div class="p-3.5 bg-blue-950/30 border border-blue-500/30 rounded-2xl text-center"><span id="cardMember1Label" class="text-[10px] font-bold text-blue-400 uppercase block">Usuário 1</span><h4 id="cardMember1Amount" class="text-lg font-black text-blue-300 mt-1">R$ 0,00</h4><span id="cardMember1Percent" class="text-[11px] text-blue-400/80 font-semibold">50%</span></div>
-          <div class="p-3.5 bg-rose-950/30 border border-rose-500/30 rounded-2xl text-center"><span id="cardMember2Label" class="text-[10px] font-bold text-rose-400 uppercase block">Usuário 2</span><h4 id="cardMember2Amount" class="text-lg font-black text-rose-300 mt-1">R$ 0,00</h4><span id="cardMember2Percent" class="text-[11px] text-rose-400/80 font-semibold">50%</span></div>
+          <div class="p-3.5 bg-zinc-950 border border-zinc-800 rounded-xl text-center"><span id="cardMember1Label" class="text-[11px] font-medium text-zinc-400 block">Membro 1</span><h4 id="cardMember1Amount" class="text-lg font-semibold text-zinc-100 tabular-nums mt-1">R$ 0,00</h4><span id="cardMember1Percent" class="text-xs text-zinc-500 tabular-nums">50%</span></div>
+          <div class="p-3.5 bg-zinc-950 border border-zinc-800 rounded-xl text-center"><span id="cardMember2Label" class="text-[11px] font-medium text-zinc-400 block">Membro 2</span><h4 id="cardMember2Amount" class="text-lg font-semibold text-zinc-100 tabular-nums mt-1">R$ 0,00</h4><span id="cardMember2Percent" class="text-xs text-zinc-500 tabular-nums">50%</span></div>
         </div>
-        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800"><button type="button" onclick="closeSplitModal()" class="px-4 py-2 text-xs font-semibold text-slate-400">Cancelar</button><button type="button" onclick="executeSplitTransaction()" class="px-5 py-2.5 text-xs font-bold bg-brand-600 text-white rounded-xl">Confirmar Divisão</button></div>
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-zinc-800"><button type="button" onclick="closeSplitModal()" class="px-4 py-2 text-xs text-zinc-400 hover:text-zinc-200">Cancelar</button><button type="button" onclick="executeSplitTransaction()" class="px-5 py-2 text-xs font-medium bg-zinc-100 hover:bg-white text-zinc-950 rounded-lg">Confirmar Divisão</button></div>
       </div>
     </div>
 
-    <div id="modalMemberPdf" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
-      <div class="app-modal-sheet bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-4xl w-full p-6 shadow-2xl border border-slate-800 flex flex-col gap-4 overflow-y-auto custom-scrollbar">
-        <div class="flex items-center justify-between border-b border-slate-800 pb-3"><div class="flex items-center gap-2"><i class="ph-bold ph-file-pdf text-rose-400 text-lg"></i><h3 class="text-sm font-bold text-white">Gerar Fatura Individual em PDF (Padrão SET)</h3></div><button type="button" onclick="closeMemberPdfModal()" class="p-1 text-slate-400 hover:text-white"><i class="ph-bold ph-x text-lg"></i></button></div>
-        
+    <div id="modalMemberPdf" class="modal-backdrop fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+      <div class="app-modal-sheet bg-[#111114] rounded-t-2xl sm:rounded-2xl max-w-4xl w-full p-6 shadow-2xl border border-zinc-800 flex flex-col gap-4 overflow-y-auto custom-scrollbar">
+        <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+          <h3 class="text-sm font-medium text-zinc-100">Gerar Fatura Individual (PDF)</h3>
+          <button type="button" onclick="closeMemberPdfModal()" class="p-1 text-zinc-400 hover:text-zinc-100"><i class="ph ph-x text-lg"></i></button>
+        </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div class="flex flex-col gap-1.5"><label class="text-xs font-bold text-slate-300">Membro:</label><select id="selectPdfMember" onchange="generateMemberReportPreview()" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-white"></select></div>
-          <div class="flex flex-col gap-1.5"><label class="text-xs font-bold text-slate-300">Data de Vencimento:</label><select id="selectDueDate" onchange="generateMemberReportPreview()" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-white"><option value="10">Dia 10</option><option value="23">Dia 23</option></select></div>
+          <div class="flex flex-col gap-1.5"><label class="text-xs font-medium text-zinc-400">Membro</label><select id="selectPdfMember" onchange="generateMemberReportPreview()" class="w-full px-3 py-2 text-xs rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-100"></select></div>
+          <div class="flex flex-col gap-1.5"><label class="text-xs font-medium text-zinc-400">Data de Vencimento</label><select id="selectDueDate" onchange="generateMemberReportPreview()" class="w-full px-3 py-2 text-xs rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-100"><option value="10">Dia 10</option><option value="23">Dia 23</option></select></div>
         </div>
-        
-        <div class="p-4 bg-emerald-900/60 border border-emerald-500/40 rounded-2xl flex flex-col gap-1 text-white"><span class="text-[10px] font-bold text-emerald-300 uppercase">Resumo da Fatura a Gerar</span><h3 id="bannerInvoicePeriod" class="text-base font-black">...</h3><p id="bannerInvoiceUser" class="text-xs text-emerald-200 font-semibold">Usuário: ---</p></div>
+        <div class="p-4 bg-zinc-950 border border-zinc-800 rounded-xl flex flex-col gap-0.5"><span class="text-[10px] font-medium text-zinc-500 uppercase">Resumo da Fatura</span><h3 id="bannerInvoicePeriod" class="text-base font-semibold text-zinc-100">...</h3><p id="bannerInvoiceUser" class="text-xs text-zinc-400">Usuário: ---</p></div>
         <div class="w-full grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-          <button type="button" onclick="sendInvoiceEmail()" id="btnSendEmailDirect" class="w-full py-2.5 px-3 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl flex items-center justify-center gap-2"><i class="ph-bold ph-envelope text-base"></i><span>Enviar por Email</span></button>
-          <button type="button" onclick="sendInvoiceWhatsApp()" class="w-full py-2.5 px-3 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl flex items-center justify-center gap-2"><i class="ph-bold ph-whatsapp-logo text-base"></i><span>Enviar por WhatsApp</span></button>
+          <button type="button" onclick="sendInvoiceEmail()" id="btnSendEmailDirect" class="w-full py-2.5 px-3 text-xs font-medium bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700 rounded-lg flex items-center justify-center gap-2 transition"><i class="ph ph-envelope text-base"></i><span>Enviar por Email</span></button>
+          <button type="button" onclick="sendInvoiceWhatsApp()" class="w-full py-2.5 px-3 text-xs font-medium bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg flex items-center justify-center gap-2 transition"><i class="ph ph-whatsapp-logo text-base"></i><span>Enviar por WhatsApp</span></button>
         </div>
-        
-        <!-- ÁREA DO PDF VISUALMENTE AJUSTADA -->
-        <div id="printArea" class="bg-white text-slate-900 border border-slate-200">
-           <!-- Conteúdo gerado via JS -->
-        </div>
-
-        <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-800">
-          <button type="button" onclick="closeMemberPdfModal()" class="px-3.5 py-2 text-xs font-semibold text-slate-400">← Voltar</button>
-          <div class="flex items-center gap-2"><button type="button" onclick="window.print()" class="px-4 py-2 text-xs font-bold bg-slate-800 text-slate-200 border border-slate-700 rounded-xl flex items-center gap-1.5"><i class="ph-bold ph-printer"></i><span>Imprimir / PDF</span></button><button type="button" onclick="closeMemberPdfModal()" class="px-5 py-2 text-xs font-bold bg-emerald-600 text-white rounded-xl">Concluído</button></div>
+        <div id="printArea" class="bg-white text-slate-900 border border-zinc-800 rounded-lg overflow-hidden"></div>
+        <div class="flex items-center justify-between gap-2 pt-3 border-t border-zinc-800">
+          <button type="button" onclick="closeMemberPdfModal()" class="px-3.5 py-2 text-xs text-zinc-400 hover:text-zinc-200">← Voltar</button>
+          <div class="flex items-center gap-2"><button type="button" onclick="window.print()" class="px-4 py-2 text-xs font-medium bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700 rounded-lg flex items-center gap-1.5"><i class="ph ph-printer"></i><span>Imprimir / PDF</span></button><button type="button" onclick="closeMemberPdfModal()" class="px-5 py-2 text-xs font-medium bg-zinc-100 hover:bg-white text-zinc-950 rounded-lg">Concluído</button></div>
         </div>
       </div>
     </div>
 
-    <div id="modalInvoiceAI" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
-      <div class="app-modal-sheet bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-4xl w-full p-6 shadow-2xl border border-slate-800 flex flex-col gap-4 overflow-y-auto custom-scrollbar">
-        <div class="flex items-center justify-between border-b border-slate-800 pb-3"><div class="flex items-center gap-2"><i class="ph-bold ph-sparkle text-amber-500 text-xl"></i><h3 class="text-sm font-bold text-white">Fatura Processada com IA</h3></div><button type="button" onclick="closeInvoiceAIModal()" class="p-1 text-slate-400 hover:text-white"><i class="ph-bold ph-x text-lg"></i></button></div>
-        <div class="grid grid-cols-2 gap-3 p-3 bg-slate-800/50 rounded-2xl border border-slate-700">
-          <div><span class="text-[10px] font-bold text-slate-400 uppercase">Banco Identificado</span><input type="text" id="aiBankName" class="w-full text-sm font-bold bg-transparent text-white"></div>
-          <div><span class="text-[10px] font-bold text-slate-400 uppercase">Vencimento</span><input type="date" id="aiDueDate" class="w-full text-sm font-bold bg-transparent text-white"></div>
-          <div class="col-span-2"><span class="text-[10px] font-bold text-slate-400 uppercase">Valor Total</span><input type="number" step="0.01" id="aiTotalAmount" class="w-full text-xl font-black text-rose-400 bg-transparent"></div>
+    <div id="modalInvoiceAI" class="modal-backdrop fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+      <div class="app-modal-sheet bg-[#111114] rounded-t-2xl sm:rounded-2xl max-w-4xl w-full p-6 shadow-2xl border border-zinc-800 flex flex-col gap-4 overflow-y-auto custom-scrollbar">
+        <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+          <h3 class="text-sm font-medium text-zinc-100">Revisar Fatura Importada</h3>
+          <button type="button" onclick="closeInvoiceAIModal()" class="p-1 text-zinc-400 hover:text-zinc-100"><i class="ph ph-x text-lg"></i></button>
         </div>
-        
-        <div><h4 class="text-xs font-bold text-slate-300 mb-2">Itens Detetados (<span id="aiItemsCount">0</span> lançamentos)</h4><div id="aiItemsContainer" class="max-h-64 overflow-y-auto overflow-x-auto divide-y divide-slate-800 custom-scrollbar text-xs"></div></div>
-        
-        <div class="px-2 pt-1 pb-3 flex items-center gap-2">
-          <input type="checkbox" id="aiProjectInstallments" class="w-4 h-4 rounded border-slate-700 bg-slate-800 accent-brand-500 cursor-pointer">
-          <label for="aiProjectInstallments" class="text-[11px] text-slate-300 cursor-pointer select-none">
-            <strong>Projetar parcelas futuras automaticamente</strong> (Gera as próximas parcelas já atribuídas ao membro escolhido. <span class="text-amber-400">Não importe as faturas dos próximos meses para evitar duplicação</span>).
+        <div class="grid grid-cols-2 gap-3 p-3.5 bg-zinc-950 rounded-xl border border-zinc-800">
+          <div><span class="text-[10px] font-medium text-zinc-500 uppercase">Banco Identificado</span><input type="text" id="aiBankName" class="w-full text-sm font-medium bg-transparent text-zinc-100 outline-none mt-0.5"></div>
+          <div><span class="text-[10px] font-medium text-zinc-500 uppercase">Vencimento</span><input type="date" id="aiDueDate" class="w-full text-sm font-medium bg-transparent text-zinc-100 outline-none mt-0.5"></div>
+          <div class="col-span-2"><span class="text-[10px] font-medium text-zinc-500 uppercase">Valor Total</span><input type="number" step="0.01" id="aiTotalAmount" class="w-full text-xl font-semibold text-zinc-100 tabular-nums bg-transparent outline-none mt-0.5"></div>
+        </div>
+        <div>
+          <h4 class="text-xs font-medium text-zinc-400 mb-2">Itens detectados (<span id="aiItemsCount">0</span> lançamentos)</h4>
+          <div id="aiItemsContainer" class="max-h-64 overflow-y-auto overflow-x-auto divide-y divide-zinc-800 custom-scrollbar text-xs border border-zinc-800/80 rounded-lg"></div>
+        </div>
+        <div class="px-1 pt-1 pb-2 flex items-center gap-2">
+          <input type="checkbox" id="aiProjectInstallments" class="w-4 h-4 rounded border-zinc-700 bg-zinc-900 accent-emerald-500 cursor-pointer">
+          <label for="aiProjectInstallments" class="text-xs text-zinc-400 cursor-pointer select-none">
+            <strong class="text-zinc-200 font-medium">Projetar parcelas futuras automaticamente</strong> (evite importar as faturas dos próximos meses para não duplicar).
           </label>
         </div>
-
-        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800"><button type="button" onclick="closeInvoiceAIModal()" class="px-4 py-2.5 text-xs font-semibold text-slate-500">Cancelar</button><button type="button" onclick="confirmSaveInvoice()" class="px-6 py-2.5 text-xs font-bold bg-brand-600 text-white rounded-xl">Salvar Fatura & Lançamentos</button></div>
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-zinc-800"><button type="button" onclick="closeInvoiceAIModal()" class="px-4 py-2 text-xs text-zinc-400 hover:text-zinc-200">Cancelar</button><button type="button" onclick="confirmSaveInvoice()" class="px-5 py-2 text-xs font-medium bg-zinc-100 hover:bg-white text-zinc-950 rounded-lg">Salvar Fatura & Lançamentos</button></div>
       </div>
     </div>
 
-    <div id="modalNewMember" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
-      <div class="app-modal-sheet bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-800 flex flex-col gap-4">
-        <h3 class="text-sm font-bold text-white">Novo Membro para Rateio</h3>
-        <input type="text" id="inputMemberName" placeholder="Nome completo" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-white">
-        <input type="email" id="inputMemberEmail" placeholder="E-mail" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-white">
-        <input type="tel" id="inputMemberPhone" placeholder="WhatsApp (DDD + Número)" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-white">
-        <div class="flex items-center justify-end gap-2 pt-2"><button type="button" onclick="closeNewMemberModal()" class="px-3 py-1.5 text-xs text-slate-400">Cancelar</button><button type="button" onclick="saveNewMember()" class="px-4 py-1.5 text-xs font-bold bg-brand-600 text-white rounded-xl">Salvar</button></div>
+    <div id="modalNewMember" class="modal-backdrop fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+      <div class="app-modal-sheet bg-[#111114] rounded-t-2xl sm:rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-zinc-800 flex flex-col gap-3.5">
+        <h3 class="text-sm font-medium text-zinc-100">Novo Membro</h3>
+        <input type="text" id="inputMemberName" placeholder="Nome completo" class="w-full px-3 py-2 text-xs rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-100 placeholder:text-zinc-600">
+        <input type="email" id="inputMemberEmail" placeholder="E-mail" class="w-full px-3 py-2 text-xs rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-100 placeholder:text-zinc-600">
+        <input type="tel" id="inputMemberPhone" placeholder="WhatsApp (DDD + Número)" class="w-full px-3 py-2 text-xs rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-100 placeholder:text-zinc-600">
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-zinc-800"><button type="button" onclick="closeNewMemberModal()" class="px-3 py-1.5 text-xs text-zinc-400">Cancelar</button><button type="button" onclick="saveNewMember()" class="px-4 py-2 text-xs font-medium bg-zinc-100 hover:bg-white text-zinc-950 rounded-lg">Salvar</button></div>
       </div>
     </div>
 
-    <div id="modalEditMember" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
-      <div class="app-modal-sheet bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-800 flex flex-col gap-4">
-        <div class="flex items-center justify-between border-b border-slate-800 pb-2"><h3 class="text-sm font-bold text-white">Editar Membro</h3><button type="button" onclick="closeEditMemberModal()" class="p-1 text-slate-400 hover:text-white"><i class="ph-bold ph-x text-lg"></i></button></div>
+    <div id="modalEditMember" class="modal-backdrop fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+      <div class="app-modal-sheet bg-[#111114] rounded-t-2xl sm:rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-zinc-800 flex flex-col gap-3.5">
+        <div class="flex items-center justify-between border-b border-zinc-800 pb-2"><h3 class="text-sm font-medium text-zinc-100">Editar Membro</h3><button type="button" onclick="closeEditMemberModal()" class="p-1 text-zinc-400 hover:text-zinc-100"><i class="ph ph-x text-lg"></i></button></div>
         <input type="hidden" id="editMemberId">
-        <input type="text" id="editMemberName" placeholder="Nome completo" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-white">
-        <input type="email" id="editMemberEmail" placeholder="seu@email.com" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-white">
-        <input type="tel" id="editMemberPhone" placeholder="Ex: 11987654321" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-white">
-        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800"><button type="button" onclick="closeEditMemberModal()" class="px-3 py-1.5 text-xs text-slate-400">Cancelar</button><button type="button" onclick="updateMember()" class="px-4 py-1.5 text-xs font-bold bg-brand-600 text-white rounded-xl">Salvar Alterações</button></div>
+        <input type="text" id="editMemberName" placeholder="Nome completo" class="w-full px-3 py-2 text-xs rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-100">
+        <input type="email" id="editMemberEmail" placeholder="seu@email.com" class="w-full px-3 py-2 text-xs rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-100">
+        <input type="tel" id="editMemberPhone" placeholder="Ex: 11987654321" class="w-full px-3 py-2 text-xs rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-100">
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-zinc-800"><button type="button" onclick="closeEditMemberModal()" class="px-3 py-1.5 text-xs text-zinc-400">Cancelar</button><button type="button" onclick="updateMember()" class="px-4 py-2 text-xs font-medium bg-zinc-100 hover:bg-white text-zinc-950 rounded-lg">Salvar Alterações</button></div>
       </div>
     </div>
 
-    <div id="modalNewBank" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
-      <div class="app-modal-sheet bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-800 flex flex-col gap-4">
-        <h3 class="text-sm font-bold text-white">Novo Banco / Cartão</h3>
-        <input type="text" id="inputBankName" placeholder="Ex: Santander Elite, Nubank..." class="w-full px-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800 text-white">
-        <div class="flex items-center justify-end gap-2 pt-2"><button type="button" onclick="closeNewBankModal()" class="px-3 py-1.5 text-xs text-slate-400">Cancelar</button><button type="button" onclick="saveNewBank()" class="px-4 py-1.5 text-xs font-bold bg-brand-600 text-white rounded-xl">Salvar</button></div>
+    <div id="modalNewBank" class="modal-backdrop fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+      <div class="app-modal-sheet bg-[#111114] rounded-t-2xl sm:rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-zinc-800 flex flex-col gap-3.5">
+        <h3 class="text-sm font-medium text-zinc-100">Novo Banco / Cartão</h3>
+        <input type="text" id="inputBankName" placeholder="Ex: Santander Elite, Nubank..." class="w-full px-3 py-2 text-xs rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-100 placeholder:text-zinc-600">
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-zinc-800"><button type="button" onclick="closeNewBankModal()" class="px-3 py-1.5 text-xs text-zinc-400">Cancelar</button><button type="button" onclick="saveNewBank()" class="px-4 py-2 text-xs font-medium bg-zinc-100 hover:bg-white text-zinc-950 rounded-lg">Salvar</button></div>
       </div>
     </div>
 
-    <div id="modalLogs" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
-      <div class="app-modal-sheet bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-800 flex flex-col gap-4">
-        <div class="flex items-center justify-between border-b border-slate-800 pb-2"><h3 class="text-sm font-bold text-white">Logs de Sistema do SET</h3><button type="button" onclick="clearAppLogs()" class="text-xs text-rose-400">Limpar Logs</button></div>
-        <div id="appLogsConsole" class="bg-black/60 rounded-xl p-3 font-mono text-[10px] text-emerald-400 h-44 overflow-y-auto custom-scrollbar"></div>
-        <button type="button" onclick="closeLogsModal()" class="w-full py-2 text-xs font-semibold text-slate-400">Fechar</button>
+    <div id="modalLogs" class="modal-backdrop fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+      <div class="app-modal-sheet bg-[#111114] rounded-t-2xl sm:rounded-2xl max-w-md w-full p-6 shadow-2xl border border-zinc-800 flex flex-col gap-4">
+        <div class="flex items-center justify-between border-b border-zinc-800 pb-2"><h3 class="text-sm font-medium text-zinc-100">Logs do Sistema</h3><button type="button" onclick="clearAppLogs()" class="text-xs text-rose-400 hover:text-rose-300">Limpar Logs</button></div>
+        <div id="appLogsConsole" class="bg-zinc-950 border border-zinc-800 rounded-lg p-3 font-mono text-[11px] text-emerald-400 h-44 overflow-y-auto custom-scrollbar"></div>
+        <button type="button" onclick="closeLogsModal()" class="w-full py-2 text-xs text-zinc-400 hover:text-zinc-200">Fechar</button>
       </div>
     </div>
 
-    <div id="modalResetInvoices" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
-      <div class="app-modal-sheet bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-800 flex flex-col gap-4 text-center">
-        <h3 class="text-sm font-bold text-white">Resetar Faturas & Transações</h3>
-        <p class="text-xs text-slate-400">Deseja remover todas as faturas e seus lançamentos correspondentes?</p>
-        <button type="button" onclick="executeResetAllInvoices()" class="w-full py-2.5 text-xs font-bold rounded-xl bg-rose-600 text-white">Sim, Zerar Tudo</button>
-        <button type="button" onclick="closeResetInvoicesModal()" class="w-full py-2 text-xs font-semibold text-slate-400">Cancelar</button>
+    <div id="modalResetInvoices" class="modal-backdrop fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+      <div class="app-modal-sheet bg-[#111114] rounded-t-2xl sm:rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-zinc-800 flex flex-col gap-4 text-center">
+        <h3 class="text-sm font-medium text-zinc-100">Resetar Faturas & Transações</h3>
+        <p class="text-xs text-zinc-400">Deseja remover todas as faturas e seus lançamentos correspondentes?</p>
+        <button type="button" onclick="executeResetAllInvoices()" class="w-full py-2.5 text-xs font-medium rounded-lg bg-rose-600 hover:bg-rose-500 text-white transition">Sim, Zerar Tudo</button>
+        <button type="button" onclick="closeResetInvoicesModal()" class="w-full py-2 text-xs text-zinc-400 hover:text-zinc-200">Cancelar</button>
       </div>
     </div>
 
-    <div id="modalConfig" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
-      <div class="app-modal-sheet bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-800 flex flex-col gap-4 text-center">
-        <h3 class="text-sm font-bold text-white">Configuração da IA (Gemini)</h3>
-        <p class="text-xs text-slate-400">Insira sua chave do Google AI Studio para leitura de faturas.</p>
-        <input type="password" id="inputGeminiKey" placeholder="Cole sua chave AIzaSy... aqui" class="w-full px-3 py-2.5 text-xs rounded-xl border border-slate-700 bg-slate-800 text-white">
-        <button type="button" onclick="saveGeminiKey()" class="w-full py-2.5 text-xs font-bold rounded-xl bg-brand-600 text-white">Salvar Chave</button>
-        <button type="button" onclick="closeConfigModal()" class="w-full py-2 text-xs font-semibold text-slate-400">Fechar</button>
+    <div id="modalConfig" class="modal-backdrop fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+      <div class="app-modal-sheet bg-[#111114] rounded-t-2xl sm:rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-zinc-800 flex flex-col gap-4">
+        <div>
+          <h3 class="text-sm font-medium text-zinc-100">Configuração da API (Gemini)</h3>
+          <p class="text-xs text-zinc-500 mt-1">Chave do Google AI Studio usada na leitura de faturas.</p>
+        </div>
+        <input type="password" id="inputGeminiKey" placeholder="Cole sua chave AIzaSy... aqui" class="w-full px-3 py-2.5 text-xs rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-100 placeholder:text-zinc-600">
+        <button type="button" onclick="saveGeminiKey()" class="w-full py-2.5 text-xs font-medium rounded-lg bg-zinc-100 hover:bg-white text-zinc-950 transition">Salvar Chave</button>
+        <button type="button" onclick="closeConfigModal()" class="w-full py-1.5 text-xs text-zinc-400 hover:text-zinc-200">Fechar</button>
       </div>
     </div>
   </div>
+
+  <!-- CONTAINER DE NOTIFICAÇÕES (TOASTS) -->
+  <div id="toastContainer" class="fixed bottom-20 md:bottom-5 right-4 left-4 sm:left-auto z-[60] flex flex-col gap-2 items-end pointer-events-none max-w-sm sm:w-full"></div>
 
   <!-- 3. SCRIPT ÚNICO CONSOLIDADO -->
   <script>
@@ -504,6 +781,126 @@
 
     let chartInvoices = null, chartSplit = null, currentProgress = 0, targetProgress = 0, progressRafId = null;
     const $ = id => document.getElementById(id);
+    const fmtBRL = val => 'R$ ' + Number(val || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    // === SISTEMA DE ANIMAÇÕES & NOTIFICAÇÕES PREMIUM ===
+    window._activeTab = 'dashboard';
+    window._hasLoadedOnce = false;
+
+    window.showToast = function(message, type) {
+      const container = $('toastContainer');
+      if (!container) { console.log(message); return; }
+      const text = String(message || '');
+      let resolvedType = type;
+      if (!resolvedType) {
+        const low = text.toLowerCase();
+        if (low.includes('erro') || low.includes('falha') || low.includes('não foi possível') || low.includes('negado') || low.includes('esgotada')) {
+          resolvedType = 'error';
+        } else if (low.includes('sucesso') || low.includes('enviado') || low.includes('confirmado') || low.includes('registrado') || low.includes('guardada') || low.includes('excluída') || low.includes('salva')) {
+          resolvedType = 'success';
+        } else if (low.includes('informe') || low.includes('selecione') || low.includes('cadastre') || low.includes('configure') || low.includes('sem e-mail') || low.includes('promessa')) {
+          resolvedType = 'warning';
+        } else {
+          resolvedType = 'info';
+        }
+      }
+      const styles = {
+        success: { border: 'border-emerald-500/30', icon: 'ph-check-circle text-emerald-400' },
+        error:   { border: 'border-rose-500/35',    icon: 'ph-warning-circle text-rose-400' },
+        warning: { border: 'border-amber-500/35',   icon: 'ph-warning text-amber-400' },
+        info:    { border: 'border-zinc-700/80',    icon: 'ph-info text-zinc-300' }
+      }[resolvedType] || { border: 'border-zinc-700/80', icon: 'ph-info text-zinc-300' };
+
+      const el = document.createElement('div');
+      el.className = `toast-enter pointer-events-auto w-full sm:w-auto sm:min-w-[280px] max-w-sm bg-[#141418]/95 backdrop-blur-md border ${styles.border} rounded-xl px-3.5 py-3 shadow-2xl flex items-start gap-2.5 text-xs text-zinc-100 cursor-pointer`;
+      el.innerHTML = `<i class="ph-fill ${styles.icon} text-base shrink-0 mt-0.5"></i><span class="flex-1 leading-relaxed text-zinc-200"></span><button type="button" class="text-zinc-500 hover:text-zinc-200 p-0.5 shrink-0" aria-label="Fechar"><i class="ph ph-x text-xs"></i></button>`;
+      el.querySelector('span').textContent = text;
+
+      const dismiss = () => {
+        if (el.dataset.dismissed) return;
+        el.dataset.dismissed = '1';
+        el.classList.remove('toast-enter');
+        el.classList.add('toast-exit');
+        setTimeout(() => el.remove(), 190);
+      };
+      el.addEventListener('click', dismiss);
+      container.appendChild(el);
+      const duration = resolvedType === 'error' ? 5500 : 3800;
+      setTimeout(dismiss, duration);
+    };
+
+    function animateCountUp(el, targetVal, formatter, duration = 680) {
+      if (!el) return;
+      const to = Number(targetVal) || 0;
+      const from = el.dataset.lastVal !== undefined ? Number(el.dataset.lastVal) : 0;
+      el.dataset.lastVal = String(to);
+      if (el._countRaf) cancelAnimationFrame(el._countRaf);
+      if (Math.abs(to - from) < 0.001) {
+        el.textContent = formatter(to);
+        return;
+      }
+      const start = performance.now();
+      const step = now => {
+        const progress = Math.min(1, (now - start) / duration);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const current = from + (to - from) * eased;
+        el.textContent = formatter(progress < 1 ? current : to);
+        if (progress < 1) {
+          el._countRaf = requestAnimationFrame(step);
+        } else {
+          el._countRaf = null;
+        }
+      };
+      el._countRaf = requestAnimationFrame(step);
+    }
+
+    function updateSidebarPill(tab) {
+      const mapBtn = { dashboard: 'tabNavDash', invoices: 'tabNavInvoices', transactions: 'tabNavTrans', fees: 'tabNavFees', members: 'tabNavMembers', banks: 'tabNavBanks' };
+      const activeBtn = $(mapBtn[tab || window._activeTab || 'dashboard']);
+      const pill = $('sidebarNavPill');
+      if (!activeBtn || !pill) return;
+      const top = activeBtn.offsetTop;
+      const h = activeBtn.offsetHeight;
+      if (h > 0) {
+        pill.style.opacity = '1';
+        pill.style.height = h + 'px';
+        pill.style.transform = `translateY(${top}px)`;
+      }
+    }
+
+    function setDashboardSkeleton(isLoading) {
+      const kpiIds = ['cardOpenInvoices', 'cardTotalTransactions', 'cardTotalMembers', 'cardTotalBanks'];
+      if (isLoading) {
+        kpiIds.forEach(id => {
+          const el = $(id);
+          if (el) el.innerHTML = '<span class="skeleton-bar h-7 w-28 align-middle"></span>';
+        });
+        const recentBody = $('dashboardRecentTxBody');
+        if (recentBody) {
+          $('dashboardRecentTxEmpty')?.classList.add('hidden');
+          recentBody.innerHTML = Array.from({ length: 4 }).map(() => `
+            <tr>
+              <td class="py-3 px-4"><span class="skeleton-bar h-3.5 w-16"></span></td>
+              <td class="py-3 px-4"><span class="skeleton-bar h-3.5 w-40"></span></td>
+              <td class="py-3 px-4"><span class="skeleton-bar h-3.5 w-20"></span></td>
+              <td class="py-3 px-4"><span class="skeleton-bar h-3.5 w-16"></span></td>
+              <td class="py-3 px-4 text-right"><span class="skeleton-bar h-3.5 w-16"></span></td>
+              <td class="py-3 px-4 text-right"><span class="skeleton-bar h-3.5 w-14"></span></td>
+            </tr>`).join('');
+        }
+      }
+    }
+
+    // Delegated mouse-tracking spotlight for all .spotlight-card elements
+    document.addEventListener('pointermove', e => {
+      const card = e.target && e.target.closest ? e.target.closest('.spotlight-card') : null;
+      if (!card) return;
+      const rect = card.getBoundingClientRect();
+      card.style.setProperty('--mouse-x', (e.clientX - rect.left) + 'px');
+      card.style.setProperty('--mouse-y', (e.clientY - rect.top) + 'px');
+    }, { passive: true });
+
+    window.addEventListener('resize', () => updateSidebarPill(window._activeTab), { passive: true });
 
     const SUPABASE_PROJECT_URL = 'https://opfgooigsgypgzcaehrf.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9wZmdvb2lnc2d5cGd6Y2FlaHJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE5MTQ3MjksImV4cCI6MjEwNzQ5MDcyOX0.3NRYTFNzSa7KcGdB00bGm2wBUgoK9-EMloaCT00b-K4';
@@ -527,14 +924,26 @@
     };
 
     window.showAuth = function() { $('authScreen')?.classList.remove('hidden'); $('appContainer')?.classList.add('hidden'); };
-    window.showApp = function() { $('authScreen')?.classList.add('hidden'); $('appContainer')?.classList.remove('hidden'); };
+    window.showApp = function() {
+      $('authScreen')?.classList.add('hidden');
+      $('appContainer')?.classList.remove('hidden');
+      if (window.currentUser?.email) {
+        const email = window.currentUser.email;
+        const namePart = email.split('@')[0];
+        const displayName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+        if ($('sidebarUserName')) $('sidebarUserName').textContent = displayName;
+        if ($('sidebarUserEmail')) $('sidebarUserEmail').textContent = email;
+        if ($('sidebarUserInitials')) $('sidebarUserInitials').textContent = displayName.slice(0, 2).toUpperCase();
+      }
+      requestAnimationFrame(() => updateSidebarPill(window._activeTab));
+    };
 
     window.setAuthMode = function(mode) {
       window.currentAuthMode = mode;
       const tabLog = $('tabAuthLogin'), tabReg = $('tabAuthRegister'), btn = $('btnAuthSubmit');
       if (!tabLog || !tabReg || !btn) return;
-      const act = "flex-1 py-2.5 rounded-lg bg-slate-700 text-white shadow-sm transition";
-      const inact = "flex-1 py-2.5 rounded-lg text-slate-400 transition";
+      const act = "flex-1 py-2 rounded-md bg-zinc-800 text-zinc-100 shadow-sm transition";
+      const inact = "flex-1 py-2 rounded-md text-zinc-400 hover:text-zinc-200 transition";
       tabLog.className = mode === 'login' ? act : inact;
       tabReg.className = mode === 'login' ? inact : act;
       btn.textContent = mode === 'login' ? "Aceder ao SET" : "Criar Minha Conta";
@@ -582,7 +991,7 @@
             errorBox.classList.replace('border-emerald-900/50', 'border-rose-900/50');
             errorBox.textContent = 'Acesso negado: ' + (err.message || 'Credenciais inválidas.');
         } else {
-            alert('Erro ao autenticar: ' + (err.message || 'Credenciais inválidas.'));
+            showToast('Erro ao autenticar: ' + (err.message || 'Credenciais inválidas.'));
         }
       } finally {
         if (btn) { btn.disabled = false; btn.textContent = window.currentAuthMode === 'login' ? 'Aceder ao SET' : 'Criar Minha Conta'; }
@@ -629,16 +1038,45 @@
     function hideLoading() { cancelAnimationFrame(progressRafId); progressRafId = null; $('modalLoading').classList.add('hidden'); }
 
     window.switchTab = function(tab) {
+      window._activeTab = tab;
       ['dashboard', 'invoices', 'transactions', 'fees', 'members', 'banks'].forEach(t => {
-        $('view' + t.charAt(0).toUpperCase() + t.slice(1))?.classList.add('hidden');
+        const v = $('view' + t.charAt(0).toUpperCase() + t.slice(1));
+        if (v) { v.classList.add('hidden'); v.classList.remove('tab-animate-in'); }
       });
-      $('view' + tab.charAt(0).toUpperCase() + tab.slice(1))?.classList.remove('hidden');
+      const activeView = $('view' + tab.charAt(0).toUpperCase() + tab.slice(1));
+      if (activeView) {
+        activeView.classList.remove('hidden');
+        void activeView.offsetWidth;
+        activeView.classList.add('tab-animate-in');
+        activeView.querySelectorAll('.stagger-item').forEach(el => {
+          el.style.animation = 'none';
+          void el.offsetWidth;
+          el.style.animation = '';
+        });
+      }
+      const titles = {
+        dashboard: 'Painel',
+        invoices: 'Faturas',
+        transactions: 'Lançamentos & Rateio',
+        fees: 'Juros e Taxas',
+        members: 'Membros',
+        banks: 'Bancos & Cartões'
+      };
+      if ($('currentPageTitle')) $('currentPageTitle').textContent = titles[tab] || 'Painel';
       const mapBtn = { dashboard: 'tabNavDash', invoices: 'tabNavInvoices', transactions: 'tabNavTrans', fees: 'tabNavFees', members: 'tabNavMembers', banks: 'tabNavBanks' };
       Object.keys(mapBtn).forEach(k => {
         const b = $(mapBtn[k]);
         if (b) b.className = (k === tab)
-          ? "px-4 py-2 rounded-lg text-sm font-semibold transition bg-emerald-950/40 text-emerald-300 border border-emerald-800 flex items-center gap-2"
-          : "px-4 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800 flex items-center gap-2";
+          ? "relative z-10 w-full px-3 py-2 rounded-lg text-[13px] font-medium text-zinc-100 flex items-center justify-between gap-2"
+          : "relative z-10 w-full px-3 py-2 rounded-lg text-[13px] font-medium text-zinc-400 hover:text-zinc-100 flex items-center justify-between gap-2";
+      });
+      requestAnimationFrame(() => updateSidebarPill(tab));
+      const mapMob = { dashboard: 'mobNavDash', invoices: 'mobNavInvoices', transactions: 'mobNavTrans', members: 'mobNavMembers' };
+      Object.keys(mapMob).forEach(k => {
+        const mb = $(mapMob[k]);
+        if (mb) mb.className = (k === tab)
+          ? "flex flex-col items-center gap-1 text-zinc-100"
+          : "flex flex-col items-center gap-1 text-zinc-500";
       });
       if (tab === 'dashboard') renderCharts();
       if (tab === 'fees') renderFeesAllocation();
@@ -657,12 +1095,13 @@
     window.deleteTransaction = async function(txId) {
         if (!confirm('Deseja excluir este lançamento definitivamente? Isso não pode ser desfeito.')) return;
         const { error } = await window.supabaseClient.from('transactions').delete().eq('id', txId);
-        if (error) return alert('Erro ao excluir lançamento: ' + error.message);
+        if (error) return showToast('Erro ao excluir lançamento: ' + error.message);
         await window.loadAllData();
     };
 
     window.loadAllData = async function() {
       if (!window.supabaseClient || !window.currentUser) return;
+      if (!window._hasLoadedOnce) setDashboardSkeleton(true);
       try {
         const uid = window.currentUser.id;
         const [invRes, transRes, membRes, bankRes, payRes] = await Promise.allSettled([
@@ -680,7 +1119,9 @@
         window.currentPayments = getVal(payRes);
         
         updateGlobalFilters();
+        window._hasLoadedOnce = true;
         renderDashboard(); renderInvoicesList(); renderTransactionsList(); renderFeesAllocation(); renderMembersList(); renderBanksList(); renderCharts();
+        requestAnimationFrame(() => updateSidebarPill(window._activeTab));
       } catch (err) { console.warn('Erro loadAllData:', err); }
     };
     
@@ -730,9 +1171,9 @@
       
       const sortedYears = Array.from(years).sort((a, b) => b.localeCompare(a));
       
-      let html = '<option value="all" class="bg-slate-900 text-slate-200">Ano (Todos)</option>';
+      let html = '<option value="all" class="bg-zinc-900 text-zinc-200">Ano (Todos)</option>';
       sortedYears.forEach(y => {
-        html += `<option value="${y}" class="bg-slate-900 text-slate-200">${y}</option>`;
+        html += `<option value="${y}" class="bg-zinc-900 text-zinc-200">${y}</option>`;
       });
       
       yearSelect.innerHTML = html;
@@ -774,7 +1215,7 @@
       wrap.classList.toggle('hidden', pending.length === 0);
       pending.forEach(p => {
         const row = document.createElement('div');
-        row.className = 'flex items-center justify-between gap-2 rounded-lg bg-slate-800/70 border border-slate-700 p-2';
+        row.className = 'flex items-center justify-between gap-2 rounded-lg bg-zinc-900/80 border border-zinc-800 p-2';
         const dueDate = new Date(p.promise_date + 'T00:00:00').toLocaleDateString('pt-BR');
         row.innerHTML = `<div class="min-w-0"><div class="text-xs font-bold text-amber-300">R$ ${Number(p.amount || 0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</div><div class="text-[10px] text-slate-400">Previsto para ${dueDate}</div></div><div class="flex items-center gap-1.5 shrink-0"><button type="button" class="btn-confirm-promise px-2 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-[10px] font-bold text-white">Marcar como pago</button><button type="button" class="btn-delete-promise p-1.5 rounded-lg border border-rose-900/60 bg-rose-950/40 hover:bg-rose-900/60 text-rose-300" title="Excluir promessa" aria-label="Excluir promessa"><i class="ph-bold ph-trash"></i></button></div>`;
         row.querySelector('.btn-confirm-promise').addEventListener('click', () => window.confirmPromisePaid(p.id));
@@ -790,11 +1231,11 @@
         .eq('id', paymentId)
         .eq('user_id', window.currentUser.id)
         .not('promise_date', 'is', null);
-      if (error) return alert('Não foi possível excluir a promessa: ' + error.message);
+      if (error) return showToast('Não foi possível excluir a promessa: ' + error.message);
       await window.loadAllData();
       const memberId = $('payMemberId')?.value;
       if (memberId) renderPendingPromises(memberId);
-      alert('Promessa excluída.');
+      showToast('Promessa excluída.');
     };
 
     window.confirmPromisePaid = async function(paymentId) {
@@ -802,7 +1243,7 @@
       const { error } = await window.supabaseClient.from('payments')
         .update({ promise_date: null, date: new Date().toISOString().split('T')[0] })
         .eq('id', paymentId).eq('user_id', window.currentUser.id);
-      if (error) return alert('Não foi possível confirmar o pagamento: ' + error.message);
+      if (error) return showToast('Não foi possível confirmar o pagamento: ' + error.message);
       await window.loadAllData();
       const memberId = $('payMemberId')?.value;
       if (memberId) {
@@ -816,7 +1257,7 @@
           renderPendingPromises(memberId);
         }
       }
-      alert('Pagamento confirmado com sucesso.');
+      showToast('Pagamento confirmado com sucesso.');
     };
 
     window.updatePaymentStatusFields = function() {
@@ -834,28 +1275,29 @@
 
       const openInvs = filteredInvs.filter(i => i.status === 'open');
       const openTotal = openInvs.reduce((a, b) => a + Number(b.total_amount), 0);
-      $('cardOpenInvoices').textContent = 'R$ ' + openTotal.toFixed(2);
-      $('cardOpenCount').textContent = `${openInvs.length} faturas pendentes`;
+      animateCountUp($('cardOpenInvoices'), openTotal, fmtBRL);
+      $('cardOpenCount').textContent = `${openInvs.length} ${openInvs.length === 1 ? 'pendente' : 'pendentes'}`;
       
       let totalDespesas = 0;
       let totalCreditos = 0;
       
       filteredTrans.forEach(t => {
-          if (t.type === 'ignored') return; // Ignora as transações marcadas como "Não Ratear"
+          if (t.type === 'ignored') return;
           const info = getTransactionDetails(t);
           const amt = Number(info.installmentAmount);
           if (amt > 0) totalDespesas += amt;
           else totalCreditos += amt;
       });
       
-      $('cardTotalTransactions').textContent = 'R$ ' + totalDespesas.toFixed(2);
-      $('cardTransCount').textContent = `${filteredTrans.length} itens (Créditos abatidos: R$ ${Math.abs(totalCreditos).toFixed(2)})`;
+      animateCountUp($('cardTotalTransactions'), totalDespesas, fmtBRL);
+      $('cardTransCount').textContent = totalCreditos < 0
+        ? `${filteredTrans.length} lançamentos · créditos ${fmtBRL(Math.abs(totalCreditos))}`
+        : `${filteredTrans.length} lançamentos`;
       
-      $('cardTotalMembers').textContent = window.currentMembers.length;
-      $('cardTotalBanks').textContent = window.currentBanks.length;
+      animateCountUp($('cardTotalMembers'), window.currentMembers.length, v => String(Math.round(v)), 520);
+      animateCountUp($('cardTotalBanks'), window.currentBanks.length, v => String(Math.round(v)), 520);
       $('badgeInvoicesCount').textContent = filteredInvs.length;
 
-      // Calcular Alertas Inteligentes (itens sem rateio e não ignorados)
       const unassignedCount = filteredTrans.filter(t => !t.member_id && t.type !== 'ignored').length;
       if ($('alertUnassignedCount')) $('alertUnassignedCount').textContent = unassignedCount;
 
@@ -871,6 +1313,41 @@
           }
       });
       if ($('alertOverdueCount')) $('alertOverdueCount').textContent = overdueCount;
+
+      // Exibição condicional dos banners compactos de alerta
+      if ($('alertBannerUnassigned')) $('alertBannerUnassigned').classList.toggle('hidden', unassignedCount === 0);
+      if ($('alertBannerOverdue')) $('alertBannerOverdue').classList.toggle('hidden', overdueCount === 0);
+      if ($('alertBannersContainer')) $('alertBannersContainer').classList.toggle('hidden', unassignedCount === 0 && overdueCount === 0);
+
+      // Últimos lançamentos no Painel
+      const recentBody = $('dashboardRecentTxBody');
+      const recentEmpty = $('dashboardRecentTxEmpty');
+      if (recentBody) {
+        const recent = filteredTrans.filter(t => t.type !== 'ignored').slice(0, 6);
+        if (!recent.length) {
+          recentBody.innerHTML = '';
+          recentEmpty?.classList.remove('hidden');
+        } else {
+          recentEmpty?.classList.add('hidden');
+          recentBody.innerHTML = recent.map(t => {
+            const info = getTransactionDetails(t);
+            const member = window.currentMembers.find(m => String(m.id) === String(t.member_id));
+            const memberBadge = member
+              ? `<span class="text-zinc-200 font-medium">${member.name}</span>`
+              : `<span class="inline-flex items-center gap-1.5 text-amber-400/90 text-[11px] font-medium"><span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>Pendente</span>`;
+            const valClass = info.installmentAmount < 0 ? 'text-emerald-400' : 'text-zinc-100';
+            const dateFmt = /^\d{4}-\d{2}-\d{2}$/.test(info.date) ? info.date.split('-').reverse().join('/') : info.date;
+            return `<tr class="hover:bg-zinc-900/60 transition">
+              <td class="py-2.5 px-4 text-zinc-400 tabular-nums whitespace-nowrap">${dateFmt}</td>
+              <td class="py-2.5 px-4 text-zinc-100 font-medium truncate max-w-[240px]">${info.description}</td>
+              <td class="py-2.5 px-4 text-zinc-400 whitespace-nowrap">${info.category}</td>
+              <td class="py-2.5 px-4 text-zinc-400 whitespace-nowrap">${info.bankName}</td>
+              <td class="py-2.5 px-4 text-right font-medium tabular-nums whitespace-nowrap ${valClass}">${fmtBRL(info.installmentAmount)}</td>
+              <td class="py-2.5 px-4 text-right whitespace-nowrap">${memberBadge}</td>
+            </tr>`;
+          }).join('');
+        }
+      }
     }
 
     function renderInvoicesList() {
@@ -884,8 +1361,9 @@
       emp?.classList.add('hidden');
       filtered.forEach(inv => {
         const d = document.createElement('div');
-        d.className = 'py-3 flex items-center justify-between gap-2';
-        d.innerHTML = `<div class="flex items-center gap-3"><div class="w-9 h-9 rounded-xl bg-rose-950/60 text-rose-400 flex items-center justify-center font-bold text-sm"><i class="ph-bold ph-credit-card"></i></div><div><p class="text-xs font-bold text-white">${inv.bank_name}</p><p class="text-[10px] text-slate-400">Vencimento: ${inv.due_date}</p></div></div><div class="flex items-center gap-3"><span class="text-xs font-black text-rose-400">R$ ${Number(inv.total_amount).toFixed(2)}</span><button type="button" onclick="deleteSingleInvoice('${inv.id}')" class="p-1.5 text-slate-400 hover:text-rose-400"><i class="ph-bold ph-trash text-sm"></i></button></div>`;
+        const dueFmt = /^\d{4}-\d{2}-\d{2}$/.test(inv.due_date || '') ? inv.due_date.split('-').reverse().join('/') : (inv.due_date || '-');
+        d.className = 'py-3 px-1 flex items-center justify-between gap-3 hover:bg-zinc-900/50 rounded-lg transition';
+        d.innerHTML = `<div class="flex items-center gap-3"><div class="w-8 h-8 rounded-lg bg-zinc-800/80 border border-zinc-700/60 text-zinc-300 flex items-center justify-center text-sm"><i class="ph ph-credit-card"></i></div><div><p class="text-[13px] font-medium text-zinc-100">${inv.bank_name}</p><p class="text-[11px] text-zinc-500 tabular-nums">Vencimento: ${dueFmt}</p></div></div><div class="flex items-center gap-3"><span class="text-[13px] font-semibold text-zinc-100 tabular-nums">${fmtBRL(inv.total_amount)}</span><button type="button" onclick="deleteSingleInvoice('${inv.id}')" class="p-1.5 rounded-md text-zinc-500 hover:text-rose-400 hover:bg-zinc-800 transition" title="Excluir fatura"><i class="ph ph-trash text-sm"></i></button></div>`;
         c.appendChild(d);
       });
     }
@@ -1022,7 +1500,7 @@
         window.currentMembers.forEach(m => { opts += `<option value="${m.id}" ${String(t.member_id) === String(m.id) ? 'selected' : ''}>${m.name}</option>`; });
         const row = document.createElement('div');
         row.className = 'py-3 flex flex-col lg:flex-row lg:items-center justify-between gap-3';
-        row.innerHTML = `<div class="min-w-0 flex-1"><div class="text-xs font-bold text-white">${info.description}</div><div class="text-[10px] text-slate-400 mt-1">${info.date} · ${info.bankName} · ${info.category}</div></div><div class="flex items-center gap-2 flex-wrap"><span class="text-sm font-black text-amber-300 whitespace-nowrap">R$ ${Number(info.installmentAmount).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</span><select aria-label="Responsável pelo rateio de juros e taxas" onchange="assignSingleMember('${t.id}', this.value); renderFeesAllocation();" class="bg-slate-800 border border-slate-700 text-slate-200 text-[11px] font-semibold rounded-lg px-2 py-2 outline-none min-w-[145px]">${opts}</select><button type="button" onclick="openSplitTransactionModal('${t.id}')" class="p-2 rounded-lg border border-slate-700 bg-slate-800 text-amber-400 hover:bg-slate-700" title="Ratear somente este encargo entre dois membros"><i class="ph-bold ph-scissors"></i></button><button type="button" onclick="deleteTransaction('${t.id}')" class="p-2 rounded-lg border border-slate-700 bg-slate-800 text-rose-400 hover:bg-rose-900/40" title="Excluir lançamento"><i class="ph-bold ph-trash"></i></button></div>`;
+        row.innerHTML = `<div class="min-w-0 flex-1"><div class="text-xs font-bold text-white">${info.description}</div><div class="text-[10px] text-slate-400 mt-1">${info.date} · ${info.bankName} · ${info.category}</div></div><div class="flex items-center gap-2 flex-wrap"><span class="text-sm font-black text-amber-300 whitespace-nowrap">R$ ${Number(info.installmentAmount).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</span><select aria-label="Responsável pelo rateio de juros e taxas" onchange="assignSingleMember('${t.id}', this.value); renderFeesAllocation();" class="bg-zinc-900 border border-zinc-800 text-zinc-200 text-[11px] font-semibold rounded-lg px-2 py-2 outline-none min-w-[145px]">${opts}</select><button type="button" onclick="openSplitTransactionModal('${t.id}')" class="p-2 rounded-lg border border-slate-700 bg-slate-800 text-amber-400 hover:bg-slate-700" title="Ratear somente este encargo entre dois membros"><i class="ph-bold ph-scissors"></i></button><button type="button" onclick="deleteTransaction('${t.id}')" class="p-2 rounded-lg border border-slate-700 bg-slate-800 text-rose-400 hover:bg-rose-900/40" title="Excluir lançamento"><i class="ph-bold ph-trash"></i></button></div>`;
         list.appendChild(row);
       });
     };
@@ -1056,23 +1534,27 @@
       let rowsHtml = '';
       filteredTxs.forEach(t => {
         const info = getTransactionDetails(t);
-        let opts = '<option value="" class="bg-slate-900 text-white">🔴 Rateio Pendente</option>';
-        opts += `<option value="ignore" class="bg-slate-900 text-slate-400" ${t.type === 'ignored' ? 'selected' : ''}>⚪ Não ratear (Ignorar)</option>`;
+        let opts = '<option value="" class="bg-zinc-900 text-zinc-200">Pendente</option>';
+        opts += `<option value="ignore" class="bg-zinc-900 text-zinc-400" ${t.type === 'ignored' ? 'selected' : ''}>Não ratear</option>`;
         
         window.currentMembers.forEach(m => {
-          opts += `<option value="${m.id}" class="bg-slate-900 text-white" ${String(t.member_id) === String(m.id) && t.type !== 'ignored' ? 'selected' : ''}>${m.name}</option>`;
+          opts += `<option value="${m.id}" class="bg-zinc-900 text-zinc-100" ${String(t.member_id) === String(m.id) && t.type !== 'ignored' ? 'selected' : ''}>${m.name}</option>`;
         });
 
-        let lineOpacity = t.type === 'ignored' ? 'opacity-40 grayscale hover:grayscale-0' : '';
-        const valColor = info.totalValue < 0 ? 'text-emerald-400' : 'text-slate-100';
-        const parcValColor = info.installmentAmount < 0 ? 'text-emerald-400' : 'text-rose-400';
+        const lineOpacity = t.type === 'ignored' ? 'opacity-45' : '';
+        const valColor = info.totalValue < 0 ? 'text-emerald-400' : 'text-zinc-300';
+        const parcValColor = info.installmentAmount < 0 ? 'text-emerald-400' : 'text-zinc-100';
+        const dateFmt = /^\d{4}-\d{2}-\d{2}$/.test(info.date) ? info.date.split('-').reverse().join('/') : info.date;
+        const selectHighlight = !t.member_id && t.type !== 'ignored'
+          ? 'border-amber-500/40 text-amber-300'
+          : 'border-zinc-700/80 text-zinc-200';
         
         const dueBadge = info.installmentsDue > 0
-          ? `<span class="ml-1 text-[9px] px-1.5 py-0.5 rounded bg-amber-950/60 text-amber-300 border border-amber-800/60 font-semibold">${info.installmentsDue} a vencer</span>`
+          ? `<span class="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700/60 tabular-nums">${info.installmentsDue} a vencer</span>`
           : '';
-        rowsHtml += `<tr class="hover:bg-slate-800/40 transition ${lineOpacity}"><td class="py-2.5 px-3 font-mono text-[11px] text-slate-300 whitespace-nowrap">${info.date}</td><td class="py-2.5 px-3 font-bold text-slate-100 min-w-[180px]">${info.description}</td><td class="py-2.5 px-3 whitespace-nowrap"><span class="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 text-[11px] font-medium border border-slate-700/70">${info.category}</span></td><td class="py-2.5 px-3 whitespace-nowrap"><span class="px-2 py-0.5 rounded-md bg-emerald-950/50 text-emerald-300 border border-emerald-800/60 text-[11px] font-semibold">${info.bankName}</span></td><td class="py-2.5 px-3 text-right font-bold ${valColor} whitespace-nowrap">R$ ${info.totalValue.toFixed(2)}</td><td class="py-2.5 px-3 text-center font-mono font-bold text-slate-300 whitespace-nowrap">${info.installmentTotal}</td><td class="py-2.5 px-3 text-center whitespace-nowrap"><span class="px-2 py-0.5 rounded bg-slate-800 text-amber-300 font-mono text-[11px] font-bold border border-slate-700">${info.installmentCurrent}/${info.installmentTotal}</span>${dueBadge}</td><td class="py-2.5 px-3 text-right font-black ${parcValColor} whitespace-nowrap">R$ ${info.installmentAmount.toFixed(2)}</td><td class="py-2.5 px-3 text-right whitespace-nowrap"><div class="flex items-center justify-end gap-1.5"><select onchange="assignSingleMember('${t.id}', this.value)" class="bg-slate-800 border border-slate-700 text-slate-200 text-[11px] font-semibold rounded-lg px-2 py-1.5 outline-none cursor-pointer">${opts}</select><button type="button" onclick="openSplitTransactionModal('${t.id}')" class="p-1.5 rounded-lg border border-slate-700 bg-slate-800 text-amber-400 hover:bg-slate-700 transition" title="Dividir valor (Rateio)"><i class="ph-bold ph-scissors text-sm"></i></button><button type="button" onclick="deleteTransaction('${t.id}')" class="p-1.5 rounded-lg border border-slate-700 bg-slate-800 text-rose-400 hover:bg-rose-900/40 transition" title="Excluir Lançamento"><i class="ph-bold ph-trash text-sm"></i></button></div></td></tr>`;
+        rowsHtml += `<tr class="hover:bg-zinc-900/60 transition ${lineOpacity}"><td class="py-2.5 px-3 text-[12px] text-zinc-400 tabular-nums whitespace-nowrap">${dateFmt}</td><td class="py-2.5 px-3 text-[12px] font-medium text-zinc-100 min-w-[180px]">${info.description}</td><td class="py-2.5 px-3 whitespace-nowrap"><span class="px-2 py-0.5 rounded-md bg-zinc-800/80 text-zinc-300 text-[11px] border border-zinc-700/60">${info.category}</span></td><td class="py-2.5 px-3 whitespace-nowrap text-[12px] text-zinc-400">${info.bankName}</td><td class="py-2.5 px-3 text-right text-[12px] tabular-nums ${valColor} whitespace-nowrap">${fmtBRL(info.totalValue)}</td><td class="py-2.5 px-3 text-center text-[12px] tabular-nums text-zinc-400 whitespace-nowrap">${info.installmentTotal}</td><td class="py-2.5 px-3 text-center whitespace-nowrap"><span class="px-2 py-0.5 rounded bg-zinc-900 text-zinc-300 tabular-nums text-[11px] border border-zinc-800">${info.installmentCurrent}/${info.installmentTotal}</span>${dueBadge}</td><td class="py-2.5 px-3 text-right text-[12px] font-semibold tabular-nums ${parcValColor} whitespace-nowrap">${fmtBRL(info.installmentAmount)}</td><td class="py-2.5 px-3 text-right whitespace-nowrap"><div class="flex items-center justify-end gap-1.5"><select onchange="assignSingleMember('${t.id}', this.value)" class="bg-zinc-900 border ${selectHighlight} text-[11px] font-medium rounded-lg px-2 py-1.5 outline-none cursor-pointer focus:border-zinc-500">${opts}</select><button type="button" onclick="openSplitTransactionModal('${t.id}')" class="p-1.5 rounded-lg border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition" title="Dividir valor (Rateio)"><i class="ph ph-scissors text-sm"></i></button><button type="button" onclick="deleteTransaction('${t.id}')" class="p-1.5 rounded-lg border border-zinc-800 bg-zinc-900 text-zinc-500 hover:text-rose-400 hover:bg-zinc-800 transition" title="Excluir Lançamento"><i class="ph ph-trash text-sm"></i></button></div></td></tr>`;
       });
-      c.innerHTML = `<div class="overflow-x-auto custom-scrollbar"><table class="w-full text-left border-collapse text-xs"><thead><tr class="border-b border-slate-800 text-[11px] font-bold text-slate-400 uppercase tracking-wider bg-slate-950/50"><th class="py-2.5 px-3 whitespace-nowrap">Data</th><th class="py-2.5 px-3">Descrição</th><th class="py-2.5 px-3 whitespace-nowrap">Categoria</th><th class="py-2.5 px-3 whitespace-nowrap">Banco</th><th class="py-2.5 px-3 text-right whitespace-nowrap">Valor</th><th class="py-2.5 px-3 text-center whitespace-nowrap">Parcelas</th><th class="py-2.5 px-3 text-center whitespace-nowrap">Parcela / A vencer</th><th class="py-2.5 px-3 text-right whitespace-nowrap">Valor Parcela</th><th class="py-2.5 px-3 text-right whitespace-nowrap">Rateio & Ações</th></tr></thead><tbody class="divide-y divide-slate-800/80">${rowsHtml}</tbody></table></div>`;
+      c.innerHTML = `<div class="overflow-x-auto custom-scrollbar"><table class="w-full text-left border-collapse text-xs"><thead><tr class="border-b border-zinc-800/80 text-[11px] font-medium text-zinc-500 bg-zinc-950/40"><th class="py-2.5 px-3 whitespace-nowrap">Data</th><th class="py-2.5 px-3">Descrição</th><th class="py-2.5 px-3 whitespace-nowrap">Categoria</th><th class="py-2.5 px-3 whitespace-nowrap">Banco</th><th class="py-2.5 px-3 text-right whitespace-nowrap">Valor</th><th class="py-2.5 px-3 text-center whitespace-nowrap">Parcelas</th><th class="py-2.5 px-3 text-center whitespace-nowrap">Parcela / A vencer</th><th class="py-2.5 px-3 text-right whitespace-nowrap">Valor Parcela</th><th class="py-2.5 px-3 text-right whitespace-nowrap">Rateio & Ações</th></tr></thead><tbody class="divide-y divide-zinc-800/60">${rowsHtml}</tbody></table></div>`;
     }
 
     function renderMembersList() {
@@ -1081,22 +1563,23 @@
       c.innerHTML = '';
       if (!window.currentMembers.length) { emp?.classList.remove('hidden'); return; }
       emp?.classList.add('hidden');
-      window.currentMembers.forEach(m => {
+      window.currentMembers.forEach((m, mIdx) => {
         const due = window.currentTransactions.filter(t => String(t.member_id) === String(m.id) && t.type !== 'ignored').reduce((a, b) => a + Number(b.amount), 0);
         const paid = getMemberPaidTotal(m.id);
         const rem = due - paid;
         const promise = window.currentPayments.filter(p => String(p.member_id) === String(m.id) && p.promise_date).sort((a, b) => new Date(b.promise_date) - new Date(a.promise_date))[0]?.promise_date;
-        let badge = `<span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-bold">Sem débitos</span>`;
+        let badge = `<span class="text-[11px] px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-400 font-medium">Sem débitos</span>`;
         if (due > 0) {
-          if (rem <= 0.01) badge = `<span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold">Quitado</span>`;
-          else if (paid > 0) badge = `<span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-800 font-bold">Parcial (Falta R$ ${rem.toFixed(2)})</span>`;
-          else badge = `<span class="text-[10px] px-2 py-0.5 rounded-full bg-rose-950 text-rose-300 border border-rose-800 font-bold">Pendente</span>`;
+          if (rem <= 0.01) badge = `<span class="text-[11px] px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">Quitado</span>`;
+          else if (paid > 0) badge = `<span class="text-[11px] px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20 font-medium tabular-nums">Parcial · falta ${fmtBRL(rem)}</span>`;
+          else badge = `<span class="text-[11px] px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-400 border border-rose-500/20 font-medium">Pendente</span>`;
         }
         const latestPromise = window.currentPayments.filter(p => String(p.member_id) === String(m.id) && p.promise_date).sort((a, b) => new Date(b.promise_date) - new Date(a.promise_date))[0];
-        const promHtml = latestPromise ? `<div class="text-[10px] text-amber-400 font-semibold mt-1"><i class="ph-bold ph-calendar-blank"></i> Prometido: R$ ${Number(latestPromise.amount || 0).toFixed(2)} até ${new Date(latestPromise.promise_date + 'T00:00:00').toLocaleDateString('pt-BR')} · Não pago</div>` : '';
+        const promHtml = latestPromise ? `<div class="text-[11px] text-amber-400/90 mt-1.5 tabular-nums"><i class="ph ph-calendar-blank"></i> Prometido: ${fmtBRL(latestPromise.amount)} até ${new Date(latestPromise.promise_date + 'T00:00:00').toLocaleDateString('pt-BR')}</div>` : '';
         const d = document.createElement('div');
-        d.className = 'p-4 rounded-xl border border-slate-800 bg-slate-900/60 flex flex-col justify-between gap-2.5';
-        d.innerHTML = `<div class="flex items-start justify-between gap-2"><div class="flex items-center gap-3"><div class="w-9 h-9 rounded-full bg-indigo-950 text-indigo-300 flex items-center justify-center font-bold text-xs">${(m.name || 'US').slice(0, 2).toUpperCase()}</div><div><h5 class="text-xs font-bold text-white">${m.name}</h5><span class="text-[10px] text-slate-400 block">${m.email || 'Sem e-mail'}</span></div></div><div class="flex items-center gap-1"><button type="button" onclick="openPaymentModal('${m.id}')" class="p-1.5 text-slate-400 hover:text-emerald-400"><i class="ph-bold ph-money text-sm"></i></button><button type="button" onclick="openEditMemberModal('${m.id}')" class="p-1.5 text-slate-400 hover:text-emerald-400"><i class="ph-bold ph-pencil-simple text-sm"></i></button></div></div><div>${badge}${promHtml}</div><div class="pt-2 border-t border-slate-800 flex flex-col gap-1 text-xs"><div class="flex justify-between text-slate-400"><span>Total Devido:</span><span class="font-bold text-white">R$ ${due.toFixed(2)}</span></div><div class="flex justify-between text-slate-400"><span>Pago:</span><span class="font-bold text-emerald-400">R$ ${paid.toFixed(2)}</span></div><div class="flex justify-between font-bold pt-1 border-t border-slate-800/60"><span class="text-slate-300">Restante:</span><span class="text-rose-400">R$ ${rem > 0 ? rem.toFixed(2) : '0.00'}</span></div></div>`;
+        d.className = 'spotlight-card stagger-item p-4 rounded-xl border border-zinc-800/80 bg-[#141418] flex flex-col justify-between gap-3';
+        d.style.setProperty('--stagger-i', Math.min(mIdx, 8));
+        d.innerHTML = `<div class="flex items-start justify-between gap-2"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700/70 text-zinc-200 flex items-center justify-center font-semibold text-xs">${(m.name || 'US').slice(0, 2).toUpperCase()}</div><div><h5 class="text-[13px] font-medium text-zinc-100">${m.name}</h5><span class="text-[11px] text-zinc-500 block">${m.email || 'Sem e-mail'}</span></div></div><div class="flex items-center gap-1"><button type="button" onclick="openPaymentModal('${m.id}')" class="p-1.5 rounded-md text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition" title="Pagamentos e promessas"><i class="ph ph-money text-sm"></i></button><button type="button" onclick="openEditMemberModal('${m.id}')" class="p-1.5 rounded-md text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition" title="Editar membro"><i class="ph ph-pencil-simple text-sm"></i></button></div></div><div>${badge}${promHtml}</div><div class="pt-2.5 border-t border-zinc-800/80 flex flex-col gap-1.5 text-xs"><div class="flex justify-between text-zinc-400"><span>Total Devido</span><span class="font-medium text-zinc-100 tabular-nums">${fmtBRL(due)}</span></div><div class="flex justify-between text-zinc-400"><span>Pago</span><span class="font-medium text-emerald-400 tabular-nums">${fmtBRL(paid)}</span></div><div class="flex justify-between font-medium pt-1.5 border-t border-zinc-800/60"><span class="text-zinc-300">Restante</span><span class="${rem > 0 ? 'text-rose-400' : 'text-zinc-400'} tabular-nums">${fmtBRL(rem > 0 ? rem : 0)}</span></div></div>`;
         c.appendChild(d);
       });
     }
@@ -1107,10 +1590,11 @@
       c.innerHTML = '';
       if (!window.currentBanks.length) { emp?.classList.remove('hidden'); return; }
       emp?.classList.add('hidden');
-      window.currentBanks.forEach(b => {
+      window.currentBanks.forEach((b, bIdx) => {
         const d = document.createElement('div');
-        d.className = 'p-3.5 rounded-xl border border-slate-800 bg-slate-900/60 flex items-center gap-3';
-        d.innerHTML = `<div class="w-8 h-8 rounded-lg bg-emerald-950 text-emerald-400 flex items-center justify-center"><i class="ph-bold ph-bank"></i></div><div><h5 class="text-xs font-bold text-white">${b.name}</h5><span class="text-[10px] text-slate-400">Ativo</span></div>`;
+        d.className = 'spotlight-card stagger-item p-3.5 rounded-xl border border-zinc-800/80 bg-[#141418] flex items-center gap-3';
+        d.style.setProperty('--stagger-i', Math.min(bIdx, 8));
+        d.innerHTML = `<div class="w-8 h-8 rounded-lg bg-zinc-800/90 border border-zinc-700/60 text-zinc-300 flex items-center justify-center"><i class="ph ph-bank"></i></div><div><h5 class="text-[13px] font-medium text-zinc-100">${b.name}</h5><span class="text-[11px] text-zinc-500">Conectado</span></div>`;
         c.appendChild(d);
       });
     }
@@ -1142,7 +1626,7 @@
                     data: data,
                     backgroundColor: colors[i % colors.length],
                     borderWidth: 0,
-                    maxBarThickness: 48
+                    maxBarThickness: 36, borderRadius: 4
                 });
             }
         });
@@ -1157,11 +1641,11 @@
             return totalVal > 0 ? totalVal : null;
         });
         if (unassignedData.some(v => v !== null)) {
-            barDatasets.push({ label: 'Não Rateado', data: unassignedData, backgroundColor: '#475569', borderWidth: 0, maxBarThickness: 48 });
+            barDatasets.push({ label: 'Não Rateado', data: unassignedData, backgroundColor: '#475569', borderWidth: 0, maxBarThickness: 36, borderRadius: 4 });
         }
         
         if (barDatasets.length === 0) {
-            barDatasets.push({ label: 'Sem dados', data: [0], backgroundColor: 'rgba(16, 185, 129, 0.18)', maxBarThickness: 48 });
+            barDatasets.push({ label: 'Sem dados', data: [0], backgroundColor: 'rgba(16, 185, 129, 0.18)', maxBarThickness: 36, borderRadius: 4 });
         }
 
         const bankTotals = {};
@@ -1189,7 +1673,7 @@
                   displayColors: true,
                   usePointStyle: true,
                   boxPadding: 6,
-                  backgroundColor: '#0f172a', titleColor: '#f8fafc', bodyColor: '#cbd5e1', borderColor: '#1e293b', borderWidth: 1, padding: 10, cornerRadius: 10, 
+                  backgroundColor: '#18181b', titleColor: '#f4f4f5', bodyColor: '#d4d4d8', borderColor: '#27272a', borderWidth: 1, padding: 10, cornerRadius: 10, 
                   callbacks: { 
                     labelPointStyle: function(context) { return { pointStyle: 'rectRounded', rotation: 0 }; },
                     labelColor: function(context) { 
@@ -1202,7 +1686,7 @@
               },
               scales: {
                 x: { stacked: true, grid: { display: false }, border: { display: false }, ticks: { color: '#94a3b8', font: { size: 11, weight: '600' } } },
-                y: { stacked: true, beginAtZero: true, border: { display: false, dash: [4, 4] }, grid: { color: 'rgba(148, 163, 184, 0.08)' }, ticks: { color: '#64748b', font: { size: 10, weight: '600' }, callback: val => 'R$ ' + Number(val).toLocaleString('pt-BR') } }
+                y: { stacked: true, beginAtZero: true, border: { display: false, dash: [4, 4] }, grid: { color: 'rgba(113, 113, 122, 0.12)' }, ticks: { color: '#64748b', font: { size: 10, weight: '600' }, callback: val => 'R$ ' + Number(val).toLocaleString('pt-BR') } }
               }
             }
           });
@@ -1212,37 +1696,55 @@
         if (c2) {
           if (chartSplit) chartSplit.destroy();
           const hasBanks = Object.keys(bankTotals).length > 0;
+          const bankLabels = hasBanks ? Object.keys(bankTotals) : ['Sem dados'];
+          const bankVals = hasBanks ? Object.values(bankTotals) : [1];
           chartSplit = new Chart(c2.getContext('2d'), {
             type: 'doughnut',
             data: { 
-                labels: hasBanks ? Object.keys(bankTotals) : ['Sem dados'], 
+                labels: bankLabels, 
                 datasets: [{ 
-                    data: hasBanks ? Object.values(bankTotals) : [1], 
-                    backgroundColor: hasBanks ? colors : ['#1e293b'], 
-                    borderWidth: 0, hoverOffset: 4 
+                    data: bankVals, 
+                    backgroundColor: hasBanks ? colors : ['#27272a'], 
+                    borderWidth: 0, hoverOffset: 3 
                 }] 
             },
             options: {
-              responsive: true, maintainAspectRatio: false, cutout: '72%',
+              responsive: true, maintainAspectRatio: false, cutout: '74%',
               plugins: {
-                legend: { position: 'top', labels: { color: '#94a3b8', usePointStyle: true, pointStyle: 'circle', boxWidth: 8, padding: 14, font: { size: 11, weight: '600' } } },
+                legend: { display: false },
                 tooltip: { 
                   displayColors: true,
                   usePointStyle: true,
                   boxPadding: 6,
-                  backgroundColor: '#0f172a', titleColor: '#f8fafc', bodyColor: '#e2e8f0', borderColor: '#1e293b', borderWidth: 1, padding: 10, cornerRadius: 10, 
+                  backgroundColor: '#18181b', titleColor: '#f4f4f5', bodyColor: '#d4d4d8', borderColor: '#27272a', borderWidth: 1, padding: 10, cornerRadius: 8, 
                   callbacks: { 
-                    labelPointStyle: function(context) { return { pointStyle: 'rectRounded', rotation: 0 }; },
+                    labelPointStyle: function(context) { return { pointStyle: 'circle', rotation: 0 }; },
                     labelColor: function(context) {
                         const bgColor = Array.isArray(context.dataset.backgroundColor) ? context.dataset.backgroundColor[context.dataIndex] : context.dataset.backgroundColor;
                         return { borderColor: bgColor, backgroundColor: bgColor, borderWidth: 0 };
                     },
-                    label: ctx => ` R$ ${Number(ctx.parsed || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
+                    label: ctx => ` ${fmtBRL(ctx.parsed || 0)}` 
                   } 
                 }
               }
             }
           });
+          const leg = $('chartSplitLegend');
+          if (leg) {
+            if (!hasBanks) {
+              leg.innerHTML = '<div class="text-xs text-zinc-500 text-center py-2">Sem dados no período</div>';
+            } else {
+              leg.innerHTML = bankLabels.map((b, idx) => `
+                <div class="flex items-center justify-between text-xs py-1">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <span class="w-2 h-2 rounded-full shrink-0" style="background:${colors[idx % colors.length]}"></span>
+                    <span class="text-zinc-300 truncate">${b}</span>
+                  </div>
+                  <span class="text-zinc-200 font-medium tabular-nums ml-2">${fmtBRL(bankTotals[b])}</span>
+                </div>
+              `).join('');
+            }
+          }
         }
       } catch (e) {}
     }
@@ -1251,7 +1753,7 @@
       const file = e.target.files[0];
       if (!file) return;
       const apiKey = localStorage.getItem('set_gemini_key') || '';
-      if (!apiKey) { window.openConfigModal(); alert('Configure a chave Gemini API primeiro.'); e.target.value = ''; return; }
+      if (!apiKey) { window.openConfigModal(); showToast('Configure a chave Gemini API primeiro.'); e.target.value = ''; return; }
       
       showLoading('A ler ficheiro...', 'A extrair texto da fatura', 15, 'A preparar documento...');
       try {
@@ -1274,7 +1776,7 @@
         addLog(`Fatura processada (${(parsed.items || []).length} itens)`);
         setTimeout(() => { hideLoading(); window.showInvoiceAIModal(parsed); }, 400);
       } catch (err) {
-        hideLoading(); addLog('Erro ao processar fatura: ' + err.message); alert('Erro ao processar fatura: ' + err.message);
+        hideLoading(); addLog('Erro ao processar fatura: ' + err.message); showToast('Erro ao processar fatura: ' + err.message);
       } finally { e.target.value = ''; }
     };
 
@@ -1427,7 +1929,7 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
           <td class="py-2 px-2 text-right font-bold text-slate-200 whitespace-nowrap">R$ ${info.totalValue.toFixed(2)}</td>
           <td class="py-2 px-2 text-center font-mono text-slate-300 whitespace-nowrap">${info.installmentCurrent}/${info.installmentTotal}</td>
           <td class="py-2 px-2 text-right font-bold text-rose-400 whitespace-nowrap">R$ ${info.installmentAmount.toFixed(2)}</td>
-          <td class="py-2 px-2 text-right"><select id="aiRowMember_${idx}" class="ai-member-select bg-slate-800 border border-slate-700 text-slate-200 text-[10px] font-semibold rounded px-1.5 py-1 w-full max-w-[90px] outline-none">${opts}</select></td>
+          <td class="py-2 px-2 text-right"><select id="aiRowMember_${idx}" class="ai-member-select bg-zinc-900 border border-zinc-800 text-zinc-200 text-[10px] font-semibold rounded px-1.5 py-1 w-full max-w-[90px] outline-none">${opts}</select></td>
         </tr>`;
       });
       $('aiItemsContainer').innerHTML = `<table class="w-full text-left border-collapse text-xs"><thead><tr class="border-b border-slate-700 text-[10px] font-bold text-slate-400 uppercase bg-slate-950/60"><th class="py-2 px-2 whitespace-nowrap">Data</th><th class="py-2 px-2">Descrição</th><th class="py-2 px-2 whitespace-nowrap">Categoria</th><th class="py-2 px-2 text-right whitespace-nowrap">Total</th><th class="py-2 px-2 text-center whitespace-nowrap">Parc.</th><th class="py-2 px-2 text-right whitespace-nowrap">Valor Parc.</th><th class="py-2 px-2 text-right">Membro</th></tr></thead><tbody class="divide-y divide-slate-800">${rowsHtml}</tbody></table>`;
@@ -1490,7 +1992,7 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
         hideLoading();
         await window.loadAllData();
       } catch (e) {
-        hideLoading(); addLog('Erro ao guardar fatura: ' + e.message); alert('Erro ao guardar: ' + e.message);
+        hideLoading(); addLog('Erro ao guardar fatura: ' + e.message); showToast('Erro ao guardar: ' + e.message);
       }
     };
 
@@ -1500,7 +2002,7 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
       const typeVal = isIgnore ? 'ignored' : 'expense';
 
       const { error } = await window.supabaseClient.from('transactions').update({ member_id: mId, type: typeVal }).eq('id', txId);
-      if (error) return alert('Erro ao atribuir membro: ' + error.message);
+      if (error) return showToast('Erro ao atribuir membro: ' + error.message);
       
       const tx = window.currentTransactions.find(t => String(t.id) === String(txId));
       if (tx) { 
@@ -1514,7 +2016,7 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
     window.openSplitTransactionModal = function(txId) {
       const tx = window.currentTransactions.find(t => String(t.id) === String(txId));
       if (!tx) return;
-      if (window.currentMembers.length < 2) return alert('Cadastre pelo menos 2 membros para dividir.');
+      if (window.currentMembers.length < 2) return showToast('Cadastre pelo menos 2 membros para dividir.');
       window.selectedTransactionToSplit = tx;
       const info = getTransactionDetails(tx);
       $('splitTxDesc').textContent = info.description;
@@ -1557,23 +2059,23 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
       const tx = window.selectedTransactionToSplit;
       if (!tx) return;
       const m1 = $('splitMember1').value, m2 = $('splitMember2').value;
-      if (String(m1) === String(m2)) return alert('Selecione membros diferentes.');
+      if (String(m1) === String(m2)) return showToast('Selecione membros diferentes.');
       const p1 = Math.min(100, Math.max(0, parseInt($('splitSlider').value) || 0));
       const v1 = Number((Number(tx.amount) * (p1 / 100)).toFixed(2)), v2 = Number((Number(tx.amount) - v1).toFixed(2));
       const { error: err1 } = await window.supabaseClient.from('transactions').update({ amount: v1, member_id: m1, type: 'expense' }).eq('id', tx.id);
-      if (err1) return alert('Erro ao atualizar transação: ' + err1.message);
+      if (err1) return showToast('Erro ao atualizar transação: ' + err1.message);
       const { error: err2 } = await window.supabaseClient.from('transactions').insert([{
         user_id: window.currentUser.id, invoice_id: tx.invoice_id, member_id: m2, description: tx.description,
         amount: v2, date: tx.date, category: tx.category || 'Outros',
         installment_info: tx.installment_info || null, installment_total: tx.installment_total || null, type: 'expense'
       }]);
-      if (err2) return alert('Erro ao criar divisão: ' + err2.message);
+      if (err2) return showToast('Erro ao criar divisão: ' + err2.message);
       window.closeSplitModal();
       await window.loadAllData();
     };
 
     window.openGenerateMemberPdfModal = function() {
-      if (!window.currentMembers.length) return alert('Cadastre membros primeiro.');
+      if (!window.currentMembers.length) return showToast('Cadastre membros primeiro.');
       const sel = $('selectPdfMember');
       sel.innerHTML = '';
       window.currentMembers.forEach(m => { sel.innerHTML += `<option value="${m.id}">${m.name}</option>`; });
@@ -1812,7 +2314,7 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
     window.sendInvoiceEmail = async function() {
       const mId = $('selectPdfMember').value;
       const m = window.currentMembers.find(x => String(x.id) === String(mId));
-      if (!m || !m.email) return alert('Membro sem e-mail cadastrado.');
+      if (!m || !m.email) return showToast('Membro sem e-mail cadastrado.');
       
       const txs = window.currentTransactions.filter(t => {
           if (String(t.member_id) !== String(mId) || t.type === 'ignored') return false;
@@ -1861,8 +2363,8 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
             pdfFileName: `Fatura_SET_${m.name.split(' ')[0]}_${cleanFileName}.pdf`
           })
         });
-        alert('E-mail enviado para ' + m.email + '. O anexo PDF agora foi incluído corretamente.');
-      } catch (e) { alert('Erro ao enviar e-mail: ' + e.message); }
+        showToast('E-mail enviado para ' + m.email + '. O anexo PDF agora foi incluído corretamente.');
+      } catch (e) { showToast('Erro ao enviar e-mail: ' + e.message); }
     };
 
     window.openPaymentModal = function(mId) {
@@ -1886,9 +2388,9 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
       const amount = Number(String($('payAmountInput').value || '').replace(',', '.'));
       const status = $('payRecordStatus').value;
       const promiseDate = status === 'promised' ? ($('payPromiseDate').value || null) : null;
-      if (!mId) return alert('Selecione um membro.');
-      if (!Number.isFinite(amount) || amount <= 0) return alert('Informe um valor válido maior que zero.');
-      if (status === 'promised' && !promiseDate) return alert('Informe a data prevista para pagamento.');
+      if (!mId) return showToast('Selecione um membro.');
+      if (!Number.isFinite(amount) || amount <= 0) return showToast('Informe um valor válido maior que zero.');
+      if (status === 'promised' && !promiseDate) return showToast('Informe a data prevista para pagamento.');
       const record = {
         user_id: window.currentUser.id,
         member_id: mId,
@@ -1897,19 +2399,19 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
         promise_date: promiseDate
       };
       const { error } = await window.supabaseClient.from('payments').insert([record]);
-      if (error) return alert('Erro ao salvar: ' + error.message);
+      if (error) return showToast('Erro ao salvar: ' + error.message);
       window.closePaymentModal();
       await window.loadAllData();
-      alert(status === 'paid' ? 'Pagamento registrado como recebido.' : 'Promessa registrada. O débito continua pendente até a confirmação do pagamento.');
+      showToast(status === 'paid' ? 'Pagamento registrado como recebido.' : 'Promessa registrada. O débito continua pendente até a confirmação do pagamento.');
     };
 
     window.openNewMemberModal = function() { $('inputMemberName').value = ''; $('inputMemberEmail').value = ''; $('inputMemberPhone').value = ''; $('modalNewMember').classList.remove('hidden'); };
     window.closeNewMemberModal = function() { $('modalNewMember').classList.add('hidden'); };
     window.saveNewMember = async function() {
       const name = $('inputMemberName').value.trim(), email = $('inputMemberEmail').value.trim(), phone = $('inputMemberPhone').value.trim();
-      if (!name) return alert('Informe o nome do membro.');
+      if (!name) return showToast('Informe o nome do membro.');
       const { error } = await window.supabaseClient.from('members').insert([{ user_id: window.currentUser.id, name, email, phone }]);
-      if (error) return alert('Erro ao salvar membro: ' + error.message);
+      if (error) return showToast('Erro ao salvar membro: ' + error.message);
       window.closeNewMemberModal(); await window.loadAllData();
     };
 
@@ -1922,9 +2424,9 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
     window.closeEditMemberModal = function() { $('modalEditMember').classList.add('hidden'); };
     window.updateMember = async function() {
       const id = $('editMemberId').value, name = $('editMemberName').value.trim(), email = $('editMemberEmail').value.trim(), phone = $('editMemberPhone').value.trim();
-      if (!name) return alert('Informe o nome do membro.');
+      if (!name) return showToast('Informe o nome do membro.');
       const { error } = await window.supabaseClient.from('members').update({ name, email, phone }).eq('id', id);
-      if (error) return alert('Erro ao atualizar membro: ' + error.message);
+      if (error) return showToast('Erro ao atualizar membro: ' + error.message);
       window.closeEditMemberModal(); await window.loadAllData();
     };
 
@@ -1932,9 +2434,9 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
     window.closeNewBankModal = function() { $('modalNewBank').classList.add('hidden'); };
     window.saveNewBank = async function() {
       const name = $('inputBankName').value.trim();
-      if (!name) return alert('Informe o nome do banco ou cartão.');
+      if (!name) return showToast('Informe o nome do banco ou cartão.');
       const { error } = await window.supabaseClient.from('banks').insert([{ user_id: window.currentUser.id, name }]);
-      if (error) return alert('Erro ao salvar banco: ' + error.message);
+      if (error) return showToast('Erro ao salvar banco: ' + error.message);
       window.closeNewBankModal(); await window.loadAllData();
     };
 
@@ -1950,18 +2452,18 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
     window.closeResetInvoicesModal = function() { $('modalResetInvoices').classList.add('hidden'); };
     window.executeResetAllInvoices = async function() {
       const { error: e1 } = await window.supabaseClient.from('transactions').delete().eq('user_id', window.currentUser.id);
-      if (e1) return alert('Erro ao apagar transações: ' + e1.message);
+      if (e1) return showToast('Erro ao apagar transações: ' + e1.message);
       const { error: e2 } = await window.supabaseClient.from('invoices').delete().eq('user_id', window.currentUser.id);
-      if (e2) return alert('Erro ao apagar faturas: ' + e2.message);
+      if (e2) return showToast('Erro ao apagar faturas: ' + e2.message);
       window.closeResetInvoicesModal(); await window.loadAllData();
     };
 
     window.deleteSingleInvoice = async function(invId) {
       if (!confirm('Eliminar fatura?')) return;
       const { error: e1 } = await window.supabaseClient.from('transactions').delete().eq('invoice_id', invId);
-      if (e1) return alert('Erro ao eliminar lançamentos da fatura: ' + e1.message);
+      if (e1) return showToast('Erro ao eliminar lançamentos da fatura: ' + e1.message);
       const { error: e2 } = await window.supabaseClient.from('invoices').delete().eq('id', invId);
-      if (e2) return alert('Erro ao eliminar fatura: ' + e2.message);
+      if (e2) return showToast('Erro ao eliminar fatura: ' + e2.message);
       await window.loadAllData();
     };
 
@@ -1979,7 +2481,7 @@ TEXTO: ${pdfText.slice(0, 45000)}`;
 
     window.openConfigModal = function() { $('inputGeminiKey').value = localStorage.getItem('set_gemini_key') || ''; $('modalConfig').classList.remove('hidden'); };
     window.closeConfigModal = function() { $('modalConfig').classList.add('hidden'); };
-    window.saveGeminiKey = function() { localStorage.setItem('set_gemini_key', $('inputGeminiKey').value.trim()); window.closeConfigModal(); };
+    window.saveGeminiKey = function() { localStorage.setItem('set_gemini_key', $('inputGeminiKey').value.trim()); window.closeConfigModal(); showToast('Chave API salva com sucesso.', 'success'); };
 
     window.initTheme();
     if (window.supabaseClient) {
