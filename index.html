@@ -1293,43 +1293,109 @@ REGRA CRÍTICA — EXTRAÇÃO COMPLETA DE ENCARGOS DO BANCO/EMISSOR:
 
 TEXTO: ${pdfText.slice(0, 45000)}`;
 
-      // Modelo fixo de texto. Não consultar /models e nunca escolher o último
-      // modelo alfabeticamente: isso podia selecionar modelos Omni de vídeo.
-      // Gemini 3.8 Flash é um modelo estável para análise de texto/documentos.
-      const targetModel = 'gemini-3.8-flash';
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${encodeURIComponent(apiKey)}`;
-      const resp = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.1, responseMimeType: 'application/json' }
-        })
-      });
+      // Modelos fixos de texto com fallback automático em caso de pico de demanda (503).
+      // Não consultar /models e nunca escolher o último modelo alfabeticamente.
+      const candidateModels = ['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite'];
+      const maxAttemptsPerModel = 3;
+      const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-      if (!resp.ok) {
-        const errBody = await resp.json().catch(() => ({}));
-        const apiMessage = errBody?.error?.message || `HTTP ${resp.status} - Falha na API Gemini.`;
-        const apiStatus = errBody?.error?.status || '';
-        if (resp.status === 429 || apiStatus === 'RESOURCE_EXHAUSTED') {
-          throw new Error(
-            `A cota do Gemini para o projeto desta chave está esgotada ou zerada. ` +
-            `O script agora usa ${targetModel}, sem selecionar modelos de vídeo. ` +
-            `Se o erro persistir, confira os limites ativos e o faturamento do projeto no Google AI Studio. ` +
-            `Trocar apenas a chave por outra do mesmo projeto não aumenta a cota. Detalhe: ${apiMessage}`
-          );
+      let lastError = null;
+
+      for (let mIdx = 0; mIdx < candidateModels.length; mIdx++) {
+        const targetModel = candidateModels[mIdx];
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+        if (mIdx > 0) {
+          animateProgressTo(60 + mIdx * 10, `Servidor ocupado. A tentar modelo alternativo (${targetModel})...`);
+          addLog(`Fallback automático para o modelo ${targetModel}`);
         }
-        if (resp.status === 400 || resp.status === 404) {
-          throw new Error(`O modelo ${targetModel} não está disponível para esta chave/projeto ou a solicitação foi recusada. Confira o acesso ao modelo no Google AI Studio. Detalhe: ${apiMessage}`);
+
+        for (let attempt = 1; attempt <= maxAttemptsPerModel; attempt++) {
+          let resp;
+          try {
+            resp = await fetch(endpoint, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { temperature: 0.1, responseMimeType: 'application/json' }
+              })
+            });
+          } catch (networkErr) {
+            lastError = new Error(`Falha de rede ao contactar o Gemini (${targetModel}): ${networkErr.message}`);
+            if (attempt < maxAttemptsPerModel) {
+              const waitMs = Math.pow(2, attempt - 1) * 1500;
+              animateProgressTo(55 + attempt * 5, `Falha de ligação. Nova tentativa (${attempt + 1}/${maxAttemptsPerModel})...`);
+              await sleep(waitMs);
+              continue;
+            }
+            break;
+          }
+
+          if (resp.ok) {
+            const data = await resp.json();
+            let raw = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').replace(/```json/gi, '').replace(/```/g, '').trim();
+            const jm = raw.match(/\{[\s\S]*\}/);
+            if (jm) raw = jm[0];
+            if (mIdx > 0 || attempt > 1) {
+              addLog(`Fatura analisada com sucesso via ${targetModel} (tentativa ${attempt})`);
+            }
+            return JSON.parse(raw);
+          }
+
+          const errBody = await resp.json().catch(() => ({}));
+          const apiMessage = errBody?.error?.message || `HTTP ${resp.status} - Falha na API Gemini.`;
+          const apiStatus = errBody?.error?.status || '';
+          const msgLower = apiMessage.toLowerCase();
+
+          const isOverloaded =
+            resp.status === 503 ||
+            resp.status === 500 ||
+            resp.status === 504 ||
+            apiStatus === 'UNAVAILABLE' ||
+            msgLower.includes('high demand') ||
+            msgLower.includes('overloaded') ||
+            msgLower.includes('temporarily unavailable');
+
+          if (isOverloaded) {
+            lastError = new Error(`Os servidores do Gemini estão temporariamente sobrecarregados (${targetModel}). Tente novamente em alguns instantes. Detalhe: ${apiMessage}`);
+            if (attempt < maxAttemptsPerModel) {
+              const waitMs = Math.pow(2, attempt - 1) * 1500;
+              animateProgressTo(55 + attempt * 5, `Gemini ocupado (${targetModel}). A tentar novamente (${attempt + 1}/${maxAttemptsPerModel})...`);
+              addLog(`Modelo ${targetModel} sobrecarregado (tentativa ${attempt}/${maxAttemptsPerModel}). A aguardar ${waitMs}ms...`);
+              await sleep(waitMs);
+              continue;
+            }
+            // Esgotou tentativas neste modelo -> passa ao modelo alternativo seguinte
+            break;
+          }
+
+          if (resp.status === 429 || apiStatus === 'RESOURCE_EXHAUSTED') {
+            lastError = new Error(
+              `A cota do Gemini para o projeto desta chave está esgotada ou zerada. ` +
+              `O script usa ${targetModel}, sem selecionar modelos de vídeo. ` +
+              `Se o erro persistir, confira os limites ativos e o faturamento do projeto no Google AI Studio. ` +
+              `Trocar apenas a chave por outra do mesmo projeto não aumenta a cota. Detalhe: ${apiMessage}`
+            );
+            // Tenta próximo modelo alternativo caso tenha cota separada
+            break;
+          }
+
+          if (resp.status === 404) {
+            lastError = new Error(`O modelo ${targetModel} não está disponível para esta chave/projeto. Confira o acesso ao modelo no Google AI Studio. Detalhe: ${apiMessage}`);
+            // Tenta próximo modelo alternativo
+            break;
+          }
+
+          if (resp.status === 400) {
+            throw new Error(`A solicitação foi recusada pelo modelo ${targetModel}. Confira a chave API no Google AI Studio. Detalhe: ${apiMessage}`);
+          }
+
+          throw new Error(apiMessage);
         }
-        throw new Error(apiMessage);
       }
 
-      const data = await resp.json();
-      let raw = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').replace(/```json/gi, '').replace(/```/g, '').trim();
-      const jm = raw.match(/\{[\s\S]*\}/);
-      if (jm) raw = jm[0];
-      return JSON.parse(raw);
+      throw lastError || new Error('Não foi possível processar a fatura no momento. Tente novamente em alguns segundos.');
     };
 
     window.showInvoiceAIModal = function(data) {
